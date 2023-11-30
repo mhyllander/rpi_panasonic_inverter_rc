@@ -34,15 +34,19 @@ func printLircData(label string, d uint32) {
 	}
 }
 
-func processMessages(messageStream chan []Frame, processor func([]Frame), options *ReaderOptions) {
+func processMessages(messageStream chan *Message, processor func(*Message), options *ReaderOptions) {
 	for {
 		msg := <-messageStream
 		processor(msg)
 	}
 }
 
-func processLircRawData(lircStream chan uint32, messageStream chan []Frame, options *ReaderOptions) {
-	lircData := make([]uint32, 0, 10240)
+func newBuffer() []uint32 {
+	return make([]uint32, 0, 10240)
+}
+
+func processLircRawData(lircStream chan uint32, messageStream chan *Message, options *ReaderOptions) {
+	lircData := newBuffer()
 	for {
 		d := <-lircStream
 		if options.Raw {
@@ -56,22 +60,21 @@ func processLircRawData(lircStream chan uint32, messageStream chan []Frame, opti
 			printLircData("clean", d)
 		}
 		lircData = append(lircData, d)
-		if len(lircData) < PANASONIC_LIRC_ITEMS {
-			// read more until the minimum required bytes in a message have been received
+		msg, remainingData, state := readPanasonicMessage(lircData, options)
+		if state.status == PARSE_NOT_ENOUGH_DATA || state.status == PARSE_END_OF_DATA {
 			continue
 		}
-		frames, remaningData, err := readPanasonicMessage(lircData)
-		if err != nil {
-			if options.Trace {
-				fmt.Println(err)
-			}
+		if state.status != PARSE_OK {
+			fmt.Println(state)
+			// failure recovery: create a new empty buffer if we can't parse the current one
+			lircData = newBuffer()
 			continue
 		}
 		// send message
-		messageStream <- frames
+		messageStream <- msg
 		// copy remaining data to start of lircData
-		lircData = lircData[:len(remaningData)]
-		copy(lircData, remaningData)
+		lircData = lircData[:len(remainingData)]
+		copy(lircData, remainingData)
 	}
 }
 
@@ -83,7 +86,7 @@ func disableTimeoutReports(f *os.File) {
 	}
 }
 
-func StartReader(file string, processor func([]Frame), options *ReaderOptions) error {
+func StartReader(file string, processor func(*Message), options *ReaderOptions) error {
 	f, err := os.Open(file)
 	if err != nil {
 		return err
@@ -95,7 +98,7 @@ func StartReader(file string, processor func([]Frame), options *ReaderOptions) e
 	}
 
 	lircStream := make(chan uint32)
-	messageStream := make(chan []Frame)
+	messageStream := make(chan *Message)
 	go processLircRawData(lircStream, messageStream, options)
 	go processMessages(messageStream, processor, options)
 

@@ -27,44 +27,41 @@ func printMessageDiff(prevS, curS string) {
 }
 
 func printParams(f codec.Frame) {
-	power := f.ValueFromOneByte(codec.PANASONIC_POWER_BYTE, codec.PANASONIC_POWER_MASK)
-	temp := f.ValueFromOneByte(codec.PANASONIC_TEMP_BYTE, codec.PANASONIC_TEMP_MASK)
-	mode := f.ValueFromOneByte(codec.PANASONIC_MODE_BYTE, codec.PANASONIC_MODE_MASK)
-	fan := f.ValueFromOneByte(codec.PANASONIC_FAN_BYTE, codec.PANASONIC_FAN_MASK)
-	quiet := f.ValueFromOneByte(codec.PANASONIC_QUIET_BYTE, codec.PANASONIC_QUIET_MASK)
-	powerful := f.ValueFromOneByte(codec.PANASONIC_POWERFUL_BYTE, codec.PANASONIC_POWERFUL_MASK)
-	hpos := f.ValueFromOneByte(codec.PANASONIC_VENT_HPOS_BYTE, codec.PANASONIC_VENT_HPOS_MASK)
-	vpos := f.ValueFromOneByte(codec.PANASONIC_VENT_VPOS_BYTE, codec.PANASONIC_VENT_VPOS_MASK)
+	power := f.GetValue(codec.PANASONIC_POWER_BIT0, codec.PANASONIC_POWER_BITS)
+	temp := f.GetValue(codec.PANASONIC_TEMP_BIT0, codec.PANASONIC_TEMP_BITS)
+	mode := f.GetValue(codec.PANASONIC_MODE_BIT0, codec.PANASONIC_MODE_BITS)
+	fan := f.GetValue(codec.PANASONIC_FAN_BIT0, codec.PANASONIC_FAN_BITS)
+	quiet := f.GetValue(codec.PANASONIC_QUIET_BIT0, codec.PANASONIC_QUIET_BITS)
+	powerful := f.GetValue(codec.PANASONIC_POWERFUL_BIT0, codec.PANASONIC_POWERFUL_BITS)
+	hpos := f.GetValue(codec.PANASONIC_VENT_HPOS_BIT0, codec.PANASONIC_VENT_HPOS_BITS)
+	vpos := f.GetValue(codec.PANASONIC_VENT_VPOS_BIT0, codec.PANASONIC_VENT_VPOS_BITS)
 
 	fmt.Printf("power=%d mode=%d temp=%d fan=%d quiet=%d powerful=%d hpos=%d vpos=%d\n",
 		power, mode, temp, fan, quiet, powerful, hpos, vpos)
 
-	clock := f.ValueFromTwoBytes(codec.PANASONIC_CLOCK_BYTE1, codec.PANASONIC_CLOCK_MASK1, codec.PANASONIC_CLOCK_BYTE2, codec.PANASONIC_CLOCK_MASK2)
-	clock_set := clock != codec.PANASONIC_TIME_UNSET
+	clock := f.GetValue(codec.PANASONIC_CLOCK_BIT0, codec.PANASONIC_CLOCK_BITS)
 
-	timer_on_enabled := f.ValueFromOneByte(codec.PANASONIC_TIMER_ON_ENABLED_BYTE, codec.PANASONIC_TIMER_ON_ENABLED_MASK)
-	timer_on_time := f.ValueFromTwoBytes(codec.PANASONIC_TIMER_ON_TIME_BYTE1, codec.PANASONIC_TIMER_ON_TIME_MASK1, codec.PANASONIC_TIMER_ON_TIME_BYTE2, codec.PANASONIC_TIMER_ON_TIME_MASK2)
-	timer_on_time_set := timer_on_time != codec.PANASONIC_TIME_UNSET
+	timer_on_enabled := f.GetValue(codec.PANASONIC_TIMER_ON_ENABLED_BIT0, codec.PANASONIC_TIMER_ON_ENABLED_BITS)
+	timer_on_time := f.GetValue(codec.PANASONIC_TIMER_ON_TIME_BIT0, codec.PANASONIC_TIMER_ON_TIME_BITS)
 
-	timer_off_enabled := f.ValueFromOneByte(codec.PANASONIC_TIMER_OFF_ENABLED_BYTE, codec.PANASONIC_TIMER_OFF_ENABLED_MASK)
-	timer_off_time := f.ValueFromTwoBytes(codec.PANASONIC_TIMER_OFF_TIME_BYTE1, codec.PANASONIC_TIMER_OFF_TIME_MASK1, codec.PANASONIC_TIMER_OFF_TIME_BYTE2, codec.PANASONIC_TIMER_OFF_TIME_MASK2)
-	timer_off_time_set := timer_off_time != codec.PANASONIC_TIME_UNSET
+	timer_off_enabled := f.GetValue(codec.PANASONIC_TIMER_OFF_ENABLED_BIT0, codec.PANASONIC_TIMER_OFF_ENABLED_BITS)
+	timer_off_time := f.GetValue(codec.PANASONIC_TIMER_OFF_TIME_BIT0, codec.PANASONIC_TIMER_OFF_TIME_BITS)
 
 	fmt.Printf(
-		"Clock set=%t time=%02d:%02d, Timer_On enabled=%d set=%t time=%02d:%02d, Timer_Off enabled=%d set=%t time=%02d:%02d\n",
-		clock_set, clock/60, clock%60,
-		timer_on_enabled, timer_on_time_set, timer_on_time/60, timer_on_time%60,
-		timer_off_enabled, timer_off_time_set, timer_off_time/60, timer_off_time%60,
+		"Clock time=%02d:%02d, Timer_On enabled=%d time=%02d:%02d, Timer_Off enabled=%d time=%02d:%02d\n",
+		clock/60, clock%60,
+		timer_on_enabled, timer_on_time/60, timer_on_time%60,
+		timer_off_enabled, timer_off_time/60, timer_off_time%60,
 	)
 }
 
-func messageProcessor(options *codec.ReaderOptions) func([]codec.Frame) {
+func messageProcessor(options *codec.ReaderOptions) func(*codec.Message) {
 	prevS := ""
-	return func(msg []codec.Frame) {
-		curS := msg[1].ToTraceString()
+	return func(msg *codec.Message) {
+		curS := msg.Frame2.ToTraceString()
 		if options.Trace {
-			fmt.Printf("Message, frames=%d\n", len(msg))
-			fmt.Printf("%d: %s\n", 1, msg[0].ToTraceString())
+			fmt.Printf("Message\n")
+			fmt.Printf("%d: %s\n", 1, msg.Frame1.ToTraceString())
 		}
 		if options.Trace || options.Diff {
 			fmt.Printf("%d: %s\n", 2, curS)
@@ -73,8 +70,13 @@ func messageProcessor(options *codec.ReaderOptions) func([]codec.Frame) {
 			// compare current frames with previous
 			printMessageDiff(prevS, curS)
 		}
+		if options.Trace {
+			fmt.Println("Byte representation of BitSet:")
+			fmt.Printf("  %d: %s\n", 1, msg.Frame1.ToByteString())
+			fmt.Printf("  %d: %s\n", 2, msg.Frame2.ToByteString())
+		}
 		if options.Param {
-			printParams(msg[1])
+			printParams(msg.Frame2)
 		}
 		prevS = curS
 	}
