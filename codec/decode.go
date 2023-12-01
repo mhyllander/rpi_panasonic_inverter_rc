@@ -124,7 +124,7 @@ func appendPanasonicBit(space uint32, frame *Frame) error {
 	return nil
 }
 
-func parsePanasonicFrame(lircData []uint32, pos int, nBits int, frame *Frame, options *ReaderOptions) parseState {
+func parsePanasonicFrame(lircData []uint32, pos int, nBits int, frame *Frame, options *ReceiverOptions) parseState {
 	state := skipPulse(lircData, pos, PANASONIC_FRAME_MARK1)
 	if state.status != PARSE_OK {
 		if options.Trace {
@@ -161,7 +161,7 @@ func parsePanasonicFrame(lircData []uint32, pos int, nBits int, frame *Frame, op
 	return state
 }
 
-func readPanasonicMessage(lircData []uint32, options *ReaderOptions) (*Message, []uint32, parseState) {
+func readPanasonicMessage(lircData []uint32, options *ReceiverOptions) (*Message, []uint32, parseState) {
 	if len(lircData) < PANASONIC_LIRC_ITEMS {
 		// read more until the minimum required bytes in a message have been received
 		return nil, lircData, parseState{0, PARSE_NOT_ENOUGH_DATA, "expecting more data"}

@@ -7,13 +7,13 @@ import (
 )
 
 type Frame interface {
-	AppendBit(bit uint) int
+	AppendBit(bit uint) (nBits int)
 	GetValue(bitIndex uint, numberOfBits uint) uint64
 	SetValue(value uint64, bitIndex uint, numberOfBits uint) Frame
-	GetCheckSum() byte
+	GetChecksum() byte
 	ComputeChecksum() byte
 	VerifyChecksum() bool
-	ToTraceString() (string, string)
+	ToTraceString() (traceS, posS string)
 	ToBitStream() string
 	ToByteString() string
 }
@@ -39,12 +39,12 @@ func NewMessage() *Message {
 
 // return an initialized message suitable for sending
 func InitializedMessage() *Message {
-	var bs1, bs2 *big.Int
+	var bs1, bs2 big.Int
 	bs1.SetBytes(PANASONIC_FRAME1())
 	bs2.SetBytes(PANASONIC_FRAME2())
 	msg := Message{
-		Frame1: &BitSet{bs1, PANASONIC_BITS_FRAME1},
-		Frame2: &BitSet{bs2, PANASONIC_BITS_FRAME2},
+		Frame1: &BitSet{&bs1, PANASONIC_BITS_FRAME1},
+		Frame2: &BitSet{&bs2, PANASONIC_BITS_FRAME2},
 	}
 	return &msg
 }
@@ -53,7 +53,7 @@ func InitializedMessage() *Message {
 // The bits are sent in little endian order. By appending each bit to the left in the Int,
 // we maintain the abstraction that the first bit sent is at index 0, while at the same time
 // converting to big endian.
-func (f *BitSet) AppendBit(bit uint) int {
+func (f *BitSet) AppendBit(bit uint) (nBits int) {
 	f.bits.SetBit(f.bits, f.n, bit)
 	f.n++
 	return f.n
@@ -84,9 +84,9 @@ func (f *BitSet) SetValue(value uint64, bitIndex uint, numberOfBits uint) Frame 
 	return f
 }
 
-func (f *BitSet) ToTraceString() (string, string) {
+func (f *BitSet) ToTraceString() (traceS, posS string) {
 	checksumOK := f.VerifyChecksum()
-	posS := ""
+	posS = ""
 	for i := 0; i < f.n; i += 8 {
 		posS = fmt.Sprintf("%9d", i) + posS
 	}
@@ -117,7 +117,7 @@ func (f *BitSet) ToByteString() string {
 	return "{" + s + "}"
 }
 
-func (f *BitSet) GetCheckSum() byte {
+func (f *BitSet) GetChecksum() byte {
 	if f.n == 0 {
 		return 0
 	}
@@ -139,5 +139,5 @@ func (f *BitSet) ComputeChecksum() byte {
 }
 
 func (f *BitSet) VerifyChecksum() bool {
-	return f.ComputeChecksum() == f.GetCheckSum()
+	return f.ComputeChecksum() == f.GetChecksum()
 }

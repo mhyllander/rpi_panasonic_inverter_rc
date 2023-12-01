@@ -7,6 +7,13 @@ import (
 	"panasonic_irc/codec"
 )
 
+type Options struct {
+	Byte       bool
+	Diff       bool
+	Param      bool
+	recOptions *codec.ReceiverOptions
+}
+
 func printMessageDiff(prevS, curS string) {
 	diffS := "   "
 	cmp := false
@@ -32,23 +39,21 @@ func printParams(msg *codec.Message) {
 	fmt.Printf("power=%d mode=%d powerful=%d quiet=%d temp=%d fan=%d vpos=%d hpos=%d\n",
 		c.Power, c.Mode, c.Powerful, c.Quiet, c.Temperature, c.FanSpeed, c.VentVertical, c.VentHorizontal)
 
-	ctime := codec.Time(msg.Frame2.GetValue(codec.PANASONIC_CLOCK_BIT0, codec.PANASONIC_CLOCK_BITS))
-
 	fmt.Printf(
-		"Timer_On enabled=%d time=%s, Timer_Off enabled=%d time=%s, Clock time=%s, \n",
-		c.TimerOnEnabled, c.TimerOn, c.TimerOffEnabled, c.TimerOff, ctime)
+		"timer_on: enabled=%d time=%s,  timer_off: enabled=%d time=%s,  clock: time=%s\n",
+		c.TimerOnEnabled, c.TimerOn, c.TimerOffEnabled, c.TimerOff, c.Clock)
 }
 
-func messageProcessor(options *codec.ReaderOptions) func(*codec.Message) {
+func messageHandler(options *Options) func(*codec.Message) {
 	prevS := ""
 	return func(msg *codec.Message) {
 		curS, posS := msg.Frame2.ToTraceString()
-		if options.Trace {
+		if options.recOptions.Trace {
 			fmt.Printf("Message as bit stream (first and least significant bit to the right)\n")
 			t, p := msg.Frame1.ToTraceString()
 			fmt.Printf("   %s\n%d: %s\n", p, 1, t)
 		}
-		if options.Trace || options.Diff {
+		if options.recOptions.Trace || options.Diff {
 			fmt.Printf("   %s\n%d: %s\n", posS, 2, curS)
 		}
 		if options.Diff && prevS != "" {
@@ -90,17 +95,20 @@ func main() {
 		os.Exit(1)
 	}
 
-	options := codec.ReaderOptions{
+	recOptions := codec.ReceiverOptions{
 		Socket: *vSocket,
 		Raw:    *vRaw,
 		Clean:  *vClean,
 		Trace:  *vTrace,
-		Byte:   *vByte,
-		Diff:   *vDiff,
-		Param:  *vParam,
+	}
+	options := Options{
+		Byte:       *vByte,
+		Diff:       *vDiff,
+		Param:      *vParam,
+		recOptions: &recOptions,
 	}
 
-	err := codec.StartReader(*vFile, messageProcessor(&options), &options)
+	err := codec.StartReceiver(*vFile, messageHandler(&options), &recOptions)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

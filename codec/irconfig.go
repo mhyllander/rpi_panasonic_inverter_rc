@@ -61,6 +61,7 @@ type IrConfig struct {
 
 	TimerOn  Time
 	TimerOff Time
+	Clock    Time
 }
 
 type Time uint16
@@ -95,8 +96,9 @@ func NewIrConfig(msg *Message) IrConfig {
 		VentHorizontal:  VentHorizontal_Auto,
 		TimerOnEnabled:  Timer_Disabled,
 		TimerOffEnabled: Timer_Disabled,
-		TimerOn:         NewTime(9, 0),
-		TimerOff:        NewTime(21, 0),
+		TimerOn:         PANASONIC_TIME_UNSET,
+		TimerOff:        PANASONIC_TIME_UNSET,
+		Clock:           PANASONIC_TIME_UNSET,
 	}
 	if msg == nil {
 		return irconf
@@ -118,6 +120,8 @@ func NewIrConfig(msg *Message) IrConfig {
 	irconf.TimerOn = Time(timer_on_time)
 	timer_off_time := f.GetValue(PANASONIC_TIMER_OFF_TIME_BIT0, PANASONIC_TIMER_OFF_TIME_BITS)
 	irconf.TimerOff = Time(timer_off_time)
+	clock_time := f.GetValue(PANASONIC_CLOCK_BIT0, PANASONIC_CLOCK_BITS)
+	irconf.Clock = Time(clock_time)
 
 	return irconf
 }
@@ -136,6 +140,7 @@ func (c IrConfig) ToMessage() *Message {
 		SetValue(uint64(c.TimerOnEnabled), PANASONIC_TIMER_ON_ENABLED_BIT0, PANASONIC_TIMER_ON_ENABLED_BITS).
 		SetValue(uint64(c.TimerOffEnabled), PANASONIC_TIMER_OFF_ENABLED_BIT0, PANASONIC_TIMER_OFF_ENABLED_BITS).
 		SetValue(uint64(c.TimerOn), PANASONIC_TIMER_ON_TIME_BIT0, PANASONIC_TIMER_ON_TIME_BITS).
-		SetValue(uint64(c.TimerOff), PANASONIC_TIMER_OFF_TIME_BIT0, PANASONIC_TIMER_OFF_TIME_BITS)
+		SetValue(uint64(c.TimerOff), PANASONIC_TIMER_OFF_TIME_BIT0, PANASONIC_TIMER_OFF_TIME_BITS).
+		SetValue(uint64(c.Clock), PANASONIC_CLOCK_BIT0, PANASONIC_CLOCK_BITS)
 	return msg
 }

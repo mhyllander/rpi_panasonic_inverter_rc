@@ -8,14 +8,11 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-type ReaderOptions struct {
+type ReceiverOptions struct {
 	Socket bool
 	Raw    bool
 	Clean  bool
 	Trace  bool
-	Byte   bool
-	Diff   bool
-	Param  bool
 }
 
 func printLircData(label string, d uint32) {
@@ -35,7 +32,7 @@ func printLircData(label string, d uint32) {
 	}
 }
 
-func processMessages(messageStream chan *Message, processor func(*Message), options *ReaderOptions) {
+func processMessages(messageStream chan *Message, processor func(*Message), options *ReceiverOptions) {
 	for {
 		msg := <-messageStream
 		processor(msg)
@@ -46,7 +43,7 @@ func newBuffer() []uint32 {
 	return make([]uint32, 0, 10240)
 }
 
-func processLircRawData(lircStream chan uint32, messageStream chan *Message, options *ReaderOptions) {
+func processLircRawData(lircStream chan uint32, messageStream chan *Message, options *ReceiverOptions) {
 	lircData := newBuffer()
 	for {
 		d := <-lircStream
@@ -87,7 +84,7 @@ func disableTimeoutReports(f *os.File) {
 	}
 }
 
-func StartReader(file string, processor func(*Message), options *ReaderOptions) error {
+func StartReceiver(file string, messageHandler func(*Message), options *ReceiverOptions) error {
 	f, err := os.Open(file)
 	if err != nil {
 		return err
@@ -101,7 +98,7 @@ func StartReader(file string, processor func(*Message), options *ReaderOptions) 
 	lircStream := make(chan uint32)
 	messageStream := make(chan *Message)
 	go processLircRawData(lircStream, messageStream, options)
-	go processMessages(messageStream, processor, options)
+	go processMessages(messageStream, messageHandler, options)
 
 	readBuffer := make([]byte, 10240)
 	for {

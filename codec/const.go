@@ -1,5 +1,7 @@
 package codec
 
+// ---------------------------------------------------------------------------------------------------
+// Constants related to receiving and parsing LIRC
 const (
 	LIRC_MODE2_SPACE     = 0x00000000
 	LIRC_MODE2_PULSE     = 0x01000000
@@ -33,7 +35,16 @@ const (
 	// Pulses and spaces required to transmit 2 frames. Each frame begins with two markers (pulse + space),
 	// followed by the frame data which starts and ends with a pulse. The frames are separated by a space marker.
 	PANASONIC_LIRC_ITEMS = (2 + PANASONIC_BITS_FRAME1*2 + 1) + 1 + (2 + PANASONIC_BITS_FRAME2*2 + 1)
+)
 
+// these are the timings used by the Panasonic IR Controller A75C3115
+func PANASONIC_IR_TIMINGS() []uint32 {
+	return []uint32{PANASONIC_FRAME_MARK1, PANASONIC_FRAME_MARK2, PANASONIC_SEPARATOR, PANASONIC_PULSE, PANASONIC_SPACE_0, PANASONIC_SPACE_1}
+}
+
+// ---------------------------------------------------------------------------------------------------
+// Constants related to the Panasonic IR Controller A75C3115 configuration data structure
+const (
 	// power
 	PANASONIC_POWER_BIT0 = 40
 	PANASONIC_POWER_BITS = 1
@@ -126,11 +137,6 @@ const (
 	PANASONIC_TIME_UNSET = 0x600
 )
 
-// these are the timings used by the Panasonic IR Controller A75C3115
-func PANASONIC_IR_TIMINGS() []uint32 {
-	return []uint32{PANASONIC_FRAME_MARK1, PANASONIC_FRAME_MARK2, PANASONIC_SEPARATOR, PANASONIC_PULSE, PANASONIC_SPACE_0, PANASONIC_SPACE_1}
-}
-
 // this is the constant first frame (64 bits) used by the Panasonic IR Controller A75C3115
 func PANASONIC_FRAME1() []byte {
 	// this is the value in big.Int as bytes, which can be used to initialize a message when sending
@@ -141,24 +147,24 @@ func PANASONIC_FRAME1() []byte {
 func PANASONIC_FRAME2() []byte {
 	// this is the value in big.Int as bytes, which can be used to initialize a message when sending
 	return []byte{
-		0b00000000, // 18: checksum (8 bits)
-		0b00000000, // 17: unused (5 bits), clock time (3 bits)
-		0b00000000, // 16: clock time (8 bits)
-		0b10000000, // 15: unused?
-		0b00000000, // 14: unused?
-		0b00000000, // 13: powerful, quiet (6 unused bits?)
-		0b10000000, // 12: unused (1 bit), timer off (7 bits)
-		0b00001000, // 11: timer off (4 bits), unused (1 bit), timer on (3 bits)
-		0b00000000, // 10: timer on (8 bits)
-		0b00000000, // 9: unused (4 bits), vent hpos (4 bits)
-		0b00000000, // 8: fan speed (4 bits), vent vpos (4 bits)
-		0b10000000, // 7: unused?
-		0b00000000, // 6: unused (2 bits), temperature (5 bits), unused (1 bit)
-		0b01001000, // 5: power, timer on, timer off (5 unused bits?)
-		0b00000000, // 4: unused?
-		0b00000100, // 3: unused?
-		0b11100000, // 2: unused?
-		0b00100000, // 1: unused?
-		0b00000010, // 0: unused?
+		0b00000000, // checksum (8 bits)
+		0b00000000, // unused (5 bits), clock time (3 bits)
+		0b00000000, // clock time (8 bits)
+		0b10000000, // unused?
+		0b00000000, // unused?
+		0b00000000, // powerful, quiet (6 unused bits?)
+		0b10000000, // unused (1 bit), timer off (7 bits)
+		0b00001000, // timer off (4 bits), unused (1 bit), timer on (3 bits)
+		0b00000000, // timer on (8 bits)
+		0b00000000, // unused (4 bits), vent hpos (4 bits)
+		0b00000000, // fan speed (4 bits), vent vpos (4 bits)
+		0b10000000, // unused?
+		0b00000000, // unused (2 bits), temperature (5 bits), unused (1 bit)
+		0b01001000, // power, timer on, timer off (5 unused bits?)
+		0b00000000, // unused?
+		0b00000100, // unused?
+		0b11100000, // unused?
+		0b00100000, // unused?
+		0b00000010, // unused?
 	}
 }
