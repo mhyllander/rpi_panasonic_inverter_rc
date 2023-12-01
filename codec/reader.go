@@ -13,6 +13,7 @@ type ReaderOptions struct {
 	Raw    bool
 	Clean  bool
 	Trace  bool
+	Byte   bool
 	Diff   bool
 	Param  bool
 }

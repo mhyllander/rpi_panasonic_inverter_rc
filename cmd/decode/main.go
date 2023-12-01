@@ -26,57 +26,42 @@ func printMessageDiff(prevS, curS string) {
 	fmt.Println(diffS)
 }
 
-func printParams(f codec.Frame) {
-	power := f.GetValue(codec.PANASONIC_POWER_BIT0, codec.PANASONIC_POWER_BITS)
-	temp := f.GetValue(codec.PANASONIC_TEMP_BIT0, codec.PANASONIC_TEMP_BITS)
-	mode := f.GetValue(codec.PANASONIC_MODE_BIT0, codec.PANASONIC_MODE_BITS)
-	fan := f.GetValue(codec.PANASONIC_FAN_BIT0, codec.PANASONIC_FAN_BITS)
-	quiet := f.GetValue(codec.PANASONIC_QUIET_BIT0, codec.PANASONIC_QUIET_BITS)
-	powerful := f.GetValue(codec.PANASONIC_POWERFUL_BIT0, codec.PANASONIC_POWERFUL_BITS)
-	hpos := f.GetValue(codec.PANASONIC_VENT_HPOS_BIT0, codec.PANASONIC_VENT_HPOS_BITS)
-	vpos := f.GetValue(codec.PANASONIC_VENT_VPOS_BIT0, codec.PANASONIC_VENT_VPOS_BITS)
+func printParams(msg *codec.Message) {
+	c := codec.NewIrConfig(msg)
 
-	fmt.Printf("power=%d mode=%d temp=%d fan=%d quiet=%d powerful=%d hpos=%d vpos=%d\n",
-		power, mode, temp, fan, quiet, powerful, hpos, vpos)
+	fmt.Printf("power=%d mode=%d powerful=%d quiet=%d temp=%d fan=%d vpos=%d hpos=%d\n",
+		c.Power, c.Mode, c.Powerful, c.Quiet, c.Temperature, c.FanSpeed, c.VentVertical, c.VentHorizontal)
 
-	clock := f.GetValue(codec.PANASONIC_CLOCK_BIT0, codec.PANASONIC_CLOCK_BITS)
-
-	timer_on_enabled := f.GetValue(codec.PANASONIC_TIMER_ON_ENABLED_BIT0, codec.PANASONIC_TIMER_ON_ENABLED_BITS)
-	timer_on_time := f.GetValue(codec.PANASONIC_TIMER_ON_TIME_BIT0, codec.PANASONIC_TIMER_ON_TIME_BITS)
-
-	timer_off_enabled := f.GetValue(codec.PANASONIC_TIMER_OFF_ENABLED_BIT0, codec.PANASONIC_TIMER_OFF_ENABLED_BITS)
-	timer_off_time := f.GetValue(codec.PANASONIC_TIMER_OFF_TIME_BIT0, codec.PANASONIC_TIMER_OFF_TIME_BITS)
+	ctime := codec.Time(msg.Frame2.GetValue(codec.PANASONIC_CLOCK_BIT0, codec.PANASONIC_CLOCK_BITS))
 
 	fmt.Printf(
-		"Clock time=%02d:%02d, Timer_On enabled=%d time=%02d:%02d, Timer_Off enabled=%d time=%02d:%02d\n",
-		clock/60, clock%60,
-		timer_on_enabled, timer_on_time/60, timer_on_time%60,
-		timer_off_enabled, timer_off_time/60, timer_off_time%60,
-	)
+		"Timer_On enabled=%d time=%s, Timer_Off enabled=%d time=%s, Clock time=%s, \n",
+		c.TimerOnEnabled, c.TimerOn, c.TimerOffEnabled, c.TimerOff, ctime)
 }
 
 func messageProcessor(options *codec.ReaderOptions) func(*codec.Message) {
 	prevS := ""
 	return func(msg *codec.Message) {
-		curS := msg.Frame2.ToTraceString()
+		curS, posS := msg.Frame2.ToTraceString()
 		if options.Trace {
-			fmt.Printf("Message\n")
-			fmt.Printf("%d: %s\n", 1, msg.Frame1.ToTraceString())
+			fmt.Printf("Message as bit stream (first and least significant bit to the right)\n")
+			t, p := msg.Frame1.ToTraceString()
+			fmt.Printf("   %s\n%d: %s\n", p, 1, t)
 		}
 		if options.Trace || options.Diff {
-			fmt.Printf("%d: %s\n", 2, curS)
+			fmt.Printf("   %s\n%d: %s\n", posS, 2, curS)
 		}
 		if options.Diff && prevS != "" {
 			// compare current frames with previous
 			printMessageDiff(prevS, curS)
 		}
-		if options.Trace {
-			fmt.Println("Byte representation of BitSet:")
+		if options.Byte {
+			fmt.Println("Byte representation:")
 			fmt.Printf("  %d: %s\n", 1, msg.Frame1.ToByteString())
 			fmt.Printf("  %d: %s\n", 2, msg.Frame2.ToByteString())
 		}
 		if options.Param {
-			printParams(msg.Frame2)
+			printParams(msg)
 		}
 		prevS = curS
 	}
@@ -88,6 +73,7 @@ func main() {
 	var vRaw = flag.Bool("raw", false, "print raw pulse data")
 	var vClean = flag.Bool("clean", false, "print cleaned up pulse data")
 	var vTrace = flag.Bool("trace", false, "print message trace")
+	var vByte = flag.Bool("byte", false, "print message as bytes")
 	var vDiff = flag.Bool("diff", false, "show difference from previous")
 	var vParam = flag.Bool("param", false, "show decoded params")
 	var vHelp = flag.Bool("help", false, "print usage")
@@ -109,6 +95,7 @@ func main() {
 		Raw:    *vRaw,
 		Clean:  *vClean,
 		Trace:  *vTrace,
+		Byte:   *vByte,
 		Diff:   *vDiff,
 		Param:  *vParam,
 	}

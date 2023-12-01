@@ -3,17 +3,17 @@ package codec
 import (
 	"fmt"
 	"math/big"
-	"math/bits"
 	"strings"
 )
 
 type Frame interface {
 	AppendBit(bit uint) int
 	GetValue(bitIndex uint, numberOfBits uint) uint64
+	SetValue(value uint64, bitIndex uint, numberOfBits uint) Frame
 	GetCheckSum() byte
 	ComputeChecksum() byte
 	VerifyChecksum() bool
-	ToTraceString() string
+	ToTraceString() (string, string)
 	ToBitStream() string
 	ToByteString() string
 }
@@ -28,10 +28,23 @@ type BitSet struct {
 	n    int
 }
 
+// return an empty message suitable for receiving
 func NewMessage() *Message {
 	msg := Message{
 		Frame1: &BitSet{big.NewInt(0), 0},
 		Frame2: &BitSet{big.NewInt(0), 0},
+	}
+	return &msg
+}
+
+// return an initialized message suitable for sending
+func InitializedMessage() *Message {
+	var bs1, bs2 *big.Int
+	bs1.SetBytes(PANASONIC_FRAME1())
+	bs2.SetBytes(PANASONIC_FRAME2())
+	msg := Message{
+		Frame1: &BitSet{bs1, PANASONIC_BITS_FRAME1},
+		Frame2: &BitSet{bs2, PANASONIC_BITS_FRAME2},
 	}
 	return &msg
 }
@@ -58,9 +71,27 @@ func (f *BitSet) GetValue(bitIndex uint, numberOfBits uint) uint64 {
 	return bBits.Rsh(f.bits, bitIndex).And(&bBits, &bMask).Uint64()
 }
 
-func (f BitSet) ToTraceString() string {
+// Sets a value at a certain position in the bit stream. Returns the BitSet.
+func (f *BitSet) SetValue(value uint64, bitIndex uint, numberOfBits uint) Frame {
+	var bBits big.Int
+	bBits.SetUint64(value)
+
+	// copy bits from value to bitset, overwriting any bits already there
+	for i := int(0); i < int(numberOfBits); i++ {
+		f.bits.SetBit(f.bits, i, bBits.Bit(i))
+	}
+
+	return f
+}
+
+func (f *BitSet) ToTraceString() (string, string) {
 	checksumOK := f.VerifyChecksum()
-	return fmt.Sprintf("%4d/%d %s %t", f.n, f.n%8, f.ToBitStream(), checksumOK)
+	posS := ""
+	for i := 0; i < f.n; i += 8 {
+		posS = fmt.Sprintf("%9d", i) + posS
+	}
+	posS = "       " + posS
+	return fmt.Sprintf("%4d/%d %s %t", f.n, f.n%8, f.ToBitStream(), checksumOK), posS
 }
 
 func (f *BitSet) ToBitStream() string {
@@ -69,12 +100,7 @@ func (f *BitSet) ToBitStream() string {
 	}
 	b := make([]byte, (f.n+7)/8)
 	f.bits.FillBytes(b)
-	s := ""
-	for i := len(b) - 1; i >= 0; i-- {
-		s += fmt.Sprintf("%08b ", bits.Reverse8(b[i]))
-	}
-	s, _ = strings.CutSuffix(s, " ")
-	return "[" + s + "]"
+	return fmt.Sprintf("%08b", b)
 }
 
 func (f *BitSet) ToByteString() string {

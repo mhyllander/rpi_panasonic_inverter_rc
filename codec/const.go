@@ -46,27 +46,56 @@ const (
 	PANASONIC_TIMER_OFF_ENABLED_BIT0 = 42
 	PANASONIC_TIMER_OFF_ENABLED_BITS = 1
 
-	// mode: auto=0 heat=4 cool=3 dry=2
+	// mode
 	PANASONIC_MODE_BIT0 = 44
 	PANASONIC_MODE_BITS = 4
+	// values
+	PANASONIC_MODE_AUTO = 0
+	PANASONIC_MODE_DRY  = 2
+	PANASONIC_MODE_COOL = 3
+	PANASONIC_MODE_HEAT = 4
 
-	// temp: 16-30
+	// temperature
 	// defaults: the RC remembers the temperature for each mode
 	PANASONIC_TEMP_BIT0 = 49
 	PANASONIC_TEMP_BITS = 5
+	// values
+	PANASONIC_TEMP_MIN = 16
+	PANASONIC_TEMP_MAX = 30
 
-	// vent vertical position: highest=1 high=2 middle=3 low=4 lowest=5 auto=15
+	// vent vertical position
 	PANASONIC_VENT_VPOS_BIT0 = 64
 	PANASONIC_VENT_VPOS_BITS = 4
+	// values
+	PANASONIC_VENT_VPOS_HIGHEST = 1
+	PANASONIC_VENT_VPOS_HIGH    = 2
+	PANASONIC_VENT_VPOS_MIDDLE  = 3
+	PANASONIC_VENT_VPOS_LOW     = 4
+	PANASONIC_VENT_VPOS_LOWEST  = 5
+	PANASONIC_VENT_VPOS_AUTO    = 15
 
-	// fan speed: one=3 two=4 three=5 four=6 five=7 auto=10
+	// fan speed
 	// defaults: the RC remembers the fan speed for each mode
-	PANASONIC_FAN_BIT0 = 68
-	PANASONIC_FAN_BITS = 4
+	PANASONIC_FAN_SPEED_BIT0 = 68
+	PANASONIC_FAN_SPEED_BITS = 4
+	// values
+	PANASONIC_FAN_SPEED_LOWEST  = 3
+	PANASONIC_FAN_SPEED_LOW     = 4
+	PANASONIC_FAN_SPEED_MIDDLE  = 5
+	PANASONIC_FAN_SPEED_HIGH    = 6
+	PANASONIC_FAN_SPEED_HIGHEST = 7
+	PANASONIC_FAN_SPEED_AUTO    = 10
 
-	// vent horizontal position: far_left=9 left=10 center=6 right=11 far_right=12 auto=13
+	// vent horizontal position
 	PANASONIC_VENT_HPOS_BIT0 = 72
 	PANASONIC_VENT_HPOS_BITS = 4
+	// values
+	PANASONIC_VENT_HPOS_FARLEFT  = 9
+	PANASONIC_VENT_HPOS_LEFT     = 10
+	PANASONIC_VENT_HPOS_MIDDLE   = 6
+	PANASONIC_VENT_HPOS_RIGHT    = 11
+	PANASONIC_VENT_HPOS_FARRIGHT = 12
+	PANASONIC_VENT_HPOS_AUTO     = 13
 
 	// timer on is 11 bits
 	PANASONIC_TIMER_ON_TIME_BIT0 = 80
@@ -100,13 +129,13 @@ func PANASONIC_IR_TIMINGS() []uint32 {
 
 // this is the constant first frame (64 bits) used by the Panasonic IR Controller A75C3115
 func PANASONIC_FRAME1() []byte {
-	// this is the value in big.Int, shown as bytes, which can be used to initialize the frames when sending
+	// this is the value in big.Int as bytes, which can be used to initialize a message when sending
 	return []byte{0b00000110, 0b00000000, 0b00000000, 0b00000000, 0b00000100, 0b11100000, 0b00100000, 0b00000010}
 }
 
 // this is a template for the second frame (152 bits) used by the Panasonic IR Controller A75C3115
 func PANASONIC_FRAME2() []byte {
-	// this is the value in big.Int, shown as bytes, which can be used to initialize the frames when sending
+	// this is the value in big.Int as bytes, which can be used to initialize a message when sending
 	return []byte{
 		0b00000000, // 18: checksum (8 bits)
 		0b00000000, // 17: unused (5 bits), clock time (3 bits)
