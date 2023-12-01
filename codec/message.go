@@ -8,14 +8,16 @@ import (
 
 type Frame interface {
 	AppendBit(bit uint) (nBits int)
-	GetValue(bitIndex uint, numberOfBits uint) uint64
+	GetValue(bitIndex uint, numberOfBits uint) (value uint64)
 	SetValue(value uint64, bitIndex uint, numberOfBits uint) Frame
 	GetChecksum() byte
 	ComputeChecksum() byte
 	VerifyChecksum() bool
+	SetChecksum()
 	ToTraceString() (traceS, posS string)
 	ToBitStream() string
 	ToByteString() string
+	Equal(other Frame) bool
 }
 
 type Message struct {
@@ -64,23 +66,22 @@ func (f *BitSet) AppendBit(bit uint) (nBits int) {
 // the least significant bit is rightmost, which is convenient when we want to get
 // a value at a certain index. We simply shift the bits right so that the first bit
 // is at index 0, then apply the mask.
-func (f *BitSet) GetValue(bitIndex uint, numberOfBits uint) uint64 {
-	var bMask, bBits big.Int
-	mask := (1 << numberOfBits) - 1
-	bMask.SetUint64(uint64(mask))
-	return bBits.Rsh(f.bits, bitIndex).And(&bBits, &bMask).Uint64()
+func (f *BitSet) GetValue(bitIndex uint, numberOfBits uint) (value uint64) {
+	// copy bits from bitset to value
+	for i := 0; i < int(numberOfBits); i++ {
+		value = value | (uint64(f.bits.Bit(i+int(bitIndex))) << i)
+	}
+	return value
 }
 
 // Sets a value at a certain position in the bit stream. Returns the BitSet.
 func (f *BitSet) SetValue(value uint64, bitIndex uint, numberOfBits uint) Frame {
-	var bBits big.Int
-	bBits.SetUint64(value)
-
+	var bit uint
 	// copy bits from value to bitset, overwriting any bits already there
-	for i := int(0); i < int(numberOfBits); i++ {
-		f.bits.SetBit(f.bits, i, bBits.Bit(i))
+	for i := 0; i < int(numberOfBits); i++ {
+		bit, value = uint(value&1), value>>1
+		f.bits.SetBit(f.bits, i+int(bitIndex), bit)
 	}
-
 	return f
 }
 
@@ -130,9 +131,16 @@ func (f *BitSet) ComputeChecksum() byte {
 	}
 	b := f.bits.Bytes()
 	ln := len(b)
+
+	// if we have the full number of bytes, don't include byte 0 (the checksum) in the computation
+	start := 0
+	expectedBytes := (f.n + 7) / 8
+	if ln >= expectedBytes {
+		start = 1
+	}
+
 	var sum byte = 0
-	// do not include byte 0 (the received checksum)
-	for i := 1; i < ln; i++ {
+	for i := start; i < ln; i++ {
 		sum += b[i]
 	}
 	return sum
@@ -140,4 +148,14 @@ func (f *BitSet) ComputeChecksum() byte {
 
 func (f *BitSet) VerifyChecksum() bool {
 	return f.ComputeChecksum() == f.GetChecksum()
+}
+
+func (f *BitSet) SetChecksum() {
+	cs := f.ComputeChecksum()
+	f.SetValue(uint64(cs), uint(f.n-PANASONIC_CHECKSUM_BITS), PANASONIC_CHECKSUM_BITS)
+}
+
+func (f *BitSet) Equal(other Frame) bool {
+	o := other.(*BitSet)
+	return f.n == o.n && f.bits.Cmp(o.bits) == 0
 }

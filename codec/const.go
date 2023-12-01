@@ -128,6 +128,9 @@ const (
 	PANASONIC_CLOCK_BIT0 = 128
 	PANASONIC_CLOCK_BITS = 11
 
+	// checksum
+	PANASONIC_CHECKSUM_BITS = 8
+
 	// generic values for single bit disabled/enabled
 	PANASONIC_DISABLED = 0
 	PANASONIC_ENABLED  = 1
