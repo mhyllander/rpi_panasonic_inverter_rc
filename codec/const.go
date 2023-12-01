@@ -117,6 +117,10 @@ const (
 	PANASONIC_CLOCK_BIT0 = 128
 	PANASONIC_CLOCK_BITS = 11
 
+	// generic values for single bit disabled/enabled
+	PANASONIC_DISABLED = 0
+	PANASONIC_ENABLED  = 1
+
 	// This value means that a time field is not set. Times are only set when changing a timer,
 	// otherwise all times are set to this value and ignored by the unit.
 	PANASONIC_TIME_UNSET = 0x600

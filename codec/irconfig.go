@@ -3,19 +3,19 @@ package codec
 import "fmt"
 
 const (
-	Power_Off = 0
-	Power_On  = 1
+	Power_Off = PANASONIC_DISABLED
+	Power_On  = PANASONIC_ENABLED
 
 	Mode_Auto = PANASONIC_MODE_AUTO
 	Mode_Dry  = PANASONIC_MODE_DRY
 	Mode_Cool = PANASONIC_MODE_COOL
 	Mode_Heat = PANASONIC_MODE_HEAT
 
-	Powerful_Disabled = 0
-	Powerful_Enabled  = 1
+	Powerful_Disabled = PANASONIC_DISABLED
+	Powerful_Enabled  = PANASONIC_ENABLED
 
-	Quiet_Disabled = 0
-	Quiet_Enabled  = 1
+	Quiet_Disabled = PANASONIC_DISABLED
+	Quiet_Enabled  = PANASONIC_ENABLED
 
 	FanSpeed_Auto    = PANASONIC_FAN_SPEED_AUTO
 	FanSpeed_Lowest  = PANASONIC_FAN_SPEED_LOWEST
@@ -38,8 +38,8 @@ const (
 	VentHorizontal_Right    = PANASONIC_VENT_HPOS_RIGHT
 	VentHorizontal_FarRight = PANASONIC_VENT_HPOS_FARRIGHT
 
-	Timer_Disabled = 0
-	Timer_Enabled  = 1
+	Timer_Disabled = PANASONIC_DISABLED
+	Timer_Enabled  = PANASONIC_ENABLED
 )
 
 type IrConfig struct {
