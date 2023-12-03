@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"rpi_panasonic_inverter_rc/codec"
 )
 
 // type Options struct {
@@ -14,8 +15,8 @@ import (
 // }
 
 func main() {
-	var vFile = flag.String("sock", "/dev/lirc-tx", "LIRC transmit socket")
-	// var vRaw = flag.Bool("raw", false, "print raw pulse data")
+	var vFile = flag.String("file", "/dev/lirc-tx", "LIRC transmit socket")
+	var vSock = flag.Bool("sock", false, "writing to a socket")
 	// var vClean = flag.Bool("clean", false, "print cleaned up pulse data")
 	// var vTrace = flag.Bool("trace", false, "print message trace")
 	// var vByte = flag.Bool("byte", false, "print message as bytes")
@@ -34,6 +35,32 @@ func main() {
 		fmt.Printf("please set the file to read from")
 		os.Exit(1)
 	}
+
+	ic := codec.NewIrConfig(nil)
+	m := ic.ToMessage()
+	m.Frame2.SetChecksum()
+	lircData := m.ToLirc()
+	// codec.PrintLircBuffer(lircData)
+
+	flags := os.O_WRONLY
+	if !*vSock {
+		flags = flags | os.O_CREATE
+	}
+
+	f, err := os.OpenFile(*vFile, flags, 0644)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	defer f.Close()
+
+	b := lircData.ToBytes()
+	n, err := f.Write(b)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	fmt.Printf("wrote %d of %d bytes\n", n, len(b))
 
 	// sendOptions := codec.SenderOptions{
 	// 	Socket: *vSocket,

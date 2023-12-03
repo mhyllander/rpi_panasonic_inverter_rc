@@ -15,23 +15,6 @@ type ReceiverOptions struct {
 	Trace  bool
 }
 
-func printLircData(label string, d uint32) {
-	v := d & LIRC_VALUE_MASK
-	fmt.Printf("%s\t", label)
-	switch d & LIRC_MODE2_MASK {
-	case LIRC_MODE2_SPACE:
-		fmt.Printf("space\t%d\n", v)
-	case LIRC_MODE2_PULSE:
-		fmt.Printf("pulse\t%d\n", v)
-	case LIRC_MODE2_FREQUENCY:
-		fmt.Printf("frequencyt%d\n", v)
-	case LIRC_MODE2_TIMEOUT:
-		fmt.Printf("timeout\t%d\n", v)
-	case LIRC_MODE2_OVERFLOW:
-		fmt.Printf("overflow\t%d\n", v)
-	}
-}
-
 func processMessages(messageStream chan *Message, processor func(*Message), options *ReceiverOptions) {
 	for {
 		msg := <-messageStream

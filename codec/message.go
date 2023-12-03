@@ -18,6 +18,7 @@ type Frame interface {
 	ToBitStream() string
 	ToByteString() string
 	Equal(other Frame) bool
+	ToLirc(b *LircBuffer)
 }
 
 type Message struct {
@@ -42,13 +43,18 @@ func NewMessage() *Message {
 // return an initialized message suitable for sending
 func InitializedMessage() *Message {
 	var bs1, bs2 big.Int
-	bs1.SetBytes(PANASONIC_FRAME1())
-	bs2.SetBytes(PANASONIC_FRAME2())
-	msg := Message{
-		Frame1: &BitSet{&bs1, PANASONIC_BITS_FRAME1},
-		Frame2: &BitSet{&bs2, PANASONIC_BITS_FRAME2},
+	return &Message{
+		Frame1: &BitSet{bs1.SetBytes(PANASONIC_FRAME1()), PANASONIC_BITS_FRAME1},
+		Frame2: &BitSet{bs2.SetBytes(PANASONIC_FRAME2()), PANASONIC_BITS_FRAME2},
 	}
-	return &msg
+}
+
+func (msg *Message) ToLirc() *LircBuffer {
+	b := NewLircBuffer()
+	msg.Frame1.ToLirc(b)
+	b.FrameSpace()
+	msg.Frame2.ToLirc(b)
+	return b
 }
 
 // Appends a bit to the bitstream, and returns the number of bits
@@ -86,13 +92,12 @@ func (f *BitSet) SetValue(value uint64, bitIndex uint, numberOfBits uint) Frame 
 }
 
 func (f *BitSet) ToTraceString() (traceS, posS string) {
-	checksumOK := f.VerifyChecksum()
 	posS = ""
 	for i := 0; i < f.n; i += 8 {
 		posS = fmt.Sprintf("%9d", i) + posS
 	}
 	posS = "       " + posS
-	return fmt.Sprintf("%4d/%d %s %t", f.n, f.n%8, f.ToBitStream(), checksumOK), posS
+	return fmt.Sprintf("%4d/%d %s %t", f.n, f.n%8, f.ToBitStream(), f.VerifyChecksum()), posS
 }
 
 func (f *BitSet) ToBitStream() string {
@@ -158,4 +163,12 @@ func (f *BitSet) SetChecksum() {
 func (f *BitSet) Equal(other Frame) bool {
 	o := other.(*BitSet)
 	return f.n == o.n && f.bits.Cmp(o.bits) == 0
+}
+
+func (f *BitSet) ToLirc(b *LircBuffer) {
+	b.BeginFrame()
+	for i := 0; i < f.n; i++ {
+		b.AddBit(f.bits.Bit(i))
+	}
+	b.EndFrame()
 }

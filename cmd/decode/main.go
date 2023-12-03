@@ -4,7 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"panasonic_irc/codec"
+	"rpi_panasonic_inverter_rc/codec"
 )
 
 type Options struct {

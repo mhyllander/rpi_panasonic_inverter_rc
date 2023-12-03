@@ -2,6 +2,29 @@ package codec
 
 import "fmt"
 
+func printLircData(label string, d uint32) {
+	v := d & LIRC_VALUE_MASK
+	fmt.Printf("%s\t", label)
+	switch d & LIRC_MODE2_MASK {
+	case LIRC_MODE2_SPACE:
+		fmt.Printf("space\t%d\n", v)
+	case LIRC_MODE2_PULSE:
+		fmt.Printf("pulse\t%d\n", v)
+	case LIRC_MODE2_FREQUENCY:
+		fmt.Printf("frequencyt%d\n", v)
+	case LIRC_MODE2_TIMEOUT:
+		fmt.Printf("timeout\t%d\n", v)
+	case LIRC_MODE2_OVERFLOW:
+		fmt.Printf("overflow\t%d\n", v)
+	}
+}
+
+func PrintLircBuffer(b *LircBuffer) {
+	for _, code := range b.buf {
+		printLircData("LircBuffer", code)
+	}
+}
+
 func PrintConfig(c IrConfig) {
 	fmt.Printf("power=%d mode=%d powerful=%d quiet=%d temp=%d fan=%d vpos=%d hpos=%d\n",
 		c.Power, c.Mode, c.Powerful, c.Quiet, c.Temperature, c.FanSpeed, c.VentVertical, c.VentHorizontal)

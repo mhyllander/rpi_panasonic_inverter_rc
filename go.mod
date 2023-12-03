@@ -1,4 +1,4 @@
-module panasonic_irc
+module rpi_panasonic_inverter_rc
 
 go 1.21.4
 
