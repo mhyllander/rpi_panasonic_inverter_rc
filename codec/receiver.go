@@ -9,7 +9,7 @@ import (
 )
 
 type ReceiverOptions struct {
-	Socket bool
+	Device bool
 	Raw    bool
 	Clean  bool
 	Trace  bool
@@ -59,9 +59,16 @@ func processLircRawData(lircStream chan uint32, messageStream chan *Message, opt
 	}
 }
 
-func disableTimeoutReports(f *os.File) {
+func setLircReceiveMode(f *os.File) {
+	features, err := unix.IoctlGetUint32(int(f.Fd()), l_LIRC_GET_FEATURES)
+	if err != nil {
+		fmt.Println("ioctl error", err)
+	}
+	if features&l_LIRC_CAN_REC_MODE2 == 0 {
+		fmt.Println("device can't receive mode2")
+	}
 	enabled := 0
-	err := unix.IoctlSetPointerInt(int(f.Fd()), LIRC_SET_REC_TIMEOUT_REPORTS, enabled)
+	err = unix.IoctlSetPointerInt(int(f.Fd()), l_LIRC_SET_REC_TIMEOUT_REPORTS, enabled)
 	if err != nil {
 		fmt.Println("ioctl error", err)
 	}
@@ -74,8 +81,8 @@ func StartReceiver(file string, messageHandler func(*Message), options *Receiver
 	}
 	defer f.Close()
 
-	if options.Socket {
-		disableTimeoutReports(f)
+	if options.Device {
+		setLircReceiveMode(f)
 	}
 
 	lircStream := make(chan uint32)
@@ -94,7 +101,7 @@ func StartReceiver(file string, messageHandler func(*Message), options *Receiver
 		for _, d := range lircData {
 			lircStream <- d
 		}
-		if !options.Socket {
+		if !options.Device {
 			time.Sleep(100 * time.Millisecond)
 			break
 		}

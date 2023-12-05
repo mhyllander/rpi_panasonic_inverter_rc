@@ -8,8 +8,8 @@ import (
 
 type Frame interface {
 	AppendBit(bit uint) (nBits int)
-	GetValue(bitIndex uint, numberOfBits uint) (value uint64)
-	SetValue(value uint64, bitIndex uint, numberOfBits uint) Frame
+	GetValue(bitIndex uint, numberOfBits uint) (value uint)
+	SetValue(value uint, bitIndex uint, numberOfBits uint) Frame
 	GetChecksum() byte
 	ComputeChecksum() byte
 	VerifyChecksum() bool
@@ -44,8 +44,8 @@ func NewMessage() *Message {
 func InitializedMessage() *Message {
 	var bs1, bs2 big.Int
 	return &Message{
-		Frame1: &BitSet{bs1.SetBytes(PANASONIC_FRAME1()), PANASONIC_BITS_FRAME1},
-		Frame2: &BitSet{bs2.SetBytes(PANASONIC_FRAME2()), PANASONIC_BITS_FRAME2},
+		Frame1: &BitSet{bs1.SetBytes(p_PANASONIC_FRAME1()), l_PANASONIC_BITS_FRAME1},
+		Frame2: &BitSet{bs2.SetBytes(p_PANASONIC_FRAME2()), l_PANASONIC_BITS_FRAME2},
 	}
 }
 
@@ -72,16 +72,16 @@ func (f *BitSet) AppendBit(bit uint) (nBits int) {
 // the least significant bit is rightmost, which is convenient when we want to get
 // a value at a certain index. We simply shift the bits right so that the first bit
 // is at index 0, then apply the mask.
-func (f *BitSet) GetValue(bitIndex uint, numberOfBits uint) (value uint64) {
+func (f *BitSet) GetValue(bitIndex uint, numberOfBits uint) (value uint) {
 	// copy bits from bitset to value
 	for i := 0; i < int(numberOfBits); i++ {
-		value = value | (uint64(f.bits.Bit(i+int(bitIndex))) << i)
+		value = value | (f.bits.Bit(i+int(bitIndex)) << i)
 	}
 	return value
 }
 
 // Sets a value at a certain position in the bit stream. Returns the BitSet.
-func (f *BitSet) SetValue(value uint64, bitIndex uint, numberOfBits uint) Frame {
+func (f *BitSet) SetValue(value uint, bitIndex uint, numberOfBits uint) Frame {
 	var bit uint
 	// copy bits from value to bitset, overwriting any bits already there
 	for i := 0; i < int(numberOfBits); i++ {
@@ -157,7 +157,7 @@ func (f *BitSet) VerifyChecksum() bool {
 
 func (f *BitSet) SetChecksum() {
 	cs := f.ComputeChecksum()
-	f.SetValue(uint64(cs), uint(f.n-PANASONIC_CHECKSUM_BITS), PANASONIC_CHECKSUM_BITS)
+	f.SetValue(uint(cs), uint(f.n-p_PANASONIC_CHECKSUM_BITS), p_PANASONIC_CHECKSUM_BITS)
 }
 
 func (f *BitSet) Equal(other Frame) bool {

@@ -55,8 +55,8 @@ func messageHandler(options *Options) func(*codec.Message) {
 }
 
 func main() {
-	var vFile = flag.String("file", "/dev/lirc-rx", "file to parse")
-	var vSocket = flag.Bool("sock", false, "read from socket")
+	var vIrInput = flag.String("irin", "/dev/lirc-rx", "LIRC data source (file or device)")
+	var vDevice = flag.Bool("dev", true, "reading from LIRC device")
 	var vRaw = flag.Bool("raw", false, "print raw pulse data")
 	var vClean = flag.Bool("clean", false, "print cleaned up pulse data")
 	var vTrace = flag.Bool("trace", false, "print message trace")
@@ -72,13 +72,13 @@ func main() {
 		os.Exit(0)
 	}
 
-	if *vFile == "" {
-		fmt.Printf("please set the file to read from")
+	if *vIrInput == "" {
+		fmt.Printf("please set the device or file to read from")
 		os.Exit(1)
 	}
 
 	recOptions := codec.ReceiverOptions{
-		Socket: *vSocket,
+		Device: *vDevice,
 		Raw:    *vRaw,
 		Clean:  *vClean,
 		Trace:  *vTrace,
@@ -90,7 +90,7 @@ func main() {
 		recOptions: &recOptions,
 	}
 
-	err := codec.StartReceiver(*vFile, messageHandler(&options), &recOptions)
+	err := codec.StartReceiver(*vIrInput, messageHandler(&options), &recOptions)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

@@ -18,9 +18,9 @@ func convertRawToLirc(rawData []byte) []uint32 {
 
 // round the value of pulses and spaces to the expected timings used by the Panasonic IR RC.
 func roundToPanasonicIrTimings(v uint32) uint32 {
-	timings := PANASONIC_IR_TIMINGS()
+	timings := l_PANASONIC_IR_TIMINGS()
 	for _, t := range timings {
-		if t-LIRC_TIMING_SPREAD < v && v < t+LIRC_TIMING_SPREAD {
+		if t-l_PANASONIC_TIMING_SPREAD < v && v < t+l_PANASONIC_TIMING_SPREAD {
 			return t
 		}
 	}
@@ -30,17 +30,17 @@ func roundToPanasonicIrTimings(v uint32) uint32 {
 // Clean up the LIRC unsigned int data, by rounding pulses and spaces to the expected values,
 // and filtering out all unexpected mode2 types.
 func filterLircAsPanasonic(lircItem uint32) (bool, uint32) {
-	v := lircItem & LIRC_VALUE_MASK
-	switch lircItem & LIRC_MODE2_MASK {
-	case LIRC_MODE2_SPACE:
+	v := lircItem & l_LIRC_VALUE_MASK
+	switch lircItem & l_LIRC_MODE2_MASK {
+	case l_LIRC_MODE2_SPACE:
 		sp := roundToPanasonicIrTimings(v)
 		// discard long spaces that are not part of the protocol
-		if sp > PANASONIC_SPACE_OUTLIER {
+		if sp > l_PANASONIC_SPACE_OUTLIER {
 			return false, 0
 		}
-		return true, sp | LIRC_MODE2_SPACE
-	case LIRC_MODE2_PULSE:
-		return true, roundToPanasonicIrTimings(v) | LIRC_MODE2_PULSE
+		return true, sp | l_LIRC_MODE2_SPACE
+	case l_LIRC_MODE2_PULSE:
+		return true, roundToPanasonicIrTimings(v) | l_LIRC_MODE2_PULSE
 	default:
 		// discard other data
 	}
@@ -70,7 +70,7 @@ func (state parseState) Error() string {
 func findStartOfPanasonicFrame(data []uint32) (int, error) {
 	// find start of frame
 	for i := 0; i < len(data)-1; i++ {
-		if data[i] == (LIRC_MODE2_PULSE|PANASONIC_FRAME_MARK1) && data[i+1] == (LIRC_MODE2_SPACE|PANASONIC_FRAME_MARK2) {
+		if data[i] == (l_LIRC_MODE2_PULSE|l_PANASONIC_FRAME_MARK1) && data[i+1] == (l_LIRC_MODE2_SPACE|l_PANASONIC_FRAME_MARK2) {
 			return i, nil
 		}
 	}
@@ -82,21 +82,21 @@ func skipToken(lircData []uint32, pos int, mode2, value uint32) parseState {
 		return parseState{pos, PARSE_END_OF_DATA, fmt.Sprintf("reached end-of-data while parsing, pos=%d", pos)}
 	}
 	d := lircData[pos]
-	if d&LIRC_MODE2_MASK != mode2 {
-		return parseState{pos, PARSE_UNEXPECTED_MODE2, fmt.Sprintf("expected mode2 %#08x, found %#08x", mode2, d&LIRC_MODE2_MASK)}
+	if d&l_LIRC_MODE2_MASK != mode2 {
+		return parseState{pos, PARSE_UNEXPECTED_MODE2, fmt.Sprintf("expected mode2 %#08x, found %#08x", mode2, d&l_LIRC_MODE2_MASK)}
 	}
-	if d&LIRC_VALUE_MASK != value {
-		return parseState{pos, PARSE_UNEXPECTED_VALUE, fmt.Sprintf("expected value %d, found %d", value, d&LIRC_VALUE_MASK)}
+	if d&l_LIRC_VALUE_MASK != value {
+		return parseState{pos, PARSE_UNEXPECTED_VALUE, fmt.Sprintf("expected value %d, found %d", value, d&l_LIRC_VALUE_MASK)}
 	}
 	return parseState{pos + 1, PARSE_OK, "skipped expected token"}
 }
 
 func skipSpace(lircData []uint32, pos int, expectedSpace uint32) parseState {
-	return skipToken(lircData, pos, LIRC_MODE2_SPACE, expectedSpace)
+	return skipToken(lircData, pos, l_LIRC_MODE2_SPACE, expectedSpace)
 }
 
 func skipPulse(lircData []uint32, pos int, expectedPulse uint32) parseState {
-	return skipToken(lircData, pos, LIRC_MODE2_PULSE, expectedPulse)
+	return skipToken(lircData, pos, l_LIRC_MODE2_PULSE, expectedPulse)
 }
 
 func readSpace(lircData []uint32, pos int) (uint32, parseState) {
@@ -104,18 +104,18 @@ func readSpace(lircData []uint32, pos int) (uint32, parseState) {
 		return 0, parseState{pos, PARSE_END_OF_DATA, fmt.Sprintf("reached end-of-data while parsing, pos=%d", pos)}
 	}
 	d := lircData[pos]
-	if d&LIRC_MODE2_MASK != LIRC_MODE2_SPACE {
-		return 0, parseState{pos, PARSE_UNEXPECTED_MODE2, fmt.Sprintf("expected mode2 %#08x, found %#08x", LIRC_MODE2_SPACE, d&LIRC_MODE2_MASK)}
+	if d&l_LIRC_MODE2_MASK != l_LIRC_MODE2_SPACE {
+		return 0, parseState{pos, PARSE_UNEXPECTED_MODE2, fmt.Sprintf("expected mode2 %#08x, found %#08x", l_LIRC_MODE2_SPACE, d&l_LIRC_MODE2_MASK)}
 	}
-	return d & LIRC_VALUE_MASK, parseState{pos + 1, PARSE_OK, "read a space"}
+	return d & l_LIRC_VALUE_MASK, parseState{pos + 1, PARSE_OK, "read a space"}
 }
 
 func appendPanasonicBit(space uint32, frame *Frame) error {
 	var bit uint
 	switch space {
-	case PANASONIC_SPACE_0:
+	case l_PANASONIC_SPACE_0:
 		bit = 0
-	case PANASONIC_SPACE_1:
+	case l_PANASONIC_SPACE_1:
 		bit = 1
 	default:
 		return fmt.Errorf("cannot translate space length to bit: %d", space)
@@ -125,14 +125,14 @@ func appendPanasonicBit(space uint32, frame *Frame) error {
 }
 
 func parsePanasonicFrame(lircData []uint32, pos int, nBits int, frame *Frame, options *ReceiverOptions) parseState {
-	state := skipPulse(lircData, pos, PANASONIC_FRAME_MARK1)
+	state := skipPulse(lircData, pos, l_PANASONIC_FRAME_MARK1)
 	if state.status != PARSE_OK {
 		if options.Trace {
 			fmt.Println("mark1 pulse not found")
 		}
 		return state
 	}
-	state = skipSpace(lircData, state.pos, PANASONIC_FRAME_MARK2)
+	state = skipSpace(lircData, state.pos, l_PANASONIC_FRAME_MARK2)
 	if state.status != PARSE_OK {
 		if options.Trace {
 			fmt.Println("mark2 space not found")
@@ -141,7 +141,7 @@ func parsePanasonicFrame(lircData []uint32, pos int, nBits int, frame *Frame, op
 	}
 	for i := 0; i < nBits; i++ {
 		var space uint32
-		state = skipPulse(lircData, state.pos, PANASONIC_PULSE)
+		state = skipPulse(lircData, state.pos, l_PANASONIC_PULSE)
 		if state.status != PARSE_OK {
 			return state
 		}
@@ -154,7 +154,7 @@ func parsePanasonicFrame(lircData []uint32, pos int, nBits int, frame *Frame, op
 			return parseState{pos, PARSE_ERROR, err.Error()}
 		}
 	}
-	state = skipPulse(lircData, state.pos, PANASONIC_PULSE)
+	state = skipPulse(lircData, state.pos, l_PANASONIC_PULSE)
 	if state.status != PARSE_OK {
 		return state
 	}
@@ -162,7 +162,7 @@ func parsePanasonicFrame(lircData []uint32, pos int, nBits int, frame *Frame, op
 }
 
 func readPanasonicMessage(lircData []uint32, options *ReceiverOptions) (*Message, []uint32, parseState) {
-	if len(lircData) < PANASONIC_LIRC_ITEMS {
+	if len(lircData) < l_PANASONIC_LIRC_ITEMS {
 		// read more until the minimum required bytes in a message have been received
 		return nil, lircData, parseState{0, PARSE_NOT_ENOUGH_DATA, "expecting more data"}
 	}
@@ -173,15 +173,15 @@ func readPanasonicMessage(lircData []uint32, options *ReceiverOptions) (*Message
 
 	msg := NewMessage()
 
-	state := parsePanasonicFrame(lircData, start, PANASONIC_BITS_FRAME1, &msg.Frame1, options)
+	state := parsePanasonicFrame(lircData, start, l_PANASONIC_BITS_FRAME1, &msg.Frame1, options)
 	if state.status != PARSE_OK {
 		return nil, lircData, state
 	}
-	state = skipSpace(lircData, state.pos, PANASONIC_SEPARATOR)
+	state = skipSpace(lircData, state.pos, l_PANASONIC_SEPARATOR)
 	if state.status != PARSE_OK {
 		return nil, lircData, state
 	}
-	state = parsePanasonicFrame(lircData, state.pos, PANASONIC_BITS_FRAME2, &msg.Frame2, options)
+	state = parsePanasonicFrame(lircData, state.pos, l_PANASONIC_BITS_FRAME2, &msg.Frame2, options)
 	if state.status != PARSE_OK {
 		return nil, lircData, state
 	}
