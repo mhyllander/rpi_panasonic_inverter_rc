@@ -11,8 +11,8 @@ func NewLircBuffer() *LircBuffer {
 }
 
 func (b *LircBuffer) BeginFrame() {
-	b.addPulse(l_PANASONIC_FRAME_MARK1)
-	b.addSpace(l_PANASONIC_FRAME_MARK2)
+	b.addPulse(l_PANASONIC_FRAME_MARK1_PULSE)
+	b.addSpace(l_PANASONIC_FRAME_MARK2_SPACE)
 }
 
 func (b *LircBuffer) EndFrame() {

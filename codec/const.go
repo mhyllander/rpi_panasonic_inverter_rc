@@ -26,17 +26,18 @@ const (
 
 	l_LIRC_SET_SEND_CARRIER = uint(0x40046913)
 
-	l_PANASONIC_FRAME_MARK1 = 3500
-	l_PANASONIC_FRAME_MARK2 = 1750
-	l_PANASONIC_SEPARATOR   = 10000
-	l_PANASONIC_PULSE       = 435
-	l_PANASONIC_SPACE_0     = 435
-	l_PANASONIC_SPACE_1     = 1300
+	l_PANASONIC_FRAME_MARK1_PULSE = 3500
+	l_PANASONIC_FRAME_MARK2_SPACE = 1750
+	l_PANASONIC_SEPARATOR         = 10000
+	l_PANASONIC_PULSE             = 435
+	l_PANASONIC_SPACE_0           = 435
+	l_PANASONIC_SPACE_1           = 1300
 
-	// this is used to filter out spaces that are not part of the data
-	l_PANASONIC_SPACE_OUTLIER = 20000
+	// this is used to filter out obviously wrong spaces and pulses
+	l_PANASONIC_PULSE_OUTLIER = 4500
+	l_PANASONIC_SPACE_OUTLIER = 11000
 
-	l_PANASONIC_TIMING_SPREAD = 100
+	l_PANASONIC_TIMING_SPREAD = 200
 
 	// The Panasonic IR Controller A75C3115 sends two frames of data each time. The first frame
 	// never changes, while the second contains the complete configuration.
@@ -49,8 +50,11 @@ const (
 )
 
 // these are the timings used by the Panasonic IR Controller A75C3115
-func l_PANASONIC_IR_TIMINGS() []uint32 {
-	return []uint32{l_PANASONIC_FRAME_MARK1, l_PANASONIC_FRAME_MARK2, l_PANASONIC_SEPARATOR, l_PANASONIC_PULSE, l_PANASONIC_SPACE_0, l_PANASONIC_SPACE_1}
+func l_PANASONIC_IR_SPACE_TIMINGS() []uint32 {
+	return []uint32{l_PANASONIC_FRAME_MARK2_SPACE, l_PANASONIC_SEPARATOR, l_PANASONIC_SPACE_0, l_PANASONIC_SPACE_1}
+}
+func l_PANASONIC_IR_PULSE_TIMINGS() []uint32 {
+	return []uint32{l_PANASONIC_FRAME_MARK1_PULSE, l_PANASONIC_PULSE}
 }
 
 // ---------------------------------------------------------------------------------------------------

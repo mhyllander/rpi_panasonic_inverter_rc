@@ -25,18 +25,35 @@ func PrintLircBuffer(b *LircBuffer) {
 	}
 }
 
-func PrintConfig(c *IrConfig) {
+func printConfigAndChecksum(c *IrConfig, checksumStatus string) {
 	fmt.Printf("power=%d mode=%d powerful=%d quiet=%d temp=%d fan=%d vpos=%d hpos=%d\n",
 		c.Power, c.Mode, c.Powerful, c.Quiet, c.Temperature, c.FanSpeed, c.VentVertical, c.VentHorizontal)
 
 	fmt.Printf(
 		"timer_on: enabled=%d time=%s,  timer_off: enabled=%d time=%s,  clock: time=%s\n",
 		c.TimerOnEnabled, c.TimerOn, c.TimerOffEnabled, c.TimerOff, c.Clock)
+
+	if checksumStatus != "" {
+		fmt.Printf("checksum: %s\n", checksumStatus)
+	}
+}
+
+func PrintConfig(c *IrConfig) {
+	printConfigAndChecksum(c, "")
 }
 
 func PrintParams(msg *Message) {
 	c := NewIrConfig(msg)
-	PrintConfig(c)
+
+	var checksum string
+	switch msg.Frame2.VerifyChecksum() {
+	case true:
+		checksum = "verified"
+	case false:
+		checksum = "mismatch"
+	}
+
+	printConfigAndChecksum(c, checksum)
 }
 
 func PrintMessage(msg *Message) {

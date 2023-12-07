@@ -4,16 +4,22 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"golang.org/x/sys/unix"
 )
 
-type SenderOptions struct {
-	Mode2  bool
-	Device bool
-	Raw    bool
-	Clean  bool
-	Trace  bool
+type senderOptions struct {
+	Mode2         bool
+	Device        bool
+	Trace         bool
+	Transmissions int
+	Interval_ms   int
+}
+
+// ensure there are reasonable defaults
+func NewSenderOptions() *senderOptions {
+	return &senderOptions{Device: true, Transmissions: 3, Interval_ms: 20}
 }
 
 func setLircSendMode(f *os.File) {
@@ -29,7 +35,7 @@ func setLircSendMode(f *os.File) {
 		}
 	}
 	if features&l_LIRC_CAN_SET_SEND_CARRIER != 0 {
-		carrier := 38
+		carrier := 38000
 		err = unix.IoctlSetPointerInt(int(f.Fd()), l_LIRC_SET_SEND_CARRIER, carrier)
 		if err != nil {
 			fmt.Println("ioctl error", err)
@@ -47,7 +53,7 @@ func stripMode2Types(licrData *LircBuffer) {
 // When transmitting data over IR, the LIRC transmit socket expects a series of uint32 consisting of pulses and spaces.
 // The data must start and end with a pulse, so there must be an odd number of uint32. In addition, no mode2 bits
 // should be set in the pulses and spaces (i.e. the send format is different from the receive format).
-func SendIr(ic *IrConfig, f *os.File, options *SenderOptions) error {
+func SendIr(ic *IrConfig, f *os.File, options *senderOptions) error {
 	if options.Mode2 {
 		s := ic.ConvertToMode2LircData()
 		s2 := strings.Join(s, " ")
@@ -65,12 +71,17 @@ func SendIr(ic *IrConfig, f *os.File, options *SenderOptions) error {
 		if options.Device {
 			setLircSendMode(f)
 		}
-		n, err := f.Write(b)
-		if err != nil {
-			return err
-		}
-		if options.Trace {
-			fmt.Printf("wrote %d of %d bytes\n", n, len(b))
+		for i := 0; i < options.Transmissions; i++ {
+			n, err := f.Write(b)
+			if err != nil {
+				return err
+			}
+			if options.Trace {
+				fmt.Printf("wrote %d of %d bytes\n", n, len(b))
+			}
+			if i < options.Transmissions-1 {
+				time.Sleep(time.Duration(options.Interval_ms) * time.Millisecond)
+			}
 		}
 	}
 	return nil
