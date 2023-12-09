@@ -140,8 +140,7 @@ func NewIrConfig(msg *Message) *IrConfig {
 }
 
 func (dbc *IrConfig) MakeCopy() *IrConfig {
-	var ic IrConfig
-	ic = *dbc
+	ic := *dbc
 	ic.TimerOn = C_Time_Unset
 	ic.TimerOff = C_Time_Unset
 	ic.Clock = C_Time_Unset
