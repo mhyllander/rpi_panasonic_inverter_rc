@@ -3,16 +3,15 @@ package codec
 import (
 	"fmt"
 	"os"
+	"rpi_panasonic_inverter_rc/ioctl"
 	"time"
-
-	"golang.org/x/sys/unix"
 )
 
 type receiverOptions struct {
-	Device bool
-	Raw    bool
-	Clean  bool
-	Trace  bool
+	Device  bool
+	Raw     bool
+	Clean   bool
+	Verbose bool
 }
 
 // ensure there are reasonable defaults
@@ -54,28 +53,13 @@ func processLircRawData(lircStream chan uint32, messageStream chan *Message, opt
 			// send message
 			messageStream <- msg
 		default:
-			if options.Trace {
+			if options.Verbose {
 				fmt.Println(state)
 			}
 		}
 		// copy remaining data to start of lircData
 		lircData = lircData[:len(remainingData)]
 		copy(lircData, remainingData)
-	}
-}
-
-func setLircReceiveMode(f *os.File) {
-	features, err := unix.IoctlGetUint32(int(f.Fd()), l_LIRC_GET_FEATURES)
-	if err != nil {
-		fmt.Println("ioctl error", err)
-	}
-	if features&l_LIRC_CAN_REC_MODE2 == 0 {
-		fmt.Println("device can't receive mode2")
-	}
-	enabled := 1
-	err = unix.IoctlSetPointerInt(int(f.Fd()), l_LIRC_SET_REC_TIMEOUT_REPORTS, enabled)
-	if err != nil {
-		fmt.Println("ioctl error", err)
 	}
 }
 
@@ -87,7 +71,7 @@ func StartReceiver(file string, messageHandler func(*Message), options *receiver
 	defer f.Close()
 
 	if options.Device {
-		setLircReceiveMode(f)
+		ioctl.SetLircReceiveMode(f)
 	}
 
 	lircStream := make(chan uint32)
@@ -101,7 +85,7 @@ func StartReceiver(file string, messageHandler func(*Message), options *receiver
 		if err != nil {
 			return err
 		}
-		if options.Trace && n%4 != 0 {
+		if options.Verbose && n%4 != 0 {
 			fmt.Printf("didn't get even 4 bytes matching uint32\n")
 		}
 

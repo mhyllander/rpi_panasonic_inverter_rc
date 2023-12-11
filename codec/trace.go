@@ -25,13 +25,98 @@ func PrintLircBuffer(b *LircBuffer) {
 	}
 }
 
+func toOnOffString(v uint) string {
+	switch v {
+	case p_PANASONIC_ENABLED:
+		return "on"
+	case p_PANASONIC_DISABLED:
+		return "off"
+	}
+	return "<bad value>"
+}
+
+func toModeString(mode uint) string {
+	switch mode {
+	case C_Mode_Auto:
+		return "auto"
+	case C_Mode_Cool:
+		return "cool"
+	case C_Mode_Heat:
+		return "heat"
+	case C_Mode_Dry:
+		return "dry"
+	}
+	return "<bad mode>"
+}
+
+func toFanSpeedString(fan uint) string {
+	switch fan {
+	case C_FanSpeed_Auto:
+		return "auto"
+	case C_FanSpeed_Lowest:
+		return "lowest"
+	case C_FanSpeed_Low:
+		return "low"
+	case C_FanSpeed_Middle:
+		return "middle"
+	case C_FanSpeed_High:
+		return "high"
+	case C_FanSpeed_Highest:
+		return "highest"
+	}
+	return "<bad fan speed>"
+}
+
+func toVentVerticalString(vert uint) string {
+	switch vert {
+	case C_VentVertical_Auto:
+		return "auto"
+	case C_VentVertical_Lowest:
+		return "lowest"
+	case C_VentVertical_Low:
+		return "low"
+	case C_VentVertical_Middle:
+		return "middle"
+	case C_VentVertical_High:
+		return "high"
+	case C_VentVertical_Highest:
+		return "highest"
+	}
+	return "<bad vent vertical>"
+}
+
+func toVentHorizontalString(horiz uint) string {
+	switch horiz {
+	case C_VentHorizontal_Auto:
+		return "auto"
+	case C_VentHorizontal_FarLeft:
+		return "far left"
+	case C_VentHorizontal_Left:
+		return "left"
+	case C_VentHorizontal_Middle:
+		return "middle"
+	case C_VentHorizontal_Right:
+		return "right"
+	case C_VentHorizontal_FarRight:
+		return "far right"
+	}
+	return "<bad vent horizontal>"
+}
+
 func printConfigAndChecksum(c *IrConfig, checksumStatus string) {
-	fmt.Printf("power=%d mode=%d powerful=%d quiet=%d temp=%d fan=%d vpos=%d hpos=%d\n",
-		c.Power, c.Mode, c.Powerful, c.Quiet, c.Temperature, c.FanSpeed, c.VentVertical, c.VentHorizontal)
+	fmt.Printf("power=%s(%d) mode=%s(%d) powerful=%s(%d) quiet=%s(%d) temp=%d fan=%s(%d) vpos=%s(%d) hpos=%s(%d)\n",
+		toOnOffString(c.Power), c.Power,
+		toModeString(c.Mode), c.Mode,
+		toOnOffString(c.Powerful), c.Powerful,
+		toOnOffString(c.Quiet), c.Quiet,
+		c.Temperature,
+		toFanSpeedString(c.FanSpeed), c.FanSpeed,
+		toVentVerticalString(c.VentVertical), c.VentVertical,
+		toVentHorizontalString(c.VentHorizontal), c.VentHorizontal)
 
 	fmt.Printf(
-		"timer_on: enabled=%d time=%s,  timer_off: enabled=%d time=%s,  clock: time=%s\n",
-		c.TimerOnEnabled, c.TimerOn, c.TimerOffEnabled, c.TimerOff, c.Clock)
+		"timer_on: state=%s(%d) time=%s,  timer_off: state=%s(%d) time=%s,  clock: time=%s\n",
+		toOnOffString(c.TimerOnEnabled), c.TimerOnEnabled, c.TimerOn, toOnOffString(c.TimerOffEnabled), c.TimerOffEnabled, c.TimerOff, c.Clock)
 
 	if checksumStatus != "" {
 		fmt.Printf("checksum: %s\n", checksumStatus)
@@ -57,8 +142,8 @@ func PrintParams(msg *Message) {
 }
 
 func PrintMessage(msg *Message) {
-	t1, p1 := msg.Frame1.ToTraceString()
-	t2, p2 := msg.Frame2.ToTraceString()
+	t1, p1 := msg.Frame1.ToVerboseString()
+	t2, p2 := msg.Frame2.ToVerboseString()
 
 	fmt.Printf("Message as bit stream (first and least significant bit to the right)\n")
 	fmt.Printf("   %s\n%d: %s\n", p1, 1, t1)

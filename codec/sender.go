@@ -3,16 +3,15 @@ package codec
 import (
 	"fmt"
 	"os"
+	"rpi_panasonic_inverter_rc/ioctl"
 	"strings"
 	"time"
-
-	"golang.org/x/sys/unix"
 )
 
 type senderOptions struct {
 	Mode2         bool
 	Device        bool
-	Trace         bool
+	Verbose       bool
 	Transmissions int
 	Interval_ms   int
 }
@@ -20,27 +19,6 @@ type senderOptions struct {
 // ensure there are reasonable defaults
 func NewSenderOptions() *senderOptions {
 	return &senderOptions{Device: true, Transmissions: 4, Interval_ms: 20}
-}
-
-func setLircSendMode(f *os.File) {
-	features, err := unix.IoctlGetUint32(int(f.Fd()), l_LIRC_GET_FEATURES)
-	if err != nil {
-		fmt.Println("ioctl error", err)
-	}
-	if features&l_LIRC_CAN_SEND_PULSE != 0 {
-		mode := l_LIRC_MODE_PULSE
-		err = unix.IoctlSetPointerInt(int(f.Fd()), l_LIRC_SET_SEND_MODE, mode)
-		if err != nil {
-			fmt.Println("ioctl error", err)
-		}
-	}
-	if features&l_LIRC_CAN_SET_SEND_CARRIER != 0 {
-		carrier := 38000
-		err = unix.IoctlSetPointerInt(int(f.Fd()), l_LIRC_SET_SEND_CARRIER, carrier)
-		if err != nil {
-			fmt.Println("ioctl error", err)
-		}
-	}
 }
 
 func stripMode2Types(licrData *LircBuffer) {
@@ -61,7 +39,7 @@ func SendIr(ic *IrConfig, f *os.File, options *senderOptions) error {
 		if err != nil {
 			return err
 		}
-		if options.Trace {
+		if options.Verbose {
 			fmt.Printf("wrote %d ints\n", len(s))
 		}
 	} else {
@@ -69,14 +47,14 @@ func SendIr(ic *IrConfig, f *os.File, options *senderOptions) error {
 		stripMode2Types(licrData)
 		b := licrData.ToBytes()
 		if options.Device {
-			setLircSendMode(f)
+			ioctl.SetLircSendMode(f)
 		}
 		for i := 0; i < options.Transmissions; i++ {
 			n, err := f.Write(b)
 			if err != nil {
 				return err
 			}
-			if options.Trace {
+			if options.Verbose {
 				fmt.Printf("wrote %d of %d bytes\n", n, len(b))
 			}
 			if i < options.Transmissions-1 {

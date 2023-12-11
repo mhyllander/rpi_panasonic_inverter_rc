@@ -14,7 +14,7 @@ type Frame interface {
 	ComputeChecksum() byte
 	VerifyChecksum() bool
 	SetChecksum()
-	ToTraceString() (traceS, posS string)
+	ToVerboseString() (verboseS, posS string)
 	ToBitStream() string
 	ToByteString() string
 	Equal(other Frame) bool
@@ -91,7 +91,7 @@ func (f *BitSet) SetValue(value uint, bitIndex uint, numberOfBits uint) Frame {
 	return f
 }
 
-func (f *BitSet) ToTraceString() (traceS, posS string) {
+func (f *BitSet) ToVerboseString() (verboseS, posS string) {
 	posS = ""
 	for i := 0; i < f.n; i += 8 {
 		posS = fmt.Sprintf("%9d", i) + posS

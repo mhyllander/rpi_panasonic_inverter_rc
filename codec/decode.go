@@ -179,14 +179,14 @@ func appendPanasonicBit(space uint32, frame *Frame) error {
 func parsePanasonicFrame(lircData []uint32, pos int, nBits int, frame *Frame, options *receiverOptions) parseState {
 	state := skipPulse(lircData, pos, l_PANASONIC_FRAME_MARK1_PULSE)
 	if state.status != PARSE_OK {
-		if options.Trace {
+		if options.Verbose {
 			fmt.Println("mark1 pulse not found")
 		}
 		return state
 	}
 	state = skipSpace(lircData, state.pos, l_PANASONIC_FRAME_MARK2_SPACE)
 	if state.status != PARSE_OK {
-		if options.Trace {
+		if options.Verbose {
 			fmt.Println("mark2 space not found")
 		}
 		return state
@@ -214,7 +214,7 @@ func parsePanasonicFrame(lircData []uint32, pos int, nBits int, frame *Frame, op
 }
 
 func readPanasonicMessage(lircData []uint32, options *receiverOptions) (*Message, []uint32, parseState) {
-	// if options.Trace {
+	// if options.Verbose {
 	// 	fmt.Printf("parse data %d items, require at least %d\n", len(lircData), l_PANASONIC_LIRC_ITEMS)
 	// }
 	start, err := findStartOfPanasonicFrame(lircData)
@@ -225,7 +225,7 @@ func readPanasonicMessage(lircData []uint32, options *receiverOptions) (*Message
 	// fmt.Printf("start=%d end=%d timeout=%t\n", start, end, foundTimeout)
 	if foundTimeout && end-start < l_PANASONIC_LIRC_ITEMS {
 		// we found an end-of-trasmission but it can't be a full message
-		if options.Trace {
+		if options.Verbose {
 			fmt.Println("discarding truncated message")
 		}
 		return nil, lircData[end:], parseState{end, PARSE_NOT_ENOUGH_DATA, "truncated message"}

@@ -20,7 +20,7 @@ func main() {
 	var vTransmissions = flag.Int("tx", senderOptions.Transmissions, "number of times to send the message")
 	var vInterval = flag.Int("int", senderOptions.Interval_ms, "number of milliseconds between transmissions")
 	var vDevice = flag.Bool("dev", senderOptions.Device, "writing to a LIRC device")
-	var vTrace = flag.Bool("trace", senderOptions.Trace, "print some trace output")
+	var vVerbose = flag.Bool("verbose", senderOptions.Verbose, "print verbose output")
 
 	var vPower = flag.String("power", "", "power [on|off]")
 	var vMode = flag.String("mode", "", "mode [auto|heat|cool|dry]")
@@ -77,7 +77,7 @@ func main() {
 	}
 	ic := dbc.MakeCopy()
 
-	if *vTrace {
+	if *vVerbose {
 		fmt.Println("config from db")
 		codec.PrintConfig(dbc)
 	}
@@ -97,13 +97,13 @@ func main() {
 	rclogic.SetTimerOn(*vTimeOn, ic, dbc)
 	rclogic.SetTimerOff(*vTimeOff, ic, dbc)
 
-	if *vTrace {
+	if *vVerbose {
 		fmt.Println("config to send")
 		codec.PrintConfig(ic)
 	}
 
 	senderOptions.Mode2 = *vMode2
-	senderOptions.Trace = *vTrace
+	senderOptions.Verbose = *vVerbose
 	senderOptions.Device = *vDevice
 	senderOptions.Transmissions = *vTransmissions
 	senderOptions.Interval_ms = *vInterval
@@ -119,7 +119,7 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	if *vTrace {
+	if *vVerbose {
 		fmt.Printf("saved config to %s\n", *vIrDb)
 	}
 }
