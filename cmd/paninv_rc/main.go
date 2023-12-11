@@ -70,36 +70,36 @@ func main() {
 	// Create a new configuration by making a copy of the current configuration. The copy contains
 	// everything except the time fields, which are unset by default. The new configuration is then
 	// modified according to command line arguments.
-	dbc, err := db.CurrentConfig()
+	dbIc, err := db.CurrentConfig()
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	ic := dbc.MakeCopy()
+	sendIc := dbIc.CopyForSending()
 
 	if *vVerbose {
 		fmt.Println("config from db")
-		codec.PrintConfig(dbc)
+		codec.PrintConfigAndChecksum(dbIc, "")
 	}
 
-	rclogic.SetPower(*vPower, ic)
-	rclogic.SetMode(*vMode, ic)
-	rclogic.SetPowerful(*vPowerful, ic)
-	rclogic.SetQuiet(*vQuiet, ic)
-	rclogic.SetTemperature(*vTemp, ic)
-	rclogic.SetFanSpeed(*vFan, ic)
-	rclogic.SetVerticalPosition(*vVert, ic)
-	rclogic.SetHorizontalPosition(*vHoriz, ic)
+	rclogic.SetPower(*vPower, sendIc)
+	rclogic.SetMode(*vMode, sendIc)
+	rclogic.SetPowerful(*vPowerful, sendIc)
+	rclogic.SetQuiet(*vQuiet, sendIc)
+	rclogic.SetTemperature(*vTemp, sendIc)
+	rclogic.SetFanSpeed(*vFan, sendIc)
+	rclogic.SetVentVerticalPosition(*vVert, sendIc)
+	rclogic.SetVentHorizontalPosition(*vHoriz, sendIc)
 
 	// if timers are changed in any way, time fields are initialized
-	rclogic.SetTimerOnEnabled(*vTimerOnEnabled, ic, dbc)
-	rclogic.SetTimerOffEnabled(*vTimerOffEnabled, ic, dbc)
-	rclogic.SetTimerOn(*vTimeOn, ic, dbc)
-	rclogic.SetTimerOff(*vTimeOff, ic, dbc)
+	rclogic.SetTimerOnEnabled(*vTimerOnEnabled, sendIc, dbIc)
+	rclogic.SetTimerOffEnabled(*vTimerOffEnabled, sendIc, dbIc)
+	rclogic.SetTimerOn(*vTimeOn, sendIc, dbIc)
+	rclogic.SetTimerOff(*vTimeOff, sendIc, dbIc)
 
 	if *vVerbose {
 		fmt.Println("config to send")
-		codec.PrintConfig(ic)
+		codec.PrintConfigAndChecksum(sendIc, "")
 	}
 
 	senderOptions.Mode2 = *vMode2
@@ -108,13 +108,13 @@ func main() {
 	senderOptions.Transmissions = *vTransmissions
 	senderOptions.Interval_ms = *vInterval
 
-	err = codec.SendIr(ic, f, senderOptions)
+	err = codec.SendIr(sendIc, f, senderOptions)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	err = db.SaveConfig(ic, dbc)
+	err = db.SaveConfig(sendIc, dbIc)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

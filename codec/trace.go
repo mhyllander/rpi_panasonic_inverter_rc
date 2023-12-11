@@ -25,6 +25,21 @@ func PrintLircBuffer(b *LircBuffer) {
 	}
 }
 
+func PrintMessage(msg *Message) {
+	t1, p1 := msg.Frame1.ToVerboseString()
+	t2, p2 := msg.Frame2.ToVerboseString()
+
+	fmt.Printf("Message as bit stream (first and least significant bit to the right)\n")
+	fmt.Printf("   %s\n%d: %s\n", p1, 1, t1)
+	fmt.Printf("   %s\n%d: %s\n", p2, 2, t2)
+}
+
+func PrintByteRepresentation(msg *Message) {
+	fmt.Println("Byte representation:")
+	fmt.Printf("  %d: %s\n", 1, msg.Frame1.ToByteString())
+	fmt.Printf("  %d: %s\n", 2, msg.Frame2.ToByteString())
+}
+
 func toOnOffString(v uint) string {
 	switch v {
 	case p_PANASONIC_ENABLED:
@@ -90,7 +105,7 @@ func toVentHorizontalString(horiz uint) string {
 	case C_VentHorizontal_Auto:
 		return "auto"
 	case C_VentHorizontal_FarLeft:
-		return "far left"
+		return "farleft"
 	case C_VentHorizontal_Left:
 		return "left"
 	case C_VentHorizontal_Middle:
@@ -98,12 +113,12 @@ func toVentHorizontalString(horiz uint) string {
 	case C_VentHorizontal_Right:
 		return "right"
 	case C_VentHorizontal_FarRight:
-		return "far right"
+		return "farright"
 	}
 	return "<bad vent horizontal>"
 }
 
-func printConfigAndChecksum(c *IrConfig, checksumStatus string) {
+func PrintConfigAndChecksum(c *IrConfig, checksumStatus string) {
 	fmt.Printf("power=%s(%d) mode=%s(%d) powerful=%s(%d) quiet=%s(%d) temp=%d fan=%s(%d) vpos=%s(%d) hpos=%s(%d)\n",
 		toOnOffString(c.Power), c.Power,
 		toModeString(c.Mode), c.Mode,
@@ -121,37 +136,4 @@ func printConfigAndChecksum(c *IrConfig, checksumStatus string) {
 	if checksumStatus != "" {
 		fmt.Printf("checksum: %s\n", checksumStatus)
 	}
-}
-
-func PrintConfig(c *IrConfig) {
-	printConfigAndChecksum(c, "")
-}
-
-func PrintParams(msg *Message) {
-	c := NewIrConfig(msg)
-
-	var checksum string
-	switch msg.Frame2.VerifyChecksum() {
-	case true:
-		checksum = "verified"
-	case false:
-		checksum = "mismatch"
-	}
-
-	printConfigAndChecksum(c, checksum)
-}
-
-func PrintMessage(msg *Message) {
-	t1, p1 := msg.Frame1.ToVerboseString()
-	t2, p2 := msg.Frame2.ToVerboseString()
-
-	fmt.Printf("Message as bit stream (first and least significant bit to the right)\n")
-	fmt.Printf("   %s\n%d: %s\n", p1, 1, t1)
-	fmt.Printf("   %s\n%d: %s\n", p2, 2, t2)
-}
-
-func PrintByteRepresentation(msg *Message) {
-	fmt.Println("Byte representation:")
-	fmt.Printf("  %d: %s\n", 1, msg.Frame1.ToByteString())
-	fmt.Printf("  %d: %s\n", 2, msg.Frame2.ToByteString())
 }

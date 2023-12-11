@@ -113,7 +113,7 @@ func SetFanSpeed(fan string, ic *codec.IrConfig) {
 	}
 }
 
-func SetVerticalPosition(vert string, ic *codec.IrConfig) {
+func SetVentVerticalPosition(vert string, ic *codec.IrConfig) {
 	switch vert {
 	case "auto":
 		ic.VentVertical = codec.C_VentVertical_Auto
@@ -132,7 +132,7 @@ func SetVerticalPosition(vert string, ic *codec.IrConfig) {
 	}
 }
 
-func SetHorizontalPosition(horiz string, ic *codec.IrConfig) {
+func SetVentHorizontalPosition(horiz string, ic *codec.IrConfig) {
 	switch horiz {
 	case "auto":
 		ic.VentHorizontal = codec.C_VentHorizontal_Auto
@@ -175,46 +175,46 @@ func parseTime(time string) (hour, minute int, err error) {
 	return hour, minute, nil
 }
 
-func setTimes(ic, dbc *codec.IrConfig) {
+func setTimes(ic, dbIc *codec.IrConfig) {
 	// copy saved times if unset
 	if ic.TimerOn == codec.C_Time_Unset {
-		ic.TimerOn = dbc.TimerOn
+		ic.TimerOn = dbIc.TimerOn
 	}
 	if ic.TimerOff == codec.C_Time_Unset {
-		ic.TimerOff = dbc.TimerOff
+		ic.TimerOff = dbIc.TimerOff
 	}
 	// the the clock field to the current time
 	now := time.Now()
 	ic.Clock = codec.NewTime(uint(now.Hour()), uint(now.Minute()))
 }
 
-func SetTimerOnEnabled(setting string, ic, dbc *codec.IrConfig) {
+func SetTimerOnEnabled(setting string, ic, dbIc *codec.IrConfig) {
 	switch setting {
 	case "on":
 		ic.TimerOnEnabled = codec.C_Timer_Enabled
-		setTimes(ic, dbc)
+		setTimes(ic, dbIc)
 	case "off":
 		ic.TimerOnEnabled = codec.C_Timer_Disabled
-		setTimes(ic, dbc)
+		setTimes(ic, dbIc)
 	default:
 		return
 	}
 }
 
-func SetTimerOffEnabled(setting string, ic, dbc *codec.IrConfig) {
+func SetTimerOffEnabled(setting string, ic, dbIc *codec.IrConfig) {
 	switch setting {
 	case "on":
 		ic.TimerOffEnabled = codec.C_Timer_Enabled
-		setTimes(ic, dbc)
+		setTimes(ic, dbIc)
 	case "off":
 		ic.TimerOffEnabled = codec.C_Timer_Disabled
-		setTimes(ic, dbc)
+		setTimes(ic, dbIc)
 	default:
 		return
 	}
 }
 
-func SetTimerOn(time string, ic, dbc *codec.IrConfig) {
+func SetTimerOn(time string, ic, dbIc *codec.IrConfig) {
 	if time == "" {
 		return
 	}
@@ -223,10 +223,10 @@ func SetTimerOn(time string, ic, dbc *codec.IrConfig) {
 		return
 	}
 	ic.TimerOn = codec.NewTime(uint(hour), uint(minute))
-	setTimes(ic, dbc)
+	setTimes(ic, dbIc)
 }
 
-func SetTimerOff(time string, ic, dbc *codec.IrConfig) {
+func SetTimerOff(time string, ic, dbIc *codec.IrConfig) {
 	if time == "" {
 		return
 	}
@@ -235,5 +235,5 @@ func SetTimerOff(time string, ic, dbc *codec.IrConfig) {
 		return
 	}
 	ic.TimerOff = codec.NewTime(uint(hour), uint(minute))
-	setTimes(ic, dbc)
+	setTimes(ic, dbIc)
 }

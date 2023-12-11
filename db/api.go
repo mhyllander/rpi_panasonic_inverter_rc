@@ -22,9 +22,9 @@ func Initialize(dbFile string) error {
 	myDb.AutoMigrate(&ModeSetting{})
 
 	// Create initial records
-	var dbc DbIrConfig
+	var dbIc DbIrConfig
 
-	result := myDb.First(&dbc, 1)
+	result := myDb.First(&dbIc, 1)
 	if result.Error != nil && result.RowsAffected == 0 {
 		fmt.Println("Initializing db")
 
@@ -68,29 +68,29 @@ func Close() {
 }
 
 func CurrentConfig() (*codec.IrConfig, error) {
-	var dbc DbIrConfig
-	result := myDb.First(&dbc, 1)
+	var dbIc DbIrConfig
+	result := myDb.First(&dbIc, 1)
 	if result.Error != nil {
 		return nil, result.Error
 	}
 	return &codec.IrConfig{
-		Power:           dbc.Power,
-		Mode:            dbc.Mode,
-		Powerful:        dbc.Powerful,
-		Quiet:           dbc.Quiet,
-		Temperature:     dbc.Temperature,
-		FanSpeed:        dbc.FanSpeed,
-		VentVertical:    dbc.VentVertical,
-		VentHorizontal:  dbc.VentHorizontal,
-		TimerOnEnabled:  dbc.TimerOnEnabled,
-		TimerOffEnabled: dbc.TimerOffEnabled,
-		TimerOn:         codec.Time(dbc.TimerOn),
-		TimerOff:        codec.Time(dbc.TimerOff),
+		Power:           dbIc.Power,
+		Mode:            dbIc.Mode,
+		Powerful:        dbIc.Powerful,
+		Quiet:           dbIc.Quiet,
+		Temperature:     dbIc.Temperature,
+		FanSpeed:        dbIc.FanSpeed,
+		VentVertical:    dbIc.VentVertical,
+		VentHorizontal:  dbIc.VentHorizontal,
+		TimerOnEnabled:  dbIc.TimerOnEnabled,
+		TimerOffEnabled: dbIc.TimerOffEnabled,
+		TimerOn:         codec.Time(dbIc.TimerOn),
+		TimerOff:        codec.Time(dbIc.TimerOff),
 		Clock:           codec.C_Time_Unset,
 	}, nil
 }
 
-func SaveConfig(ic, dbc *codec.IrConfig) error {
+func SaveConfig(ic, dbIc *codec.IrConfig) error {
 	// update current configuration, but timer on and off should only be updated if set
 	// mode settings should be updated, but fan speed should be ignored if Powerful or Quiet is set
 
@@ -98,40 +98,40 @@ func SaveConfig(ic, dbc *codec.IrConfig) error {
 	updates = make(map[string]interface{})
 	settings = make(map[string]interface{})
 
-	if ic.Power != dbc.Power {
+	if ic.Power != dbIc.Power {
 		updates["Power"] = ic.Power
 	}
-	if ic.Mode != dbc.Mode {
+	if ic.Mode != dbIc.Mode {
 		updates["Mode"] = ic.Mode
 	}
-	if ic.Powerful != dbc.Powerful {
+	if ic.Powerful != dbIc.Powerful {
 		updates["Powerful"] = ic.Powerful
 	}
-	if ic.Quiet != dbc.Quiet {
+	if ic.Quiet != dbIc.Quiet {
 		updates["Quiet"] = ic.Quiet
 	}
-	if ic.Temperature != dbc.Temperature {
+	if ic.Temperature != dbIc.Temperature {
 		updates["Temperature"] = ic.Temperature
 	}
-	if ic.FanSpeed != dbc.FanSpeed {
+	if ic.FanSpeed != dbIc.FanSpeed {
 		updates["FanSpeed"] = ic.FanSpeed
 	}
-	if ic.VentVertical != dbc.VentVertical {
+	if ic.VentVertical != dbIc.VentVertical {
 		updates["VentVertical"] = ic.VentVertical
 	}
-	if ic.VentHorizontal != dbc.VentHorizontal {
+	if ic.VentHorizontal != dbIc.VentHorizontal {
 		updates["VentHorizontal"] = ic.VentHorizontal
 	}
-	if ic.TimerOnEnabled != dbc.TimerOnEnabled {
+	if ic.TimerOnEnabled != dbIc.TimerOnEnabled {
 		updates["TimerOnEnabled"] = ic.TimerOnEnabled
 	}
-	if ic.TimerOffEnabled != dbc.TimerOffEnabled {
+	if ic.TimerOffEnabled != dbIc.TimerOffEnabled {
 		updates["TimerOffEnabled"] = ic.TimerOffEnabled
 	}
-	if ic.TimerOn != dbc.TimerOn && ic.TimerOn != codec.C_Time_Unset {
+	if ic.TimerOn != dbIc.TimerOn && ic.TimerOn != codec.C_Time_Unset {
 		updates["TimerOn"] = ic.TimerOn
 	}
-	if ic.TimerOff != dbc.TimerOff && ic.TimerOff != codec.C_Time_Unset {
+	if ic.TimerOff != dbIc.TimerOff && ic.TimerOff != codec.C_Time_Unset {
 		updates["TimerOff"] = ic.TimerOff
 	}
 

@@ -128,19 +128,15 @@ func NewIrConfig(msg *Message) *IrConfig {
 	irconf.VentHorizontal = f.GetValue(p_PANASONIC_VENT_HPOS_BIT0, p_PANASONIC_VENT_HPOS_BITS)
 	irconf.TimerOnEnabled = f.GetValue(p_PANASONIC_TIMER_ON_ENABLED_BIT0, p_PANASONIC_TIMER_ON_ENABLED_BITS)
 	irconf.TimerOffEnabled = f.GetValue(p_PANASONIC_TIMER_OFF_ENABLED_BIT0, p_PANASONIC_TIMER_OFF_ENABLED_BITS)
-
-	timer_on_time := f.GetValue(p_PANASONIC_TIMER_ON_TIME_BIT0, p_PANASONIC_TIMER_ON_TIME_BITS)
-	irconf.TimerOn = Time(timer_on_time)
-	timer_off_time := f.GetValue(p_PANASONIC_TIMER_OFF_TIME_BIT0, p_PANASONIC_TIMER_OFF_TIME_BITS)
-	irconf.TimerOff = Time(timer_off_time)
-	clock_time := f.GetValue(p_PANASONIC_CLOCK_BIT0, p_PANASONIC_CLOCK_BITS)
-	irconf.Clock = Time(clock_time)
+	irconf.TimerOn = Time(f.GetValue(p_PANASONIC_TIMER_ON_TIME_BIT0, p_PANASONIC_TIMER_ON_TIME_BITS))
+	irconf.TimerOff = Time(f.GetValue(p_PANASONIC_TIMER_OFF_TIME_BIT0, p_PANASONIC_TIMER_OFF_TIME_BITS))
+	irconf.Clock = Time(f.GetValue(p_PANASONIC_CLOCK_BIT0, p_PANASONIC_CLOCK_BITS))
 
 	return &irconf
 }
 
-func (dbc *IrConfig) MakeCopy() *IrConfig {
-	ic := *dbc
+func (c *IrConfig) CopyForSending() *IrConfig {
+	ic := *c
 	ic.TimerOn = C_Time_Unset
 	ic.TimerOff = C_Time_Unset
 	ic.Clock = C_Time_Unset

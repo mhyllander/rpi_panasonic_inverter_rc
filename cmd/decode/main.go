@@ -33,6 +33,20 @@ func printMessageDiff(prevS, curS string) {
 	fmt.Println(diffS)
 }
 
+func printParameters(msg *codec.Message) {
+	c := codec.NewIrConfig(msg)
+
+	var checksum string
+	switch msg.Frame2.VerifyChecksum() {
+	case true:
+		checksum = "verified"
+	case false:
+		checksum = "mismatch"
+	}
+
+	codec.PrintConfigAndChecksum(c, checksum)
+}
+
 func messageHandler(options *Options) func(*codec.Message) {
 	prevS := ""
 	return func(msg *codec.Message) {
@@ -48,7 +62,7 @@ func messageHandler(options *Options) func(*codec.Message) {
 			codec.PrintByteRepresentation(msg)
 		}
 		if options.Param {
-			codec.PrintParams(msg)
+			printParameters(msg)
 		}
 		prevS = curS
 	}
