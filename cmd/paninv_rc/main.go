@@ -14,9 +14,10 @@ func main() {
 
 	var vIrDb = flag.String("db", "paninv.db", "SQLite database")
 	var vIrOutput = flag.String("irout", "/dev/lirc-tx", "LIRC transmit device or file")
+	var vShow = flag.Bool("show", false, "show the current configuration")
 	var vHelp = flag.Bool("help", false, "print usage")
 
-	var vMode2 = flag.Bool("mode2", senderOptions.Mode2, "output to file in mode2 format for ending with it-ctl")
+	var vMode2 = flag.Bool("mode2", senderOptions.Mode2, "output to file in mode2 format for sending with ir-ctl")
 	var vTransmissions = flag.Int("tx", senderOptions.Transmissions, "number of times to send the message")
 	var vInterval = flag.Int("int", senderOptions.Interval_ms, "number of milliseconds between transmissions")
 	var vDevice = flag.Bool("dev", senderOptions.Device, "writing to a LIRC device")
@@ -26,8 +27,8 @@ func main() {
 	var vMode = flag.String("mode", "", "mode [auto|heat|cool|dry]")
 	var vPowerful = flag.String("powerful", "", "powerful [on|off]")
 	var vQuiet = flag.String("quiet", "", "quiet [on|off]")
-	var vTemp = flag.Int("temp", 0, "temperature (uses saved mode temp when unset)")
-	var vFan = flag.String("fan", "", "fan speed [auto|lowest|low|middle|high|highest]")
+	var vTemp = flag.Int("temp", 0, "temperature (set per mode)")
+	var vFan = flag.String("fan", "", "fan speed (set per mode, overridden if powerful or quiet is enabled) [auto|lowest|low|middle|high|highest]")
 	var vVert = flag.String("vert", "", "vent vertical position [auto|lowest|low|middle|high|highest]")
 	var vHoriz = flag.String("horiz", "", "vent horizontal position [auto|farleft|left|middle|right|farright]")
 	var vTimerOnEnabled = flag.String("ton", "", "timer on [on|off]")
@@ -67,21 +68,27 @@ func main() {
 	}
 	defer f.Close()
 
-	// Create a new configuration by making a copy of the current configuration. The copy contains
-	// everything except the time fields, which are unset by default. The new configuration is then
-	// modified according to command line arguments.
+	// get current configuration
 	dbIc, err := db.CurrentConfig()
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	sendIc := dbIc.CopyForSending()
+
+	if *vShow {
+		codec.PrintConfigAndChecksum(dbIc, "")
+		os.Exit(0)
+	}
 
 	if *vVerbose {
 		fmt.Println("config from db")
 		codec.PrintConfigAndChecksum(dbIc, "")
 	}
 
+	// Create a new configuration by making a copy of the current configuration. The copy contains
+	// everything except the time fields, which are unset by default. The new configuration is then
+	// modified according to command line arguments.
+	sendIc := dbIc.CopyForSending()
 	rclogic.SetPower(*vPower, sendIc)
 	rclogic.SetMode(*vMode, sendIc)
 	rclogic.SetPowerful(*vPowerful, sendIc)
