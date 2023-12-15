@@ -34,27 +34,31 @@ func SetLircReceiveMode(f *os.File) {
 	enabled := 1
 	err = unix.IoctlSetPointerInt(int(f.Fd()), ioctl_LIRC_SET_REC_TIMEOUT_REPORTS, enabled)
 	if err != nil {
-		fmt.Println("ioctl error", err)
+		fmt.Println("ioctl error enabling timeout reports", err)
 	}
 }
 
 func SetLircSendMode(f *os.File) {
 	features, err := unix.IoctlGetUint32(int(f.Fd()), ioctl_LIRC_GET_FEATURES)
 	if err != nil {
-		fmt.Println("ioctl error", err)
+		fmt.Println("ioctl error getting lirc features", err)
 	}
 	if features&ioctl_LIRC_CAN_SEND_PULSE != 0 {
 		mode := ioctl_LIRC_MODE_PULSE
 		err = unix.IoctlSetPointerInt(int(f.Fd()), ioctl_LIRC_SET_SEND_MODE, mode)
 		if err != nil {
-			fmt.Println("ioctl error", err)
+			fmt.Println("ioctl error setting send mode pulse", err)
 		}
+	} else {
+		fmt.Println("ioctl doesn't support setting mode pulse")
 	}
 	if features&ioctl_LIRC_CAN_SET_SEND_CARRIER != 0 {
 		carrier := 38000
 		err = unix.IoctlSetPointerInt(int(f.Fd()), ioctl_LIRC_SET_SEND_CARRIER, carrier)
 		if err != nil {
-			fmt.Println("ioctl error", err)
+			fmt.Println("ioctl error setting send carrier", err)
 		}
+	} else {
+		fmt.Println("ioctl doesn't support setting send carrier")
 	}
 }

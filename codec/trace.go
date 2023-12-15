@@ -119,15 +119,15 @@ func toVentHorizontalString(horiz uint) string {
 }
 
 func PrintConfigAndChecksum(c *IrConfig, checksumStatus string) {
-	fmt.Printf("power=%s(%d) mode=%s(%d) powerful=%s(%d) quiet=%s(%d) temp=%d fan=%s(%d)\n",
+	fmt.Printf("power=%s(%d) mode=%s(%d) powerful=%s(%d) quiet=%s(%d)\n",
 		toOnOffString(c.Power), c.Power,
 		toModeString(c.Mode), c.Mode,
 		toOnOffString(c.Powerful), c.Powerful,
-		toOnOffString(c.Quiet), c.Quiet,
-		c.Temperature,
-		toFanSpeedString(c.FanSpeed), c.FanSpeed)
+		toOnOffString(c.Quiet), c.Quiet)
 
-	fmt.Printf("vents: vert=%s(%d) horiz=%s(%d)\n",
+	fmt.Printf("temp=%d fan=%s(%d), vents: vert=%s(%d) horiz=%s(%d)\n",
+		c.Temperature,
+		toFanSpeedString(c.FanSpeed), c.FanSpeed,
 		toVentVerticalString(c.VentVertical), c.VentVertical,
 		toVentHorizontalString(c.VentHorizontal), c.VentHorizontal)
 
