@@ -1,7 +1,7 @@
 package db
 
 import (
-	"fmt"
+	"log/slog"
 	"rpi_panasonic_inverter_rc/codec"
 
 	"gorm.io/driver/sqlite"
@@ -26,7 +26,7 @@ func Initialize(dbFile string) error {
 
 	result := myDb.First(&dbIc, 1)
 	if result.Error != nil && result.RowsAffected == 0 {
-		fmt.Println("Initializing db")
+		slog.Info("Initializing db")
 
 		ic := codec.NewIrConfig(nil)
 		c := &DbIrConfig{
@@ -146,8 +146,6 @@ func SaveConfig(ic, dbIc *codec.IrConfig) error {
 	if ic.Powerful == codec.C_Powerful_Disabled && ic.Quiet == codec.C_Quiet_Disabled {
 		settings["FanSpeed"] = ic.FanSpeed
 	}
-	// fmt.Printf("updating settings for mode=%d: ", ic.Mode)
-	// fmt.Println(settings)
 	result = myDb.Model(ModeSetting{}).Where("mode = ?", ic.Mode).Updates(settings)
 	if result.Error != nil {
 		return result.Error
@@ -162,6 +160,5 @@ func GetModeSettings(mode uint) (temp, fan uint, err error) {
 	if result.Error != nil {
 		return 0, 0, result.Error
 	}
-	// fmt.Printf("getting settings for mode=%d: temp=%d fan=%d\n", ms.Mode, ms.Temperature, ms.FanSpeed)
 	return ms.Temperature, ms.FanSpeed, nil
 }

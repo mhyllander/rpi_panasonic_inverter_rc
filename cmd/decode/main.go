@@ -3,15 +3,16 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log/slog"
 	"os"
 	"rpi_panasonic_inverter_rc/codec"
 )
 
 type Options struct {
-	Byte    bool
-	Diff    bool
-	Param   bool
-	Verbose bool
+	PrintBytes   bool
+	PrintDiff    bool
+	PrintConfig  bool
+	PrintMessage bool
 }
 
 func printMessageDiff(prevS, curS string) {
@@ -51,36 +52,56 @@ func messageHandler(options *Options) func(*codec.Message) {
 	prevS := ""
 	return func(msg *codec.Message) {
 		curS, _ := msg.Frame2.ToVerboseString()
-		if options.Verbose {
+		if options.PrintMessage {
 			codec.PrintMessage(msg)
 		}
-		if options.Diff && prevS != "" {
+		if options.PrintDiff && prevS != "" {
 			// compare current frames with previous
 			printMessageDiff(prevS, curS)
 		}
-		if options.Byte {
+		if options.PrintBytes {
 			codec.PrintByteRepresentation(msg)
 		}
-		if options.Param {
+		if options.PrintConfig {
 			printParameters(msg)
 		}
 		prevS = curS
 	}
 }
 
+func setLoggerOpts(level string) *slog.HandlerOptions {
+	var opts slog.HandlerOptions = slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}
+	switch level {
+	case "debug":
+		opts.Level = slog.LevelDebug
+	case "info":
+		opts.Level = slog.LevelInfo
+	case "warn":
+		opts.Level = slog.LevelWarn
+	case "error":
+		opts.Level = slog.LevelError
+	default:
+	}
+	return &opts
+}
+
 func main() {
 	recOptions := codec.NewReceiverOptions()
 
 	var vIrInput = flag.String("irin", "/dev/lirc-rx", "LIRC data source (file or device)")
+	var vLogLevel = flag.String("log-level", "debug", "log level [debug|info|warn|error]")
 	var vHelp = flag.Bool("help", false, "print usage")
 
-	var vDevice = flag.Bool("dev", recOptions.Device, "reading from LIRC device")
-	var vRaw = flag.Bool("raw", recOptions.Raw, "print raw pulse data")
-	var vClean = flag.Bool("clean", recOptions.Clean, "print cleaned up pulse data")
-	var vVerbose = flag.Bool("verbose", recOptions.Verbose, "print verbose output")
-	var vByte = flag.Bool("byte", false, "print message as bytes")
-	var vDiff = flag.Bool("diff", false, "show difference from previous")
-	var vParam = flag.Bool("param", false, "show decoded params")
+	var vDevice = flag.Bool("dev", recOptions.Device, "receive option: reading from LIRC device")
+	var vRaw = flag.Bool("raw", recOptions.PrintRaw, "receive option: print raw pulse data")
+	var vClean = flag.Bool("clean", recOptions.PrintClean, "receive option: print cleaned up pulse data")
+
+	var vMessage = flag.Bool("msg", false, "print message")
+	var vBytes = flag.Bool("bytes", false, "print message as bytes")
+	var vDiff = flag.Bool("diff", false, "print difference from previous")
+	var vConfig = flag.Bool("config", false, "print decoded configuration")
 
 	flag.Parse()
 
@@ -94,19 +115,20 @@ func main() {
 		os.Exit(1)
 	}
 
-	recOptions.Device = *vDevice
-	recOptions.Raw = *vRaw
-	recOptions.Clean = *vClean
-	recOptions.Verbose = *vVerbose
+	slog.New(slog.NewTextHandler(os.Stdout, setLoggerOpts(*vLogLevel)))
 
-	options := &Options{
-		Byte:    *vByte,
-		Diff:    *vDiff,
-		Param:   *vParam,
-		Verbose: *vVerbose,
+	recOptions.Device = *vDevice
+	recOptions.PrintRaw = *vRaw
+	recOptions.PrintClean = *vClean
+
+	options := Options{
+		PrintBytes:   *vBytes,
+		PrintDiff:    *vDiff,
+		PrintConfig:  *vConfig,
+		PrintMessage: *vMessage,
 	}
 
-	err := codec.StartReceiver(*vIrInput, messageHandler(options), recOptions)
+	err := codec.StartReceiver(*vIrInput, messageHandler(&options), recOptions)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

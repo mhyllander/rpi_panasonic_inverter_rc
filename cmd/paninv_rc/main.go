@@ -3,11 +3,29 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log/slog"
 	"os"
 	"rpi_panasonic_inverter_rc/codec"
 	"rpi_panasonic_inverter_rc/db"
 	"rpi_panasonic_inverter_rc/rclogic"
 )
+
+func setLoggerOpts(level string) *slog.HandlerOptions {
+	var opts slog.HandlerOptions = slog.HandlerOptions{}
+	switch level {
+	case "debug":
+		opts.Level = slog.LevelDebug
+	case "info":
+		opts.Level = slog.LevelInfo
+	case "warn":
+		opts.Level = slog.LevelWarn
+	case "error":
+		opts.Level = slog.LevelError
+	default:
+		opts.Level = slog.LevelInfo
+	}
+	return &opts
+}
 
 func main() {
 	senderOptions := codec.NewSenderOptions()
@@ -15,13 +33,14 @@ func main() {
 	var vIrDb = flag.String("db", "paninv.db", "SQLite database")
 	var vIrOutput = flag.String("irout", "/dev/lirc-tx", "LIRC transmit device or file")
 	var vShow = flag.Bool("show", false, "show the current configuration")
+	var vLogLevel = flag.String("log-level", "warn", "log level [debug|info|warn|error]")
+	var vVerbose = flag.Bool("verbose", false, "print verbose output")
 	var vHelp = flag.Bool("help", false, "print usage")
 
-	var vMode2 = flag.Bool("mode2", senderOptions.Mode2, "output to file in mode2 format for sending with ir-ctl")
-	var vTransmissions = flag.Int("tx", senderOptions.Transmissions, "number of times to send the message")
-	var vInterval = flag.Int("int", senderOptions.Interval_ms, "number of milliseconds between transmissions")
-	var vDevice = flag.Bool("dev", senderOptions.Device, "writing to a LIRC device")
-	var vVerbose = flag.Bool("verbose", senderOptions.Verbose, "print verbose output")
+	var vMode2 = flag.Bool("mode2", senderOptions.Mode2, "send option: output to file in mode2 format for sending with ir-ctl")
+	var vTransmissions = flag.Int("tx", senderOptions.Transmissions, "send option: number of times to send the message")
+	var vInterval = flag.Int("int", senderOptions.Interval_ms, "send option: number of milliseconds between transmissions")
+	var vDevice = flag.Bool("dev", senderOptions.Device, "send option: writing to a LIRC device")
 
 	var vPower = flag.String("power", "", "power [on|off]")
 	var vMode = flag.String("mode", "", "mode [auto|heat|cool|dry]")
@@ -51,6 +70,8 @@ func main() {
 		fmt.Printf("please set the device or file to write to")
 		os.Exit(1)
 	}
+
+	slog.New(slog.NewTextHandler(os.Stdout, setLoggerOpts(*vLogLevel)))
 
 	// open and initialize database
 	db.Initialize(*vIrDb)
@@ -110,7 +131,6 @@ func main() {
 	}
 
 	senderOptions.Mode2 = *vMode2
-	senderOptions.Verbose = *vVerbose
 	senderOptions.Device = *vDevice
 	senderOptions.Transmissions = *vTransmissions
 	senderOptions.Interval_ms = *vInterval

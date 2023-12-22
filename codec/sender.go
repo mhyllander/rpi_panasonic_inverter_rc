@@ -1,7 +1,7 @@
 package codec
 
 import (
-	"fmt"
+	"log/slog"
 	"os"
 	"rpi_panasonic_inverter_rc/ioctl"
 	"strings"
@@ -11,14 +11,13 @@ import (
 type senderOptions struct {
 	Mode2         bool
 	Device        bool
-	Verbose       bool
 	Transmissions int
 	Interval_ms   int
 }
 
 // ensure there are reasonable defaults
 func NewSenderOptions() *senderOptions {
-	return &senderOptions{Device: true, Transmissions: 4, Interval_ms: 20}
+	return &senderOptions{Device: true, Transmissions: 3, Interval_ms: 50}
 }
 
 func stripMode2Types(licrData *LircBuffer) {
@@ -39,9 +38,7 @@ func SendIr(ic *IrConfig, f *os.File, options *senderOptions) error {
 		if err != nil {
 			return err
 		}
-		if options.Verbose {
-			fmt.Printf("wrote %d ints\n", len(s))
-		}
+		slog.Debug("wrote mode2", "ints", len(s))
 	} else {
 		licrData := ic.ConvertToLircData()
 		stripMode2Types(licrData)
@@ -54,9 +51,7 @@ func SendIr(ic *IrConfig, f *os.File, options *senderOptions) error {
 			if err != nil {
 				return err
 			}
-			if options.Verbose {
-				fmt.Printf("wrote %d of %d bytes\n", n, len(b))
-			}
+			slog.Debug("wrote raw LIRC", "bytes", len(b), "written", n)
 			if i < options.Transmissions-1 {
 				time.Sleep(time.Duration(options.Interval_ms) * time.Millisecond)
 			}

@@ -1,17 +1,16 @@
 package codec
 
 import (
-	"fmt"
+	"log/slog"
 	"os"
 	"rpi_panasonic_inverter_rc/ioctl"
 	"time"
 )
 
 type receiverOptions struct {
-	Device  bool
-	Raw     bool
-	Clean   bool
-	Verbose bool
+	Device     bool
+	PrintRaw   bool
+	PrintClean bool
 }
 
 // ensure there are reasonable defaults
@@ -34,14 +33,14 @@ func processLircRawData(lircStream chan uint32, messageStream chan *Message, opt
 	lircData := newBuffer()
 	for {
 		d := <-lircStream
-		if options.Raw {
+		if options.PrintRaw {
 			printLircData("raw", d)
 		}
 		keep, d := filterLircAsPanasonic(d)
 		if !keep {
 			continue
 		}
-		if options.Clean {
+		if options.PrintClean {
 			printLircData("clean", d)
 		}
 		lircData = append(lircData, d)
@@ -53,9 +52,7 @@ func processLircRawData(lircStream chan uint32, messageStream chan *Message, opt
 			// send message
 			messageStream <- msg
 		default:
-			if options.Verbose {
-				fmt.Println(state)
-			}
+			slog.Debug("problem during parsing", "state", state)
 		}
 		// copy remaining data to start of lircData
 		lircData = lircData[:len(remainingData)]
@@ -85,8 +82,8 @@ func StartReceiver(file string, messageHandler func(*Message), options *receiver
 		if err != nil {
 			return err
 		}
-		if options.Verbose && n%4 != 0 {
-			fmt.Printf("didn't get even 4 bytes matching uint32\n")
+		if n%4 != 0 {
+			slog.Debug("didn't get even 4 bytes matching uint32")
 		}
 
 		lircData := convertRawToLirc(readBuffer[:n])

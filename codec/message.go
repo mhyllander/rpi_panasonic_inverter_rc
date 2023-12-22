@@ -68,10 +68,7 @@ func (f *BitSet) AppendBit(bit uint) (nBits int) {
 }
 
 // Retrieves a value from a certain position in the bit stream.
-// Since the bits were received with least significant bit first, this means that
-// the least significant bit is rightmost, which is convenient when we want to get
-// a value at a certain index. We simply shift the bits right so that the first bit
-// is at index 0, then apply the mask.
+// The least significant bit is rightmost in the BitSet.
 func (f *BitSet) GetValue(bitIndex uint, numberOfBits uint) (value uint) {
 	// copy bits from bitset to value
 	for i := 0; i < int(numberOfBits); i++ {

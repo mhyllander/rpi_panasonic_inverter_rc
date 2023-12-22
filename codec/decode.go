@@ -3,6 +3,7 @@ package codec
 import (
 	"encoding/binary"
 	"fmt"
+	"log/slog"
 )
 
 // convert raw bytes read from the file or socket to the unsigned ints sent by LIRC
@@ -179,16 +180,12 @@ func appendPanasonicBit(space uint32, frame *Frame) error {
 func parsePanasonicFrame(lircData []uint32, pos int, nBits int, frame *Frame, options *receiverOptions) parseState {
 	state := skipPulse(lircData, pos, l_PANASONIC_FRAME_MARK1_PULSE)
 	if state.status != PARSE_OK {
-		if options.Verbose {
-			fmt.Println("mark1 pulse not found")
-		}
+		slog.Debug("mark1 pulse not found")
 		return state
 	}
 	state = skipSpace(lircData, state.pos, l_PANASONIC_FRAME_MARK2_SPACE)
 	if state.status != PARSE_OK {
-		if options.Verbose {
-			fmt.Println("mark2 space not found")
-		}
+		slog.Debug("mark2 space not found")
 		return state
 	}
 	for i := 0; i < nBits; i++ {
@@ -214,20 +211,16 @@ func parsePanasonicFrame(lircData []uint32, pos int, nBits int, frame *Frame, op
 }
 
 func readPanasonicMessage(lircData []uint32, options *receiverOptions) (*Message, []uint32, parseState) {
-	// if options.Verbose {
-	// 	fmt.Printf("parse data %d items, require at least %d\n", len(lircData), l_PANASONIC_LIRC_ITEMS)
-	// }
+	// slog.Debug("parse data", "items", len(lircData), "required", l_PANASONIC_LIRC_ITEMS)
 	start, err := findStartOfPanasonicFrame(lircData)
 	if err != nil {
 		return nil, lircData, parseState{0, PARSE_MISSING_START_OF_FRAME, "start of frame not found"}
 	}
 	end, foundTimeout := findEndOfData(lircData, start)
-	// fmt.Printf("start=%d end=%d timeout=%t\n", start, end, foundTimeout)
+	// slog.Debug("findEndOfData", "start", start, "end", end, "timeout", foundTimeout)
 	if foundTimeout && end-start < l_PANASONIC_LIRC_ITEMS {
 		// we found an end-of-trasmission but it can't be a full message
-		if options.Verbose {
-			fmt.Println("discarding truncated message")
-		}
+		slog.Debug("discarding truncated message")
 		return nil, lircData[end:], parseState{end, PARSE_NOT_ENOUGH_DATA, "truncated message"}
 	}
 	if end-start < l_PANASONIC_LIRC_ITEMS {
