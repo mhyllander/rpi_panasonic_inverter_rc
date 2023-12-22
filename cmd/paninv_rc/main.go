@@ -7,25 +7,8 @@ import (
 	"os"
 	"rpi_panasonic_inverter_rc/codec"
 	"rpi_panasonic_inverter_rc/db"
-	"rpi_panasonic_inverter_rc/rclogic"
+	"rpi_panasonic_inverter_rc/utils"
 )
-
-func setLoggerOpts(level string) *slog.HandlerOptions {
-	var opts slog.HandlerOptions = slog.HandlerOptions{}
-	switch level {
-	case "debug":
-		opts.Level = slog.LevelDebug
-	case "info":
-		opts.Level = slog.LevelInfo
-	case "warn":
-		opts.Level = slog.LevelWarn
-	case "error":
-		opts.Level = slog.LevelError
-	default:
-		opts.Level = slog.LevelInfo
-	}
-	return &opts
-}
 
 func main() {
 	senderOptions := codec.NewSenderOptions()
@@ -71,7 +54,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	slog.New(slog.NewTextHandler(os.Stdout, setLoggerOpts(*vLogLevel)))
+	slog.New(slog.NewTextHandler(os.Stdout, utils.SetLoggerOpts(*vLogLevel)))
 
 	// open and initialize database
 	db.Initialize(*vIrDb)
@@ -110,20 +93,20 @@ func main() {
 	// everything except the time fields, which are unset by default. The new configuration is then
 	// modified according to command line arguments.
 	sendIc := dbIc.CopyForSending()
-	rclogic.SetPower(*vPower, sendIc)
-	rclogic.SetMode(*vMode, sendIc)
-	rclogic.SetPowerful(*vPowerful, sendIc)
-	rclogic.SetQuiet(*vQuiet, sendIc)
-	rclogic.SetTemperature(*vTemp, sendIc)
-	rclogic.SetFanSpeed(*vFan, sendIc)
-	rclogic.SetVentVerticalPosition(*vVert, sendIc)
-	rclogic.SetVentHorizontalPosition(*vHoriz, sendIc)
+	utils.SetPower(*vPower, sendIc)
+	utils.SetMode(*vMode, sendIc)
+	utils.SetPowerful(*vPowerful, sendIc)
+	utils.SetQuiet(*vQuiet, sendIc)
+	utils.SetTemperature(*vTemp, sendIc)
+	utils.SetFanSpeed(*vFan, sendIc)
+	utils.SetVentVerticalPosition(*vVert, sendIc)
+	utils.SetVentHorizontalPosition(*vHoriz, sendIc)
 
 	// if timers are changed in any way, time fields are initialized
-	rclogic.SetTimerOnEnabled(*vTimerOnEnabled, sendIc, dbIc)
-	rclogic.SetTimerOffEnabled(*vTimerOffEnabled, sendIc, dbIc)
-	rclogic.SetTimerOn(*vTimeOn, sendIc, dbIc)
-	rclogic.SetTimerOff(*vTimeOff, sendIc, dbIc)
+	utils.SetTimerOnEnabled(*vTimerOnEnabled, sendIc, dbIc)
+	utils.SetTimerOffEnabled(*vTimerOffEnabled, sendIc, dbIc)
+	utils.SetTimerOn(*vTimeOn, sendIc, dbIc)
+	utils.SetTimerOff(*vTimeOff, sendIc, dbIc)
 
 	if *vVerbose {
 		fmt.Println("config to send")

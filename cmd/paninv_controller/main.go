@@ -6,6 +6,7 @@ import (
 	"os"
 	"rpi_panasonic_inverter_rc/codec"
 	"rpi_panasonic_inverter_rc/db"
+	"rpi_panasonic_inverter_rc/utils"
 )
 
 type Options struct {
@@ -55,23 +56,6 @@ func messageHandler(options *Options) func(*codec.Message) {
 	}
 }
 
-func setLoggerOpts(level string) *slog.HandlerOptions {
-	var opts slog.HandlerOptions = slog.HandlerOptions{}
-	switch level {
-	case "debug":
-		opts.Level = slog.LevelDebug
-	case "info":
-		opts.Level = slog.LevelInfo
-	case "warn":
-		opts.Level = slog.LevelWarn
-	case "error":
-		opts.Level = slog.LevelError
-	default:
-		opts.Level = slog.LevelInfo
-	}
-	return &opts
-}
-
 func main() {
 	recOptions := codec.NewReceiverOptions()
 
@@ -101,7 +85,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	slog.New(slog.NewTextHandler(os.Stdout, setLoggerOpts(*vLogLevel)))
+	slog.New(slog.NewTextHandler(os.Stdout, utils.SetLoggerOpts(*vLogLevel)))
 
 	// open and initialize database
 	db.Initialize(*vIrDb)
