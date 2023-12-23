@@ -1,2 +1,4 @@
-/bin
+/arm64/**
+/bin/**
 paninv.db
+!**/.keepdir

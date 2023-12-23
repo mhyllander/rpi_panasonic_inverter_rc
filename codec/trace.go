@@ -1,6 +1,9 @@
 package codec
 
-import "fmt"
+import (
+	"fmt"
+	"log/slog"
+)
 
 func printLircData(label string, d uint32) {
 	v := d & l_LIRC_VALUE_MASK
@@ -138,4 +141,23 @@ func PrintConfigAndChecksum(c *IrConfig, checksumStatus string) {
 	if checksumStatus != "" {
 		fmt.Printf("checksum: %s\n", checksumStatus)
 	}
+}
+
+func LogConfigAndChecksum(c *IrConfig, checksumStatus string) {
+	slog.Info("config",
+		"power", toOnOffString(c.Power),
+		"mode", toModeString(c.Mode),
+		"powerful", toOnOffString(c.Powerful),
+		"quiet", toOnOffString(c.Quiet),
+		"temp", c.Temperature,
+		"fan", toFanSpeedString(c.FanSpeed),
+		"vent.vert", toVentVerticalString(c.VentVertical),
+		"vent.horiz", toVentHorizontalString(c.VentHorizontal),
+		"timer_on.enabled", toOnOffString(c.TimerOnEnabled),
+		"timer_on.time", c.TimerOn,
+		"timer_off.enabled", toOnOffString(c.TimerOffEnabled),
+		"timer_off.time", c.TimerOff,
+		"clock", c.Clock,
+		"checksum", checksumStatus,
+	)
 }

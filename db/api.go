@@ -2,6 +2,7 @@ package db
 
 import (
 	"log/slog"
+	"os"
 	"rpi_panasonic_inverter_rc/codec"
 
 	"gorm.io/driver/sqlite"
@@ -9,6 +10,14 @@ import (
 )
 
 var myDb *gorm.DB
+
+func GetDBPath() string {
+	db := os.Getenv("PANINV_DB")
+	if db == "" {
+		db = "paninv.db"
+	}
+	return db
+}
 
 func Initialize(dbFile string) error {
 	var err error

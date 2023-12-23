@@ -71,20 +71,19 @@ func messageHandler(options *Options) func(*codec.Message) {
 }
 
 func main() {
-	recOptions := codec.NewReceiverOptions()
-
-	var vIrInput = flag.String("irin", "/dev/lirc-rx", "LIRC data source (file or device)")
+	var vIrInput = flag.String("irin", "/dev/lirc-rx", "LIRC source (file or device)")
 	var vLogLevel = flag.String("log-level", "debug", "log level [debug|info|warn|error]")
 	var vHelp = flag.Bool("help", false, "print usage")
-
-	var vDevice = flag.Bool("dev", recOptions.Device, "receive option: reading from LIRC device")
-	var vRaw = flag.Bool("raw", recOptions.PrintRaw, "receive option: print raw pulse data")
-	var vClean = flag.Bool("clean", recOptions.PrintClean, "receive option: print cleaned up pulse data")
 
 	var vMessage = flag.Bool("msg", false, "print message")
 	var vBytes = flag.Bool("bytes", false, "print message as bytes")
 	var vDiff = flag.Bool("diff", false, "print difference from previous")
 	var vConfig = flag.Bool("config", false, "print decoded configuration")
+
+	recOptions := codec.NewReceiverOptions()
+	var vDevice = flag.Bool("rec-dev", recOptions.Device, "receive option: reading from LIRC device")
+	var vRaw = flag.Bool("rec-raw", recOptions.PrintRaw, "receive option: print raw pulse data")
+	var vClean = flag.Bool("rec-clean", recOptions.PrintClean, "receive option: print cleaned up pulse data")
 
 	flag.Parse()
 

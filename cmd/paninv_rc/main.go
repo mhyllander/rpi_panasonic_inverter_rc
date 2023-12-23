@@ -11,19 +11,12 @@ import (
 )
 
 func main() {
-	senderOptions := codec.NewSenderOptions()
-
-	var vIrDb = flag.String("db", "paninv.db", "SQLite database")
-	var vIrOutput = flag.String("irout", "/dev/lirc-tx", "LIRC transmit device or file")
+	var vIrDb = flag.String("db", db.GetDBPath(), "SQLite database")
+	var vIrOutput = flag.String("irout", "/dev/lirc-tx", "LIRC output device or file")
 	var vShow = flag.Bool("show", false, "show the current configuration")
 	var vLogLevel = flag.String("log-level", "warn", "log level [debug|info|warn|error]")
 	var vVerbose = flag.Bool("verbose", false, "print verbose output")
 	var vHelp = flag.Bool("help", false, "print usage")
-
-	var vMode2 = flag.Bool("mode2", senderOptions.Mode2, "send option: output to file in mode2 format for sending with ir-ctl")
-	var vTransmissions = flag.Int("tx", senderOptions.Transmissions, "send option: number of times to send the message")
-	var vInterval = flag.Int("int", senderOptions.Interval_ms, "send option: number of milliseconds between transmissions")
-	var vDevice = flag.Bool("dev", senderOptions.Device, "send option: writing to a LIRC device")
 
 	var vPower = flag.String("power", "", "power [on|off]")
 	var vMode = flag.String("mode", "", "mode [auto|heat|cool|dry]")
@@ -37,6 +30,12 @@ func main() {
 	var vTimerOffEnabled = flag.String("toff", "", "timer off [on|off]")
 	var vTimeOn = flag.String("ton-time", "", "timer on time, e.g. 09:00")
 	var vTimeOff = flag.String("toff-time", "", "timer off time, e.g. 21:00")
+
+	senderOptions := codec.NewSenderOptions()
+	var vMode2 = flag.Bool("send-mode2", senderOptions.Mode2, "send option: output in mode2 format (when writing to file for sending with ir-ctl)")
+	var vTransmissions = flag.Int("send-tx", senderOptions.Transmissions, "send option: number of times to send the message")
+	var vInterval = flag.Int("send-int", senderOptions.Interval_ms, "send option: number of milliseconds between transmissions")
+	var vDevice = flag.Bool("send-dev", senderOptions.Device, "send option: writing to a LIRC device")
 
 	flag.Parse()
 

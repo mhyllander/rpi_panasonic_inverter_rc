@@ -34,14 +34,20 @@ func messageHandler(options *Options) func(*codec.Message) {
 
 		c := codec.NewIrConfig(msg)
 
+		codec.LogConfigAndChecksum(c, checksum)
 		if options.PrintConfig {
 			codec.PrintConfigAndChecksum(c, checksum)
+		}
+
+		if checksum != "verified" {
+			slog.Warn("checksum mismatch, discarding")
+			return
 		}
 
 		// get current configuration
 		dbIc, err := db.CurrentConfig()
 		if err != nil {
-			slog.Error("filed to get current config", "error", err)
+			slog.Error("failed to get current config", "error", err)
 			return
 		}
 
@@ -50,28 +56,24 @@ func messageHandler(options *Options) func(*codec.Message) {
 			slog.Error("failed to save the new config", "error", err)
 			return
 		}
-		if options.PrintMessage {
-			slog.Debug("saved config to db")
-		}
+		slog.Debug("saved config to db")
 	}
 }
 
 func main() {
-	recOptions := codec.NewReceiverOptions()
-
-	var vIrInput = flag.String("irin", "/dev/lirc-rx", "LIRC receive device ")
+	var vIrInput = flag.String("irin", "/dev/lirc-rx", "LIRC receive device")
 	// var vIrOutput = flag.String("irout", "/dev/lirc-tx", "LIRC transmit device")
-	var vIrDb = flag.String("db", "paninv.db", "SQLite database")
+	var vIrDb = flag.String("db", db.GetDBPath(), "SQLite database")
 	var vLogLevel = flag.String("log-level", "info", "log level [debug|info|warn|error]")
 	var vHelp = flag.Bool("help", false, "print usage")
-
-	var vDevice = flag.Bool("dev", recOptions.Device, "receive option: reading from LIRC device")
-	var vRaw = flag.Bool("raw", recOptions.PrintRaw, "receive option: print raw pulse data")
-	var vClean = flag.Bool("clean", recOptions.PrintClean, "receive option: print cleaned up pulse data")
 
 	var vMessage = flag.Bool("msg", false, "print message")
 	var vBytes = flag.Bool("bytes", false, "print message as bytes")
 	var vConfig = flag.Bool("config", false, "print decoded configuration")
+
+	recOptions := codec.NewReceiverOptions()
+	var vRaw = flag.Bool("rec-raw", recOptions.PrintRaw, "receive option: print raw pulse data")
+	var vClean = flag.Bool("rec-clean", recOptions.PrintClean, "receive option: print cleaned up pulse data")
 
 	flag.Parse()
 
@@ -91,7 +93,7 @@ func main() {
 	db.Initialize(*vIrDb)
 	defer db.Close()
 
-	recOptions.Device = *vDevice
+	recOptions.Device = true
 	recOptions.PrintRaw = *vRaw
 	recOptions.PrintClean = *vClean
 

@@ -1,37 +1,35 @@
-BINARIES=decode paninv_rc paninv_controller
-BINARIES_RPI=decode-arm64 paninv_rc-arm64 paninv_controller-arm64
+BINARIES := bin/decode bin/paninv_rc bin/paninv_controller
+BINARIES_RPI := arm64/decode arm64/paninv_rc arm64/paninv_controller
 
 all: build build-rpi
 
-build: $(BINARIES)
+build: $(subst /,-,$(BINARIES))
 
-build-rpi: $(BINARIES_RPI)
+build-rpi: $(subst /,-,$(BINARIES_RPI))
 
-decode: cmd/decode/main.go
+bin-decode:
 	go build -o bin/decode cmd/decode/main.go
 
-paninv_rc: cmd/paninv_rc/main.go
+bin-paninv_rc:
 	go build -o bin/paninv_rc cmd/paninv_rc/main.go
 
-paninv_controller: cmd/paninv_controller/main.go
+bin-paninv_controller:
 	go build -o bin/paninv_controller cmd/paninv_controller/main.go
 
-decode-arm64: cmd/decode/main.go
-	GOOS=linux GOARCH=arm64 go build -o bin/decode-arm64 cmd/decode/main.go
+arm64-decode:
+	GOOS=linux GOARCH=arm64 go build -o arm64/decode cmd/decode/main.go
 
-paninv_rc-arm64: cmd/paninv_rc/main.go
-	GOOS=linux GOARCH=arm64 CGO_ENABLED=1 CC=aarch64-linux-gnu-gcc go build -o bin/paninv_rc-arm64 cmd/paninv_rc/main.go
+arm64-paninv_rc:
+	GOOS=linux GOARCH=arm64 CGO_ENABLED=1 CC=aarch64-linux-gnu-gcc go build -o arm64/paninv_rc cmd/paninv_rc/main.go
 
-paninv_controller-arm64: cmd/paninv_controller/main.go
-	GOOS=linux GOARCH=arm64 CGO_ENABLED=1 CC=aarch64-linux-gnu-gcc go build -o bin/paninv_controller-arm64 cmd/paninv_controller/main.go
+arm64-paninv_controller:
+	GOOS=linux GOARCH=arm64 CGO_ENABLED=1 CC=aarch64-linux-gnu-gcc go build -o arm64/paninv_controller cmd/paninv_controller/main.go
 
-clean:
-	rm -f bin/*
-
-#hello-arm64: cmd/cgo/main_cgo.go
+#hello-arm64:
 #	GOOS=linux GOARCH=arm64 CGO_ENABLED=1 CC=aarch64-linux-gnu-gcc go build -o bin/hello-arm64 -ldflags="--sysroot=/home/mhy/chroot/rpi-bookworm-arm64" cmd/cgo/main_cgo.go
 
 deploy: build-rpi
-	scp bin/decode-arm64 piir:decode
-	scp bin/paninv_rc-arm64 piir:paninv_rc
-	scp bin/paninv_controller-arm64 piir:paninv_controller
+	scp $(BINARIES_RPI) piir:bin/
+
+clean:
+	rm -f bin/* arm64/*
