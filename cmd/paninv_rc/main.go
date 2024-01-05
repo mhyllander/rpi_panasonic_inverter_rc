@@ -92,7 +92,6 @@ func main() {
 	// everything except the time fields, which are unset by default. The new configuration is then
 	// modified according to command line arguments.
 	sendIc := dbIc.CopyForSending()
-	utils.SetPower(*vPower, sendIc)
 	utils.SetMode(*vMode, sendIc)
 	utils.SetPowerful(*vPowerful, sendIc)
 	utils.SetQuiet(*vQuiet, sendIc)
@@ -100,6 +99,9 @@ func main() {
 	utils.SetFanSpeed(*vFan, sendIc)
 	utils.SetVentVerticalPosition(*vVert, sendIc)
 	utils.SetVentHorizontalPosition(*vHoriz, sendIc)
+
+	// set power, adjusting for any current timers
+	utils.SetPower(*vPower, sendIc, dbIc)
 
 	// if timers are changed in any way, time fields are initialized
 	utils.SetTimerOnEnabled(*vTimerOnEnabled, sendIc, dbIc)

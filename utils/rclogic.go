@@ -9,14 +9,27 @@ import (
 	"time"
 )
 
-func SetPower(setting string, ic *codec.IrConfig) {
+func SetPower(setting string, ic, dbIc *codec.IrConfig) {
 	switch setting {
 	case "on":
 		ic.Power = codec.C_Power_On
 	case "off":
 		ic.Power = codec.C_Power_Off
 	default:
-		return
+		// Adjust Power according to current time and any enabled timers. The assumption is
+		// that if timers are set, the inverter's Power state may have changed to on or off
+		// automatically, which is not reflected in the saved state, and we don't want to
+		// inadvertently change it while changing some other parameter.
+		// Note that ic contains the timer times to send, which are often unset, therefore
+		// we need to use the real values from in dbIc.
+		now := time.Now()
+		clock := codec.NewTime(uint(now.Hour()), uint(now.Minute()))
+		if dbIc.TimerOnEnabled == codec.C_Timer_Enabled && clock >= dbIc.TimerOn {
+			ic.Power = codec.C_Power_On
+		}
+		if dbIc.TimerOffEnabled == codec.C_Timer_Enabled && clock >= dbIc.TimerOff {
+			ic.Power = codec.C_Power_Off
+		}
 	}
 }
 
@@ -183,7 +196,7 @@ func setTimes(ic, dbIc *codec.IrConfig) {
 	if ic.TimerOff == codec.C_Time_Unset {
 		ic.TimerOff = dbIc.TimerOff
 	}
-	// the the clock field to the current time
+	// set the clock field to the current time
 	now := time.Now()
 	ic.Clock = codec.NewTime(uint(now.Hour()), uint(now.Minute()))
 }
