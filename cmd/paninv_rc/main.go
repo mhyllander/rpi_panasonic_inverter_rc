@@ -24,12 +24,12 @@ func main() {
 	var vQuiet = flag.String("quiet", "", "quiet [on|off]")
 	var vTemp = flag.Int("temp", 0, "temperature (set per mode)")
 	var vFan = flag.String("fan", "", "fan speed (set per mode, overridden if powerful or quiet is enabled) [auto|lowest|low|middle|high|highest]")
-	var vVert = flag.String("vert", "", "vent vertical position [auto|lowest|low|middle|high|highest]")
-	var vHoriz = flag.String("horiz", "", "vent horizontal position [auto|farleft|left|middle|right|farright]")
-	var vTimerOnEnabled = flag.String("ton", "", "timer on [on|off]")
-	var vTimerOffEnabled = flag.String("toff", "", "timer off [on|off]")
-	var vTimeOn = flag.String("ton-time", "", "timer on time, e.g. 09:00")
-	var vTimeOff = flag.String("toff-time", "", "timer off time, e.g. 21:00")
+	var vVert = flag.String("vent.vert", "", "vent vertical position [auto|lowest|low|middle|high|highest]")
+	var vHoriz = flag.String("vent.horiz", "", "vent horizontal position [auto|farleft|left|middle|right|farright]")
+	var vTimerOnEnabled = flag.String("timer_on.enabled", "", "timer_on [on|off]")
+	var vTimerOnTime = flag.String("timer_on.time", "", "timer_on time, e.g. 09:00")
+	var vTimerOffEnabled = flag.String("timer_off.enabled", "", "timer_off [on|off]")
+	var vTimerOffTime = flag.String("timer_off.time", "", "timer_off time, e.g. 21:00")
 
 	senderOptions := codec.NewSenderOptions()
 	var vMode2 = flag.Bool("send-mode2", senderOptions.Mode2, "send option: output in mode2 format (when writing to file for sending with ir-ctl)")
@@ -105,9 +105,9 @@ func main() {
 
 	// if timers are changed in any way, time fields are initialized
 	utils.SetTimerOnEnabled(*vTimerOnEnabled, sendIc, dbIc)
+	utils.SetTimerOnTime(*vTimerOnTime, sendIc, dbIc)
 	utils.SetTimerOffEnabled(*vTimerOffEnabled, sendIc, dbIc)
-	utils.SetTimerOn(*vTimeOn, sendIc, dbIc)
-	utils.SetTimerOff(*vTimeOff, sendIc, dbIc)
+	utils.SetTimerOffTime(*vTimerOffTime, sendIc, dbIc)
 
 	if *vVerbose {
 		fmt.Println("config to send")

@@ -227,7 +227,7 @@ func SetTimerOffEnabled(setting string, ic, dbIc *codec.IrConfig) {
 	}
 }
 
-func SetTimerOn(time string, ic, dbIc *codec.IrConfig) {
+func SetTimerOnTime(time string, ic, dbIc *codec.IrConfig) {
 	if time == "" {
 		return
 	}
@@ -239,7 +239,7 @@ func SetTimerOn(time string, ic, dbIc *codec.IrConfig) {
 	setTimes(ic, dbIc)
 }
 
-func SetTimerOff(time string, ic, dbIc *codec.IrConfig) {
+func SetTimerOffTime(time string, ic, dbIc *codec.IrConfig) {
 	if time == "" {
 		return
 	}
