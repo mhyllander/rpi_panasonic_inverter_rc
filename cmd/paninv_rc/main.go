@@ -26,9 +26,9 @@ func main() {
 	var vFan = flag.String("fan", "", "fan speed (set per mode, overridden if powerful or quiet is enabled) [auto|lowest|low|middle|high|highest]")
 	var vVert = flag.String("vent.vert", "", "vent vertical position [auto|lowest|low|middle|high|highest]")
 	var vHoriz = flag.String("vent.horiz", "", "vent horizontal position [auto|farleft|left|middle|right|farright]")
-	var vTimerOnEnabled = flag.String("timer_on.enabled", "", "timer_on [on|off]")
+	var vTimerOnEnabled = flag.String("timer_on", "", "timer_on [on|off]")
 	var vTimerOnTime = flag.String("timer_on.time", "", "timer_on time, e.g. 09:00")
-	var vTimerOffEnabled = flag.String("timer_off.enabled", "", "timer_off [on|off]")
+	var vTimerOffEnabled = flag.String("timer_off", "", "timer_off [on|off]")
 	var vTimerOffTime = flag.String("timer_off.time", "", "timer_off time, e.g. 21:00")
 
 	senderOptions := codec.NewSenderOptions()

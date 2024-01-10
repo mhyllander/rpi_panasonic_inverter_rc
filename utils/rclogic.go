@@ -11,9 +11,9 @@ import (
 
 func SetPower(setting string, ic, dbIc *codec.IrConfig) {
 	switch setting {
-	case "on":
+	case "on", "yes", "enable", "enabled":
 		ic.Power = codec.C_Power_On
-	case "off":
+	case "off", "no", "disable", "disabled":
 		ic.Power = codec.C_Power_Off
 	default:
 		// Adjust Power according to current time and any enabled timers. The assumption is
@@ -58,9 +58,9 @@ func SetMode(mode string, ic *codec.IrConfig) {
 
 func SetPowerful(setting string, ic *codec.IrConfig) {
 	switch setting {
-	case "on":
+	case "on", "yes", "enable", "enabled":
 		ic.Powerful = codec.C_Powerful_Enabled
-	case "off":
+	case "off", "no", "disable", "disabled":
 		ic.Powerful = codec.C_Powerful_Disabled
 	default:
 		return
@@ -79,9 +79,9 @@ func SetPowerful(setting string, ic *codec.IrConfig) {
 
 func SetQuiet(setting string, ic *codec.IrConfig) {
 	switch setting {
-	case "on":
+	case "on", "yes", "enable", "enabled":
 		ic.Quiet = codec.C_Quiet_Enabled
-	case "off":
+	case "off", "no", "disable", "disabled":
 		ic.Quiet = codec.C_Quiet_Disabled
 	default:
 		return
@@ -115,7 +115,7 @@ func SetFanSpeed(fan string, ic *codec.IrConfig) {
 		ic.FanSpeed = codec.C_FanSpeed_Lowest
 	case "low":
 		ic.FanSpeed = codec.C_FanSpeed_Low
-	case "middle":
+	case "middle", "center":
 		ic.FanSpeed = codec.C_FanSpeed_Middle
 	case "high":
 		ic.FanSpeed = codec.C_FanSpeed_High
@@ -134,7 +134,7 @@ func SetVentVerticalPosition(vert string, ic *codec.IrConfig) {
 		ic.VentVertical = codec.C_VentVertical_Low
 	case "low":
 		ic.VentVertical = codec.C_VentVertical_Lowest
-	case "middle":
+	case "middle", "center":
 		ic.VentVertical = codec.C_VentVertical_Middle
 	case "high":
 		ic.VentVertical = codec.C_VentVertical_High
@@ -149,15 +149,15 @@ func SetVentHorizontalPosition(horiz string, ic *codec.IrConfig) {
 	switch horiz {
 	case "auto":
 		ic.VentHorizontal = codec.C_VentHorizontal_Auto
-	case "farleft":
+	case "farleft", "leftmost":
 		ic.VentHorizontal = codec.C_VentHorizontal_FarLeft
 	case "left":
 		ic.VentHorizontal = codec.C_VentHorizontal_Left
-	case "middle":
+	case "middle", "center":
 		ic.VentHorizontal = codec.C_VentHorizontal_Middle
 	case "right":
 		ic.VentHorizontal = codec.C_VentHorizontal_Right
-	case "farright":
+	case "farright", "rightmost":
 		ic.VentHorizontal = codec.C_VentHorizontal_FarRight
 	default:
 		return
