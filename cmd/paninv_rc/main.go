@@ -8,15 +8,19 @@ import (
 	"rpi_panasonic_inverter_rc/codec"
 	"rpi_panasonic_inverter_rc/db"
 	"rpi_panasonic_inverter_rc/utils"
+
+	"golang.org/x/sys/unix"
 )
 
 func main() {
+	var err error
 	var vIrDb = flag.String("db", db.GetDBPath(), "SQLite database")
 	var vIrOutput = flag.String("irout", "/dev/lirc-tx", "LIRC output device or file")
 	var vShow = flag.Bool("show", false, "show the current configuration")
 	var vLogLevel = flag.String("log-level", "warn", "log level [debug|info|warn|error]")
 	var vVerbose = flag.Bool("verbose", false, "print verbose output")
 	var vHelp = flag.Bool("help", false, "print usage")
+	var vPriority = flag.Int("prio", -10, "The priority, or niceness, of the process (-20..19)")
 
 	var vPower = flag.String("power", "", "power [on|off]")
 	var vMode = flag.String("mode", "", "mode [auto|heat|cool|dry]")
@@ -54,6 +58,12 @@ func main() {
 	}
 
 	slog.New(slog.NewTextHandler(os.Stdout, utils.SetLoggerOpts(*vLogLevel)))
+
+	err = unix.Setpriority(unix.PRIO_PROCESS, 0, *vPriority)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 
 	// open and initialize database
 	db.Initialize(*vIrDb)
@@ -100,14 +110,14 @@ func main() {
 	utils.SetVentVerticalPosition(*vVert, sendIc)
 	utils.SetVentHorizontalPosition(*vHoriz, sendIc)
 
-	// set power, adjusting for any current timers
-	utils.SetPower(*vPower, sendIc, dbIc)
-
 	// if timers are changed in any way, time fields are initialized
 	utils.SetTimerOnEnabled(*vTimerOnEnabled, sendIc, dbIc)
 	utils.SetTimerOnTime(*vTimerOnTime, sendIc, dbIc)
 	utils.SetTimerOffEnabled(*vTimerOffEnabled, sendIc, dbIc)
 	utils.SetTimerOffTime(*vTimerOffTime, sendIc, dbIc)
+
+	// set power last, adjusting for any current timers
+	utils.SetPower(*vPower, sendIc, dbIc)
 
 	if *vVerbose {
 		fmt.Println("config to send")

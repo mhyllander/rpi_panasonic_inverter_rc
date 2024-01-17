@@ -20,14 +20,16 @@ func SetPower(setting string, ic, dbIc *codec.IrConfig) {
 		// that if timers are set, the inverter's Power state may have changed to on or off
 		// automatically, which is not reflected in the saved state, and we don't want to
 		// inadvertently change it while changing some other parameter.
-		// Note that ic contains the timer times to send, which are often unset, therefore
-		// we need to use the real values from in dbIc.
+		// Note that ic contains the timer times to send, which may be unset, therefore
+		// we also need to check any saved values in dbIc.
 		now := time.Now()
 		clock := codec.NewTime(uint(now.Hour()), uint(now.Minute()))
-		if dbIc.TimerOnEnabled == codec.C_Timer_Enabled && clock >= dbIc.TimerOn {
+		if ic.TimerOnEnabled == codec.C_Timer_Enabled && ic.TimerOn != codec.C_Time_Unset && clock >= ic.TimerOn ||
+			dbIc.TimerOnEnabled == codec.C_Timer_Enabled && dbIc.TimerOn != codec.C_Time_Unset && clock >= dbIc.TimerOn {
 			ic.Power = codec.C_Power_On
 		}
-		if dbIc.TimerOffEnabled == codec.C_Timer_Enabled && clock >= dbIc.TimerOff {
+		if ic.TimerOffEnabled == codec.C_Timer_Enabled && ic.TimerOff != codec.C_Time_Unset && clock >= ic.TimerOff ||
+			dbIc.TimerOffEnabled == codec.C_Timer_Enabled && dbIc.TimerOff != codec.C_Time_Unset && clock >= dbIc.TimerOff {
 			ic.Power = codec.C_Power_Off
 		}
 	}
