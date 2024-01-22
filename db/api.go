@@ -39,18 +39,18 @@ func Initialize(dbFile string) error {
 
 		ic := codec.NewIrConfig(nil)
 		c := &DbIrConfig{
-			Power:           ic.Power,
-			Mode:            ic.Mode,
-			Powerful:        ic.Powerful,
-			Quiet:           ic.Quiet,
-			Temperature:     ic.Temperature,
-			FanSpeed:        ic.FanSpeed,
-			VentVertical:    ic.VentVertical,
-			VentHorizontal:  ic.VentHorizontal,
-			TimerOnEnabled:  ic.TimerOnEnabled,
-			TimerOffEnabled: ic.TimerOffEnabled,
-			TimerOn:         uint(ic.TimerOn),
-			TimerOff:        uint(ic.TimerOff),
+			Power:          ic.Power,
+			Mode:           ic.Mode,
+			Powerful:       ic.Powerful,
+			Quiet:          ic.Quiet,
+			Temperature:    ic.Temperature,
+			FanSpeed:       ic.FanSpeed,
+			VentVertical:   ic.VentVertical,
+			VentHorizontal: ic.VentHorizontal,
+			TimerOn:        ic.TimerOn,
+			TimerOff:       ic.TimerOff,
+			TimerOnTime:    uint(ic.TimerOnTime),
+			TimerOffTime:   uint(ic.TimerOffTime),
 		}
 		result := myDb.Create(c)
 		if result.Error != nil {
@@ -83,19 +83,19 @@ func CurrentConfig() (*codec.IrConfig, error) {
 		return nil, result.Error
 	}
 	return &codec.IrConfig{
-		Power:           dbIc.Power,
-		Mode:            dbIc.Mode,
-		Powerful:        dbIc.Powerful,
-		Quiet:           dbIc.Quiet,
-		Temperature:     dbIc.Temperature,
-		FanSpeed:        dbIc.FanSpeed,
-		VentVertical:    dbIc.VentVertical,
-		VentHorizontal:  dbIc.VentHorizontal,
-		TimerOnEnabled:  dbIc.TimerOnEnabled,
-		TimerOffEnabled: dbIc.TimerOffEnabled,
-		TimerOn:         codec.Time(dbIc.TimerOn),
-		TimerOff:        codec.Time(dbIc.TimerOff),
-		Clock:           codec.C_Time_Unset,
+		Power:          dbIc.Power,
+		Mode:           dbIc.Mode,
+		Powerful:       dbIc.Powerful,
+		Quiet:          dbIc.Quiet,
+		Temperature:    dbIc.Temperature,
+		FanSpeed:       dbIc.FanSpeed,
+		VentVertical:   dbIc.VentVertical,
+		VentHorizontal: dbIc.VentHorizontal,
+		TimerOn:        dbIc.TimerOn,
+		TimerOff:       dbIc.TimerOff,
+		TimerOnTime:    codec.Time(dbIc.TimerOnTime),
+		TimerOffTime:   codec.Time(dbIc.TimerOffTime),
+		Clock:          codec.C_Time_Unset,
 	}, nil
 }
 
@@ -131,17 +131,17 @@ func SaveConfig(ic, dbIc *codec.IrConfig) error {
 	if ic.VentHorizontal != dbIc.VentHorizontal {
 		updates["VentHorizontal"] = ic.VentHorizontal
 	}
-	if ic.TimerOnEnabled != dbIc.TimerOnEnabled {
-		updates["TimerOnEnabled"] = ic.TimerOnEnabled
-	}
-	if ic.TimerOffEnabled != dbIc.TimerOffEnabled {
-		updates["TimerOffEnabled"] = ic.TimerOffEnabled
-	}
-	if ic.TimerOn != dbIc.TimerOn && ic.TimerOn != codec.C_Time_Unset {
+	if ic.TimerOn != dbIc.TimerOn {
 		updates["TimerOn"] = ic.TimerOn
 	}
-	if ic.TimerOff != dbIc.TimerOff && ic.TimerOff != codec.C_Time_Unset {
+	if ic.TimerOff != dbIc.TimerOff {
 		updates["TimerOff"] = ic.TimerOff
+	}
+	if ic.TimerOnTime != dbIc.TimerOnTime && ic.TimerOnTime != codec.C_Time_Unset {
+		updates["TimerOnTime"] = ic.TimerOnTime
+	}
+	if ic.TimerOffTime != dbIc.TimerOffTime && ic.TimerOffTime != codec.C_Time_Unset {
+		updates["TimerOffTime"] = ic.TimerOffTime
 	}
 
 	var nc DbIrConfig

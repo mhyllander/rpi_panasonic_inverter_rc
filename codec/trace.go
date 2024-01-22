@@ -136,7 +136,7 @@ func PrintConfigAndChecksum(c *IrConfig, checksumStatus string) {
 
 	fmt.Printf(
 		"timer_on=%s(%d) timer_on.time=%s,  timer_off=%s(%d) timer_off.time=%s,  clock: time=%s\n",
-		toOnOffString(c.TimerOnEnabled), c.TimerOnEnabled, c.TimerOn, toOnOffString(c.TimerOffEnabled), c.TimerOffEnabled, c.TimerOff, c.Clock)
+		toOnOffString(c.TimerOn), c.TimerOn, c.TimerOnTime, toOnOffString(c.TimerOff), c.TimerOff, c.TimerOffTime, c.Clock)
 
 	if checksumStatus != "" {
 		fmt.Printf("checksum: %s\n", checksumStatus)
@@ -153,10 +153,10 @@ func LogConfigAndChecksum(c *IrConfig, checksumStatus string) {
 		"fan", toFanSpeedString(c.FanSpeed),
 		"vent.vert", toVentVerticalString(c.VentVertical),
 		"vent.horiz", toVentHorizontalString(c.VentHorizontal),
-		"timer_on", toOnOffString(c.TimerOnEnabled),
-		"timer_on.time", c.TimerOn,
-		"timer_off", toOnOffString(c.TimerOffEnabled),
-		"timer_off.time", c.TimerOff,
+		"timer_on", toOnOffString(c.TimerOn),
+		"timer_on.time", c.TimerOnTime,
+		"timer_off", toOnOffString(c.TimerOff),
+		"timer_off.time", c.TimerOffTime,
 		"clock", c.Clock,
 		"checksum", checksumStatus,
 	)

@@ -17,7 +17,7 @@ type senderOptions struct {
 
 // ensure there are reasonable defaults
 func NewSenderOptions() *senderOptions {
-	return &senderOptions{Device: true, Transmissions: 6, Interval_ms: 20}
+	return &senderOptions{Device: true, Transmissions: 2, Interval_ms: 20}
 }
 
 func stripMode2Types(licrData *LircBuffer) {

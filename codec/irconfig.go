@@ -65,12 +65,12 @@ type IrConfig struct {
 	VentVertical   uint
 	VentHorizontal uint
 
-	TimerOnEnabled  uint
-	TimerOffEnabled uint
+	TimerOn  uint
+	TimerOff uint
 
-	TimerOn  Time
-	TimerOff Time
-	Clock    Time
+	TimerOnTime  Time
+	TimerOffTime Time
+	Clock        Time
 }
 
 type Time uint
@@ -99,19 +99,19 @@ func (t Time) String() string {
 // If msg is nil, return a default config.
 func NewIrConfig(msg *Message) *IrConfig {
 	irconf := IrConfig{
-		Power:           C_Power_Off,
-		Mode:            C_Mode_Auto,
-		Powerful:        C_Powerful_Disabled,
-		Quiet:           C_Quiet_Disabled,
-		Temperature:     20,
-		FanSpeed:        C_FanSpeed_Auto,
-		VentVertical:    C_VentVertical_Auto,
-		VentHorizontal:  C_VentHorizontal_Auto,
-		TimerOnEnabled:  C_Timer_Disabled,
-		TimerOffEnabled: C_Timer_Disabled,
-		TimerOn:         C_Time_Unset,
-		TimerOff:        C_Time_Unset,
-		Clock:           C_Time_Unset,
+		Power:          C_Power_Off,
+		Mode:           C_Mode_Auto,
+		Powerful:       C_Powerful_Disabled,
+		Quiet:          C_Quiet_Disabled,
+		Temperature:    20,
+		FanSpeed:       C_FanSpeed_Auto,
+		VentVertical:   C_VentVertical_Auto,
+		VentHorizontal: C_VentHorizontal_Auto,
+		TimerOn:        C_Timer_Disabled,
+		TimerOff:       C_Timer_Disabled,
+		TimerOnTime:    C_Time_Unset,
+		TimerOffTime:   C_Time_Unset,
+		Clock:          C_Time_Unset,
 	}
 	if msg == nil {
 		return &irconf
@@ -126,10 +126,10 @@ func NewIrConfig(msg *Message) *IrConfig {
 	irconf.FanSpeed = f.GetValue(p_PANASONIC_FAN_SPEED_BIT0, p_PANASONIC_FAN_SPEED_BITS)
 	irconf.VentVertical = f.GetValue(p_PANASONIC_VENT_VPOS_BIT0, p_PANASONIC_VENT_VPOS_BITS)
 	irconf.VentHorizontal = f.GetValue(p_PANASONIC_VENT_HPOS_BIT0, p_PANASONIC_VENT_HPOS_BITS)
-	irconf.TimerOnEnabled = f.GetValue(p_PANASONIC_TIMER_ON_ENABLED_BIT0, p_PANASONIC_TIMER_ON_ENABLED_BITS)
-	irconf.TimerOffEnabled = f.GetValue(p_PANASONIC_TIMER_OFF_ENABLED_BIT0, p_PANASONIC_TIMER_OFF_ENABLED_BITS)
-	irconf.TimerOn = Time(f.GetValue(p_PANASONIC_TIMER_ON_TIME_BIT0, p_PANASONIC_TIMER_ON_TIME_BITS))
-	irconf.TimerOff = Time(f.GetValue(p_PANASONIC_TIMER_OFF_TIME_BIT0, p_PANASONIC_TIMER_OFF_TIME_BITS))
+	irconf.TimerOn = f.GetValue(p_PANASONIC_TIMER_ON_ENABLED_BIT0, p_PANASONIC_TIMER_ON_ENABLED_BITS)
+	irconf.TimerOff = f.GetValue(p_PANASONIC_TIMER_OFF_ENABLED_BIT0, p_PANASONIC_TIMER_OFF_ENABLED_BITS)
+	irconf.TimerOnTime = Time(f.GetValue(p_PANASONIC_TIMER_ON_TIME_BIT0, p_PANASONIC_TIMER_ON_TIME_BITS))
+	irconf.TimerOffTime = Time(f.GetValue(p_PANASONIC_TIMER_OFF_TIME_BIT0, p_PANASONIC_TIMER_OFF_TIME_BITS))
 	irconf.Clock = Time(f.GetValue(p_PANASONIC_CLOCK_BIT0, p_PANASONIC_CLOCK_BITS))
 
 	return &irconf
@@ -137,8 +137,8 @@ func NewIrConfig(msg *Message) *IrConfig {
 
 func (c *IrConfig) CopyForSending() *IrConfig {
 	ic := *c
-	ic.TimerOn = C_Time_Unset
-	ic.TimerOff = C_Time_Unset
+	ic.TimerOnTime = C_Time_Unset
+	ic.TimerOffTime = C_Time_Unset
 	ic.Clock = C_Time_Unset
 	return &ic
 }
@@ -154,10 +154,10 @@ func (c *IrConfig) ToMessage() *Message {
 		SetValue(c.FanSpeed, p_PANASONIC_FAN_SPEED_BIT0, p_PANASONIC_FAN_SPEED_BITS).
 		SetValue(c.VentVertical, p_PANASONIC_VENT_VPOS_BIT0, p_PANASONIC_VENT_VPOS_BITS).
 		SetValue(c.VentHorizontal, p_PANASONIC_VENT_HPOS_BIT0, p_PANASONIC_VENT_HPOS_BITS).
-		SetValue(c.TimerOnEnabled, p_PANASONIC_TIMER_ON_ENABLED_BIT0, p_PANASONIC_TIMER_ON_ENABLED_BITS).
-		SetValue(c.TimerOffEnabled, p_PANASONIC_TIMER_OFF_ENABLED_BIT0, p_PANASONIC_TIMER_OFF_ENABLED_BITS).
-		SetValue(c.TimerOn.Minutes(), p_PANASONIC_TIMER_ON_TIME_BIT0, p_PANASONIC_TIMER_ON_TIME_BITS).
-		SetValue(c.TimerOff.Minutes(), p_PANASONIC_TIMER_OFF_TIME_BIT0, p_PANASONIC_TIMER_OFF_TIME_BITS).
+		SetValue(c.TimerOn, p_PANASONIC_TIMER_ON_ENABLED_BIT0, p_PANASONIC_TIMER_ON_ENABLED_BITS).
+		SetValue(c.TimerOff, p_PANASONIC_TIMER_OFF_ENABLED_BIT0, p_PANASONIC_TIMER_OFF_ENABLED_BITS).
+		SetValue(c.TimerOnTime.Minutes(), p_PANASONIC_TIMER_ON_TIME_BIT0, p_PANASONIC_TIMER_ON_TIME_BITS).
+		SetValue(c.TimerOffTime.Minutes(), p_PANASONIC_TIMER_OFF_TIME_BIT0, p_PANASONIC_TIMER_OFF_TIME_BITS).
 		SetValue(c.Clock.Minutes(), p_PANASONIC_CLOCK_BIT0, p_PANASONIC_CLOCK_BITS)
 	return msg
 }

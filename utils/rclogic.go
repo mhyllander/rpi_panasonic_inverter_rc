@@ -24,12 +24,12 @@ func SetPower(setting string, ic, dbIc *codec.IrConfig) {
 		// we also need to check any saved values in dbIc.
 		now := time.Now()
 		clock := codec.NewTime(uint(now.Hour()), uint(now.Minute()))
-		if ic.TimerOnEnabled == codec.C_Timer_Enabled && ic.TimerOn != codec.C_Time_Unset && clock >= ic.TimerOn ||
-			dbIc.TimerOnEnabled == codec.C_Timer_Enabled && dbIc.TimerOn != codec.C_Time_Unset && clock >= dbIc.TimerOn {
+		if ic.TimerOn == codec.C_Timer_Enabled && ic.TimerOnTime != codec.C_Time_Unset && clock >= ic.TimerOnTime ||
+			dbIc.TimerOn == codec.C_Timer_Enabled && dbIc.TimerOnTime != codec.C_Time_Unset && clock >= dbIc.TimerOnTime {
 			ic.Power = codec.C_Power_On
 		}
-		if ic.TimerOffEnabled == codec.C_Timer_Enabled && ic.TimerOff != codec.C_Time_Unset && clock >= ic.TimerOff ||
-			dbIc.TimerOffEnabled == codec.C_Timer_Enabled && dbIc.TimerOff != codec.C_Time_Unset && clock >= dbIc.TimerOff {
+		if ic.TimerOff == codec.C_Timer_Enabled && ic.TimerOffTime != codec.C_Time_Unset && clock >= ic.TimerOffTime ||
+			dbIc.TimerOff == codec.C_Timer_Enabled && dbIc.TimerOffTime != codec.C_Time_Unset && clock >= dbIc.TimerOffTime {
 			ic.Power = codec.C_Power_Off
 		}
 	}
@@ -192,37 +192,37 @@ func parseTime(time string) (hour, minute int, err error) {
 
 func setTimes(ic, dbIc *codec.IrConfig) {
 	// copy saved times if unset
-	if ic.TimerOn == codec.C_Time_Unset {
-		ic.TimerOn = dbIc.TimerOn
+	if ic.TimerOnTime == codec.C_Time_Unset {
+		ic.TimerOnTime = dbIc.TimerOnTime
 	}
-	if ic.TimerOff == codec.C_Time_Unset {
-		ic.TimerOff = dbIc.TimerOff
+	if ic.TimerOffTime == codec.C_Time_Unset {
+		ic.TimerOffTime = dbIc.TimerOffTime
 	}
 	// set the clock field to the current time
 	now := time.Now()
 	ic.Clock = codec.NewTime(uint(now.Hour()), uint(now.Minute()))
 }
 
-func SetTimerOnEnabled(setting string, ic, dbIc *codec.IrConfig) {
+func SetTimerOn(setting string, ic, dbIc *codec.IrConfig) {
 	switch setting {
 	case "on":
-		ic.TimerOnEnabled = codec.C_Timer_Enabled
+		ic.TimerOn = codec.C_Timer_Enabled
 		setTimes(ic, dbIc)
 	case "off":
-		ic.TimerOnEnabled = codec.C_Timer_Disabled
+		ic.TimerOn = codec.C_Timer_Disabled
 		setTimes(ic, dbIc)
 	default:
 		return
 	}
 }
 
-func SetTimerOffEnabled(setting string, ic, dbIc *codec.IrConfig) {
+func SetTimerOff(setting string, ic, dbIc *codec.IrConfig) {
 	switch setting {
 	case "on":
-		ic.TimerOffEnabled = codec.C_Timer_Enabled
+		ic.TimerOff = codec.C_Timer_Enabled
 		setTimes(ic, dbIc)
 	case "off":
-		ic.TimerOffEnabled = codec.C_Timer_Disabled
+		ic.TimerOff = codec.C_Timer_Disabled
 		setTimes(ic, dbIc)
 	default:
 		return
@@ -237,7 +237,7 @@ func SetTimerOnTime(time string, ic, dbIc *codec.IrConfig) {
 	if err != nil {
 		return
 	}
-	ic.TimerOn = codec.NewTime(uint(hour), uint(minute))
+	ic.TimerOnTime = codec.NewTime(uint(hour), uint(minute))
 	setTimes(ic, dbIc)
 }
 
@@ -249,6 +249,6 @@ func SetTimerOffTime(time string, ic, dbIc *codec.IrConfig) {
 	if err != nil {
 		return
 	}
-	ic.TimerOff = codec.NewTime(uint(hour), uint(minute))
+	ic.TimerOffTime = codec.NewTime(uint(hour), uint(minute))
 	setTimes(ic, dbIc)
 }
