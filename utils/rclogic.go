@@ -10,6 +10,11 @@ import (
 )
 
 func SetPower(setting string, ic, dbIc *codec.IrConfig) {
+	now := time.Now()
+	setPower(setting, ic, dbIc, codec.NewTime(uint(now.Hour()), uint(now.Minute())))
+}
+
+func setPower(setting string, ic, dbIc *codec.IrConfig, clock codec.Time) {
 	switch setting {
 	case "on", "yes", "enable", "enabled":
 		ic.Power = codec.C_Power_On
@@ -17,20 +22,47 @@ func SetPower(setting string, ic, dbIc *codec.IrConfig) {
 		ic.Power = codec.C_Power_Off
 	default:
 		// Adjust Power according to current time and any enabled timers. The assumption is
-		// that if timers are set, the inverter's Power state may have changed to on or off
+		// that if timers are set, the inverter's Power state may have changed to timer_on or off
 		// automatically, which is not reflected in the saved state, and we don't want to
 		// inadvertently change it while changing some other parameter.
 		// Note that ic contains the timer times to send, which may be unset, therefore
 		// we also need to check any saved values in dbIc.
-		now := time.Now()
-		clock := codec.NewTime(uint(now.Hour()), uint(now.Minute()))
-		if ic.TimerOn == codec.C_Timer_Enabled && ic.TimerOnTime != codec.C_Time_Unset && clock >= ic.TimerOnTime ||
-			dbIc.TimerOn == codec.C_Timer_Enabled && dbIc.TimerOnTime != codec.C_Time_Unset && clock >= dbIc.TimerOnTime {
-			ic.Power = codec.C_Power_On
+		timer_on := ic.TimerOn == codec.C_Timer_Enabled
+		on_time := ic.TimerOnTime
+		if on_time == codec.C_Time_Unset {
+			on_time = dbIc.TimerOnTime
 		}
-		if ic.TimerOff == codec.C_Timer_Enabled && ic.TimerOffTime != codec.C_Time_Unset && clock >= ic.TimerOffTime ||
-			dbIc.TimerOff == codec.C_Timer_Enabled && dbIc.TimerOffTime != codec.C_Time_Unset && clock >= dbIc.TimerOffTime {
-			ic.Power = codec.C_Power_Off
+		timer_off := ic.TimerOff == codec.C_Timer_Enabled
+		off_time := ic.TimerOffTime
+		if off_time == codec.C_Time_Unset {
+			off_time = dbIc.TimerOffTime
+		}
+		if on_time != codec.C_Time_Unset && off_time != codec.C_Time_Unset {
+			if on_time <= off_time {
+				ic.Power = codec.C_Power_On
+				if timer_on && clock < on_time || timer_off && clock >= off_time {
+					ic.Power = codec.C_Power_Off
+				}
+			} else {
+				ic.Power = codec.C_Power_Off
+				if timer_off && clock < off_time || timer_on && clock >= on_time {
+					ic.Power = codec.C_Power_On
+				}
+			}
+		} else if on_time != codec.C_Time_Unset {
+			if timer_on {
+				ic.Power = codec.C_Power_Off
+				if clock >= on_time {
+					ic.Power = codec.C_Power_On
+				}
+			}
+		} else if off_time != codec.C_Time_Unset {
+			if timer_off {
+				ic.Power = codec.C_Power_On
+				if clock >= off_time {
+					ic.Power = codec.C_Power_Off
+				}
+			}
 		}
 	}
 }
@@ -113,15 +145,15 @@ func SetFanSpeed(fan string, ic *codec.IrConfig) {
 	switch fan {
 	case "auto":
 		ic.FanSpeed = codec.C_FanSpeed_Auto
-	case "lowest":
+	case "lowest", "slowest":
 		ic.FanSpeed = codec.C_FanSpeed_Lowest
-	case "low":
+	case "low", "slow":
 		ic.FanSpeed = codec.C_FanSpeed_Low
 	case "middle", "center":
 		ic.FanSpeed = codec.C_FanSpeed_Middle
-	case "high":
+	case "high", "fast":
 		ic.FanSpeed = codec.C_FanSpeed_High
-	case "highest":
+	case "highest", "fastest":
 		ic.FanSpeed = codec.C_FanSpeed_Highest
 	default:
 		return
@@ -132,7 +164,7 @@ func SetVentVerticalPosition(vert string, ic *codec.IrConfig) {
 	switch vert {
 	case "auto":
 		ic.VentVertical = codec.C_VentVertical_Auto
-	case "lowest":
+	case "lowest", "bottom":
 		ic.VentVertical = codec.C_VentVertical_Low
 	case "low":
 		ic.VentVertical = codec.C_VentVertical_Lowest
@@ -140,7 +172,7 @@ func SetVentVerticalPosition(vert string, ic *codec.IrConfig) {
 		ic.VentVertical = codec.C_VentVertical_Middle
 	case "high":
 		ic.VentVertical = codec.C_VentVertical_High
-	case "highest":
+	case "highest", "top":
 		ic.VentVertical = codec.C_VentVertical_Highest
 	default:
 		return

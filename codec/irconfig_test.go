@@ -21,7 +21,7 @@ func TestConversions(t *testing.T) {
 
 	c2 := NewIrConfig(m1)
 
-	if c2 != c1 {
+	if *c2 != *c1 {
 		t.Fatalf("c2 config not equal to original c1")
 	}
 
