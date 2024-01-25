@@ -22,11 +22,13 @@ func setPower(setting string, ic, dbIc *codec.IrConfig, clock codec.Time) {
 		ic.Power = codec.C_Power_Off
 	default:
 		// Adjust Power according to current time and any enabled timers. The assumption is
-		// that if timers are set, the inverter's Power state may have changed to timer_on or off
+		// that if timers are set, the inverter's Power state may have changed to on or off
 		// automatically, which is not reflected in the saved state, and we don't want to
-		// inadvertently change it while changing some other parameter.
-		// Note that ic contains the timer times to send, which may be unset, therefore
-		// we also need to check any saved values in dbIc.
+		// inadvertently change it while changing some other parameter. Therefore Power will
+		// be set to what is expected according to the timers. This automatic behavior can
+		// be overridden by explicitly setting Power.
+		// Note that ic may contain updated timer configuration - if not, fallback to using
+		// saved values in dbIc.
 		timer_on := ic.TimerOn == codec.C_Timer_Enabled
 		on_time := ic.TimerOnTime
 		if on_time == codec.C_Time_Unset {
@@ -37,31 +39,27 @@ func setPower(setting string, ic, dbIc *codec.IrConfig, clock codec.Time) {
 		if off_time == codec.C_Time_Unset {
 			off_time = dbIc.TimerOffTime
 		}
-		if on_time != codec.C_Time_Unset && off_time != codec.C_Time_Unset {
+		if timer_on && timer_off && on_time != codec.C_Time_Unset && off_time != codec.C_Time_Unset {
 			if on_time <= off_time {
 				ic.Power = codec.C_Power_On
-				if timer_on && clock < on_time || timer_off && clock >= off_time {
+				if clock < on_time || clock >= off_time {
 					ic.Power = codec.C_Power_Off
 				}
 			} else {
 				ic.Power = codec.C_Power_Off
-				if timer_off && clock < off_time || timer_on && clock >= on_time {
+				if clock < off_time || clock >= on_time {
 					ic.Power = codec.C_Power_On
 				}
 			}
-		} else if on_time != codec.C_Time_Unset {
-			if timer_on {
-				ic.Power = codec.C_Power_Off
-				if clock >= on_time {
-					ic.Power = codec.C_Power_On
-				}
-			}
-		} else if off_time != codec.C_Time_Unset {
-			if timer_off {
+		} else if timer_on && on_time != codec.C_Time_Unset {
+			ic.Power = codec.C_Power_Off
+			if clock >= on_time {
 				ic.Power = codec.C_Power_On
-				if clock >= off_time {
-					ic.Power = codec.C_Power_Off
-				}
+			}
+		} else if timer_off && off_time != codec.C_Time_Unset {
+			ic.Power = codec.C_Power_On
+			if clock >= off_time {
+				ic.Power = codec.C_Power_Off
 			}
 		}
 	}

@@ -166,3 +166,63 @@ func TestAdjustingPowerSetting10(t *testing.T) {
 		t.Fatal("Power was not adjusted to Off after TimerOff")
 	}
 }
+
+func TestAdjustingPowerSetting11(t *testing.T) {
+	dbIc := codec.NewIrConfig(nil)
+	dbIc.Power = codec.C_Power_Off
+	dbIc.TimerOn = codec.C_Timer_Enabled
+	dbIc.TimerOnTime = codec.NewTime(12, 0)
+
+	ic := dbIc.CopyForSending()
+
+	setPower("on", ic, dbIc, codec.NewTime(6, 0))
+
+	if ic.Power != codec.C_Power_On {
+		t.Fatal("Power was not overridden to On before TimerOn")
+	}
+}
+
+func TestAdjustingPowerSetting12(t *testing.T) {
+	dbIc := codec.NewIrConfig(nil)
+	dbIc.Power = codec.C_Power_On
+	dbIc.TimerOn = codec.C_Timer_Enabled
+	dbIc.TimerOnTime = codec.NewTime(12, 0)
+
+	ic := dbIc.CopyForSending()
+
+	setPower("off", ic, dbIc, codec.NewTime(18, 0))
+
+	if ic.Power != codec.C_Power_Off {
+		t.Fatal("Power was not overridden to Off after TimerOn")
+	}
+}
+
+func TestAdjustingPowerSetting13(t *testing.T) {
+	dbIc := codec.NewIrConfig(nil)
+	dbIc.Power = codec.C_Power_On
+	dbIc.TimerOff = codec.C_Timer_Enabled
+	dbIc.TimerOffTime = codec.NewTime(12, 0)
+
+	ic := dbIc.CopyForSending()
+
+	setPower("off", ic, dbIc, codec.NewTime(6, 0))
+
+	if ic.Power != codec.C_Power_Off {
+		t.Fatal("Power was not overridden to Off before TimerOff")
+	}
+}
+
+func TestAdjustingPowerSetting14(t *testing.T) {
+	dbIc := codec.NewIrConfig(nil)
+	dbIc.Power = codec.C_Power_Off
+	dbIc.TimerOff = codec.C_Timer_Enabled
+	dbIc.TimerOffTime = codec.NewTime(12, 0)
+
+	ic := dbIc.CopyForSending()
+
+	setPower("on", ic, dbIc, codec.NewTime(18, 0))
+
+	if ic.Power != codec.C_Power_On {
+		t.Fatal("Power was not overridden to On after TimerOff")
+	}
+}
