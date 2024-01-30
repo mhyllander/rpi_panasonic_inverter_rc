@@ -5,7 +5,7 @@ import (
 )
 
 func TestConversions(t *testing.T) {
-	c1 := NewIrConfig(nil)
+	c1 := NewRcConfig()
 
 	m1 := c1.ToMessage()
 	// the checksum is never set automatically,
@@ -19,7 +19,7 @@ func TestConversions(t *testing.T) {
 		t.Fatalf("m1.Frame2 checksum wrong")
 	}
 
-	c2 := NewIrConfig(m1)
+	c2 := RcConfigFromFrame(m1)
 
 	if *c2 != *c1 {
 		t.Fatalf("c2 config not equal to original c1")

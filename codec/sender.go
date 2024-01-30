@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"os"
 	"rpi_panasonic_inverter_rc/ioctl"
+	"rpi_panasonic_inverter_rc/rcconst"
 	"strings"
 	"time"
 )
@@ -23,16 +24,16 @@ func NewSenderOptions() *senderOptions {
 func stripMode2Types(licrData *LircBuffer) {
 	ln := len(licrData.buf)
 	for i := 0; i < ln; i++ {
-		licrData.buf[i] = licrData.buf[i] & l_LIRC_VALUE_MASK
+		licrData.buf[i] = licrData.buf[i] & rcconst.L_LIRC_VALUE_MASK
 	}
 }
 
 // When transmitting data over IR, the LIRC transmit socket expects a series of uint32 consisting of pulses and spaces.
 // The data must start and end with a pulse, so there must be an odd number of uint32. In addition, no mode2 bits
 // should be set in the pulses and spaces (i.e. the send format is different from the receive format).
-func SendIr(ic *IrConfig, f *os.File, options *senderOptions) error {
+func SendIr(rc *RcConfig, f *os.File, options *senderOptions) error {
 	if options.Mode2 {
-		s := ic.ConvertToMode2LircData()
+		s := rc.ConvertToMode2LircData()
 		s2 := strings.Join(s, " ")
 		_, err := f.WriteString(s2)
 		if err != nil {
@@ -40,7 +41,7 @@ func SendIr(ic *IrConfig, f *os.File, options *senderOptions) error {
 		}
 		slog.Debug("wrote mode2", "ints", len(s))
 	} else {
-		licrData := ic.ConvertToLircData()
+		licrData := rc.ConvertToLircData()
 		stripMode2Types(licrData)
 		b := licrData.ToBytes()
 		if options.Device {

@@ -36,7 +36,7 @@ func printMessageDiff(prevS, curS string) {
 }
 
 func printParameters(msg *codec.Message) {
-	c := codec.NewIrConfig(msg)
+	c := codec.RcConfigFromFrame(msg)
 
 	var checksum string
 	switch msg.Frame2.VerifyChecksum() {
@@ -46,7 +46,7 @@ func printParameters(msg *codec.Message) {
 		checksum = "mismatch"
 	}
 
-	codec.PrintConfigAndChecksum(c, checksum)
+	c.PrintConfigAndChecksum(checksum)
 }
 
 func messageHandler(options *Options) func(*codec.Message) {
@@ -54,14 +54,14 @@ func messageHandler(options *Options) func(*codec.Message) {
 	return func(msg *codec.Message) {
 		curS, _ := msg.Frame2.ToVerboseString()
 		if options.PrintMessage {
-			codec.PrintMessage(msg)
+			msg.PrintMessage()
 		}
 		if options.PrintDiff && prevS != "" {
 			// compare current frames with previous
 			printMessageDiff(prevS, curS)
 		}
 		if options.PrintBytes {
-			codec.PrintByteRepresentation(msg)
+			msg.PrintByteRepresentation()
 		}
 		if options.PrintConfig {
 			printParameters(msg)
@@ -110,7 +110,7 @@ func main() {
 		PrintMessage: *vMessage,
 	}
 
-	err := codec.StartReceiver(*vIrInput, messageHandler(&options), recOptions)
+	err := codec.StartIrReceiver(*vIrInput, messageHandler(&options), recOptions)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

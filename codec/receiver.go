@@ -60,7 +60,7 @@ func processLircRawData(lircStream chan uint32, messageStream chan *Message, opt
 	}
 }
 
-func StartReceiver(file string, messageHandler func(*Message), options *receiverOptions) error {
+func StartIrReceiver(file string, messageHandler func(*Message), options *receiverOptions) error {
 	f, err := os.Open(file)
 	if err != nil {
 		return err

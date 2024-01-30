@@ -14,7 +14,7 @@ import (
 
 func main() {
 	var err error
-	var vIrDb = flag.String("db", db.GetDBPath(), "SQLite database")
+	var vRcDb = flag.String("db", db.GetDBPath(), "SQLite database")
 	var vIrOutput = flag.String("irout", "/dev/lirc-tx", "LIRC output device or file")
 	var vShow = flag.Bool("show", false, "show the current configuration")
 	var vLogLevel = flag.String("log-level", "warn", "log level [debug|info|warn|error]")
@@ -48,7 +48,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	if *vIrDb == "" {
+	if *vRcDb == "" {
 		fmt.Printf("please set the db name")
 		os.Exit(1)
 	}
@@ -66,7 +66,7 @@ func main() {
 	}
 
 	// open and initialize database
-	db.Initialize(*vIrDb)
+	db.Initialize(*vRcDb)
 	defer db.Close()
 
 	// open file or device for sending IR
@@ -82,46 +82,46 @@ func main() {
 	defer f.Close()
 
 	// get current configuration
-	dbIc, err := db.CurrentConfig()
+	dbRc, err := db.CurrentConfig()
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
 	if *vShow {
-		codec.PrintConfigAndChecksum(dbIc, "")
+		dbRc.PrintConfigAndChecksum("")
 		os.Exit(0)
 	}
 
 	if *vVerbose {
 		fmt.Println("config from db")
-		codec.PrintConfigAndChecksum(dbIc, "")
+		dbRc.PrintConfigAndChecksum("")
 	}
 
 	// Create a new configuration by making a copy of the current configuration. The copy contains
 	// everything except the time fields, which are unset by default. The new configuration is then
 	// modified according to command line arguments.
-	sendIc := dbIc.CopyForSending()
-	utils.SetMode(*vMode, sendIc)
-	utils.SetPowerful(*vPowerful, sendIc)
-	utils.SetQuiet(*vQuiet, sendIc)
-	utils.SetTemperature(*vTemp, sendIc)
-	utils.SetFanSpeed(*vFan, sendIc)
-	utils.SetVentVerticalPosition(*vVert, sendIc)
-	utils.SetVentHorizontalPosition(*vHoriz, sendIc)
+	sendRc := dbRc.CopyForSending()
+	utils.SetMode(*vMode, sendRc)
+	utils.SetPowerful(*vPowerful, sendRc)
+	utils.SetQuiet(*vQuiet, sendRc)
+	utils.SetTemperature(*vTemp, sendRc)
+	utils.SetFanSpeed(*vFan, sendRc)
+	utils.SetVentVerticalPosition(*vVert, sendRc)
+	utils.SetVentHorizontalPosition(*vHoriz, sendRc)
 
 	// if timers are changed in any way, time fields are initialized
-	utils.SetTimerOn(*vTimerOn, sendIc, dbIc)
-	utils.SetTimerOnTime(*vTimerOnTime, sendIc, dbIc)
-	utils.SetTimerOff(*vTimerOff, sendIc, dbIc)
-	utils.SetTimerOffTime(*vTimerOffTime, sendIc, dbIc)
+	utils.SetTimerOn(*vTimerOn, sendRc, dbRc)
+	utils.SetTimerOnTime(*vTimerOnTime, sendRc, dbRc)
+	utils.SetTimerOff(*vTimerOff, sendRc, dbRc)
+	utils.SetTimerOffTime(*vTimerOffTime, sendRc, dbRc)
 
 	// set power last, adjusting for any current timers
-	utils.SetPower(*vPower, sendIc, dbIc)
+	utils.SetPower(*vPower, sendRc, dbRc)
 
 	if *vVerbose {
 		fmt.Println("config to send")
-		codec.PrintConfigAndChecksum(sendIc, "")
+		sendRc.PrintConfigAndChecksum("")
 	}
 
 	senderOptions.Mode2 = *vMode2
@@ -129,18 +129,18 @@ func main() {
 	senderOptions.Transmissions = *vTransmissions
 	senderOptions.Interval_ms = *vInterval
 
-	err = codec.SendIr(sendIc, f, senderOptions)
+	err = codec.SendIr(sendRc, f, senderOptions)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	err = db.SaveConfig(sendIc, dbIc)
+	err = db.SaveConfig(sendRc, dbRc)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 	if *vVerbose {
-		fmt.Printf("saved config to %s\n", *vIrDb)
+		fmt.Printf("saved config to %s\n", *vRcDb)
 	}
 }

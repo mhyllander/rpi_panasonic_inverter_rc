@@ -4,22 +4,23 @@ import (
 	"fmt"
 	"rpi_panasonic_inverter_rc/codec"
 	"rpi_panasonic_inverter_rc/db"
+	"rpi_panasonic_inverter_rc/rcconst"
 	"strconv"
 	"strings"
 	"time"
 )
 
-func SetPower(setting string, ic, dbIc *codec.IrConfig) {
+func SetPower(setting string, rc, dbRc *codec.RcConfig) {
 	now := time.Now()
-	setPower(setting, ic, dbIc, codec.NewTime(uint(now.Hour()), uint(now.Minute())))
+	setPower(setting, rc, dbRc, codec.NewTime(uint(now.Hour()), uint(now.Minute())))
 }
 
-func setPower(setting string, ic, dbIc *codec.IrConfig, clock codec.Time) {
+func setPower(setting string, rc, dbRc *codec.RcConfig, clock codec.Time) {
 	switch setting {
 	case "on", "yes", "enable", "enabled":
-		ic.Power = codec.C_Power_On
+		rc.Power = rcconst.C_Power_On
 	case "off", "no", "disable", "disabled":
-		ic.Power = codec.C_Power_Off
+		rc.Power = rcconst.C_Power_Off
 	default:
 		// Adjust Power according to current time and any enabled timers. The assumption is
 		// that if timers are set, the inverter's Power state may have changed to on or off
@@ -27,170 +28,170 @@ func setPower(setting string, ic, dbIc *codec.IrConfig, clock codec.Time) {
 		// inadvertently change it while changing some other parameter. Therefore Power will
 		// be set to what is expected according to the timers. This automatic behavior can
 		// be overridden by explicitly setting Power.
-		// Note that ic may contain updated timer configuration - if not, fallback to using
-		// saved values in dbIc.
-		timer_on := ic.TimerOn == codec.C_Timer_Enabled
-		on_time := ic.TimerOnTime
-		if on_time == codec.C_Time_Unset {
-			on_time = dbIc.TimerOnTime
+		// Note that rc may contain updated timer configuration - if not, fallback to using
+		// saved values in dbRc.
+		timer_on := rc.TimerOn == rcconst.C_Timer_Enabled
+		on_time := rc.TimerOnTime
+		if on_time == rcconst.C_Time_Unset {
+			on_time = dbRc.TimerOnTime
 		}
-		timer_off := ic.TimerOff == codec.C_Timer_Enabled
-		off_time := ic.TimerOffTime
-		if off_time == codec.C_Time_Unset {
-			off_time = dbIc.TimerOffTime
+		timer_off := rc.TimerOff == rcconst.C_Timer_Enabled
+		off_time := rc.TimerOffTime
+		if off_time == rcconst.C_Time_Unset {
+			off_time = dbRc.TimerOffTime
 		}
-		if timer_on && timer_off && on_time != codec.C_Time_Unset && off_time != codec.C_Time_Unset {
+		if timer_on && timer_off && on_time != rcconst.C_Time_Unset && off_time != rcconst.C_Time_Unset {
 			if on_time <= off_time {
-				ic.Power = codec.C_Power_On
+				rc.Power = rcconst.C_Power_On
 				if clock < on_time || clock >= off_time {
-					ic.Power = codec.C_Power_Off
+					rc.Power = rcconst.C_Power_Off
 				}
 			} else {
-				ic.Power = codec.C_Power_Off
+				rc.Power = rcconst.C_Power_Off
 				if clock < off_time || clock >= on_time {
-					ic.Power = codec.C_Power_On
+					rc.Power = rcconst.C_Power_On
 				}
 			}
-		} else if timer_on && on_time != codec.C_Time_Unset {
-			ic.Power = codec.C_Power_Off
+		} else if timer_on && on_time != rcconst.C_Time_Unset {
+			rc.Power = rcconst.C_Power_Off
 			if clock >= on_time {
-				ic.Power = codec.C_Power_On
+				rc.Power = rcconst.C_Power_On
 			}
-		} else if timer_off && off_time != codec.C_Time_Unset {
-			ic.Power = codec.C_Power_On
+		} else if timer_off && off_time != rcconst.C_Time_Unset {
+			rc.Power = rcconst.C_Power_On
 			if clock >= off_time {
-				ic.Power = codec.C_Power_Off
+				rc.Power = rcconst.C_Power_Off
 			}
 		}
 	}
 }
 
-func SetMode(mode string, ic *codec.IrConfig) {
+func SetMode(mode string, rc *codec.RcConfig) {
 	switch mode {
 	case "auto":
-		ic.Mode = codec.C_Mode_Auto
+		rc.Mode = rcconst.C_Mode_Auto
 	case "dry":
-		ic.Mode = codec.C_Mode_Dry
+		rc.Mode = rcconst.C_Mode_Dry
 	case "cool":
-		ic.Mode = codec.C_Mode_Cool
+		rc.Mode = rcconst.C_Mode_Cool
 	case "heat":
-		ic.Mode = codec.C_Mode_Heat
+		rc.Mode = rcconst.C_Mode_Heat
 	default:
 		return
 	}
-	temp, fan, err := db.GetModeSettings(ic.Mode)
+	temp, fan, err := db.GetModeSettings(rc.Mode)
 	if err != nil {
 		return
 	}
-	if ic.Powerful == codec.C_Powerful_Disabled && ic.Quiet == codec.C_Quiet_Disabled {
-		ic.FanSpeed = fan
+	if rc.Powerful == rcconst.C_Powerful_Disabled && rc.Quiet == rcconst.C_Quiet_Disabled {
+		rc.FanSpeed = fan
 	}
-	ic.Temperature = temp
+	rc.Temperature = temp
 }
 
-func SetPowerful(setting string, ic *codec.IrConfig) {
+func SetPowerful(setting string, rc *codec.RcConfig) {
 	switch setting {
 	case "on", "yes", "enable", "enabled":
-		ic.Powerful = codec.C_Powerful_Enabled
+		rc.Powerful = rcconst.C_Powerful_Enabled
 	case "off", "no", "disable", "disabled":
-		ic.Powerful = codec.C_Powerful_Disabled
+		rc.Powerful = rcconst.C_Powerful_Disabled
 	default:
 		return
 	}
-	if ic.Powerful == codec.C_Powerful_Enabled {
-		ic.FanSpeed = codec.C_FanSpeed_Auto
-		ic.Quiet = codec.C_Quiet_Disabled
+	if rc.Powerful == rcconst.C_Powerful_Enabled {
+		rc.FanSpeed = rcconst.C_FanSpeed_Auto
+		rc.Quiet = rcconst.C_Quiet_Disabled
 	} else {
-		_, fan, err := db.GetModeSettings(ic.Mode)
+		_, fan, err := db.GetModeSettings(rc.Mode)
 		if err != nil {
 			return
 		}
-		ic.FanSpeed = fan
+		rc.FanSpeed = fan
 	}
 }
 
-func SetQuiet(setting string, ic *codec.IrConfig) {
+func SetQuiet(setting string, rc *codec.RcConfig) {
 	switch setting {
 	case "on", "yes", "enable", "enabled":
-		ic.Quiet = codec.C_Quiet_Enabled
+		rc.Quiet = rcconst.C_Quiet_Enabled
 	case "off", "no", "disable", "disabled":
-		ic.Quiet = codec.C_Quiet_Disabled
+		rc.Quiet = rcconst.C_Quiet_Disabled
 	default:
 		return
 	}
-	if ic.Quiet == codec.C_Quiet_Enabled {
-		ic.FanSpeed = codec.C_FanSpeed_Lowest
-		ic.Powerful = codec.C_Powerful_Disabled
+	if rc.Quiet == rcconst.C_Quiet_Enabled {
+		rc.FanSpeed = rcconst.C_FanSpeed_Lowest
+		rc.Powerful = rcconst.C_Powerful_Disabled
 	} else {
-		_, fan, err := db.GetModeSettings(ic.Mode)
+		_, fan, err := db.GetModeSettings(rc.Mode)
 		if err != nil {
 			return
 		}
-		ic.FanSpeed = fan
+		rc.FanSpeed = fan
 	}
 }
 
-func SetTemperature(temp int, ic *codec.IrConfig) {
-	if codec.C_Temp_Min <= temp && temp <= codec.C_Temp_Max {
-		ic.Temperature = uint(temp)
+func SetTemperature(temp int, rc *codec.RcConfig) {
+	if rcconst.C_Temp_Min <= temp && temp <= rcconst.C_Temp_Max {
+		rc.Temperature = uint(temp)
 	}
 }
 
-func SetFanSpeed(fan string, ic *codec.IrConfig) {
-	if ic.Powerful == codec.C_Powerful_Enabled || ic.Quiet == codec.C_Quiet_Enabled {
+func SetFanSpeed(fan string, rc *codec.RcConfig) {
+	if rc.Powerful == rcconst.C_Powerful_Enabled || rc.Quiet == rcconst.C_Quiet_Enabled {
 		return
 	}
 	switch fan {
 	case "auto":
-		ic.FanSpeed = codec.C_FanSpeed_Auto
+		rc.FanSpeed = rcconst.C_FanSpeed_Auto
 	case "lowest", "slowest":
-		ic.FanSpeed = codec.C_FanSpeed_Lowest
+		rc.FanSpeed = rcconst.C_FanSpeed_Lowest
 	case "low", "slow":
-		ic.FanSpeed = codec.C_FanSpeed_Low
+		rc.FanSpeed = rcconst.C_FanSpeed_Low
 	case "middle", "center":
-		ic.FanSpeed = codec.C_FanSpeed_Middle
+		rc.FanSpeed = rcconst.C_FanSpeed_Middle
 	case "high", "fast":
-		ic.FanSpeed = codec.C_FanSpeed_High
+		rc.FanSpeed = rcconst.C_FanSpeed_High
 	case "highest", "fastest":
-		ic.FanSpeed = codec.C_FanSpeed_Highest
+		rc.FanSpeed = rcconst.C_FanSpeed_Highest
 	default:
 		return
 	}
 }
 
-func SetVentVerticalPosition(vert string, ic *codec.IrConfig) {
+func SetVentVerticalPosition(vert string, rc *codec.RcConfig) {
 	switch vert {
 	case "auto":
-		ic.VentVertical = codec.C_VentVertical_Auto
+		rc.VentVertical = rcconst.C_VentVertical_Auto
 	case "lowest", "bottom":
-		ic.VentVertical = codec.C_VentVertical_Low
+		rc.VentVertical = rcconst.C_VentVertical_Low
 	case "low":
-		ic.VentVertical = codec.C_VentVertical_Lowest
+		rc.VentVertical = rcconst.C_VentVertical_Lowest
 	case "middle", "center":
-		ic.VentVertical = codec.C_VentVertical_Middle
+		rc.VentVertical = rcconst.C_VentVertical_Middle
 	case "high":
-		ic.VentVertical = codec.C_VentVertical_High
+		rc.VentVertical = rcconst.C_VentVertical_High
 	case "highest", "top":
-		ic.VentVertical = codec.C_VentVertical_Highest
+		rc.VentVertical = rcconst.C_VentVertical_Highest
 	default:
 		return
 	}
 }
 
-func SetVentHorizontalPosition(horiz string, ic *codec.IrConfig) {
+func SetVentHorizontalPosition(horiz string, rc *codec.RcConfig) {
 	switch horiz {
 	case "auto":
-		ic.VentHorizontal = codec.C_VentHorizontal_Auto
+		rc.VentHorizontal = rcconst.C_VentHorizontal_Auto
 	case "farleft", "leftmost":
-		ic.VentHorizontal = codec.C_VentHorizontal_FarLeft
+		rc.VentHorizontal = rcconst.C_VentHorizontal_FarLeft
 	case "left":
-		ic.VentHorizontal = codec.C_VentHorizontal_Left
+		rc.VentHorizontal = rcconst.C_VentHorizontal_Left
 	case "middle", "center":
-		ic.VentHorizontal = codec.C_VentHorizontal_Middle
+		rc.VentHorizontal = rcconst.C_VentHorizontal_Middle
 	case "right":
-		ic.VentHorizontal = codec.C_VentHorizontal_Right
+		rc.VentHorizontal = rcconst.C_VentHorizontal_Right
 	case "farright", "rightmost":
-		ic.VentHorizontal = codec.C_VentHorizontal_FarRight
+		rc.VentHorizontal = rcconst.C_VentHorizontal_FarRight
 	default:
 		return
 	}
@@ -220,46 +221,45 @@ func parseTime(time string) (hour, minute int, err error) {
 	return hour, minute, nil
 }
 
-func setTimes(ic, dbIc *codec.IrConfig) {
+func setTimes(rc, dbRc *codec.RcConfig) {
 	// copy saved times if unset
-	if ic.TimerOnTime == codec.C_Time_Unset {
-		ic.TimerOnTime = dbIc.TimerOnTime
+	if rc.TimerOnTime == rcconst.C_Time_Unset {
+		rc.TimerOnTime = dbRc.TimerOnTime
 	}
-	if ic.TimerOffTime == codec.C_Time_Unset {
-		ic.TimerOffTime = dbIc.TimerOffTime
+	if rc.TimerOffTime == rcconst.C_Time_Unset {
+		rc.TimerOffTime = dbRc.TimerOffTime
 	}
 	// set the clock field to the current time
-	now := time.Now()
-	ic.Clock = codec.NewTime(uint(now.Hour()), uint(now.Minute()))
+	rc.SetClock()
 }
 
-func SetTimerOn(setting string, ic, dbIc *codec.IrConfig) {
+func SetTimerOn(setting string, rc, dbRc *codec.RcConfig) {
 	switch setting {
 	case "on":
-		ic.TimerOn = codec.C_Timer_Enabled
-		setTimes(ic, dbIc)
+		rc.TimerOn = rcconst.C_Timer_Enabled
+		setTimes(rc, dbRc)
 	case "off":
-		ic.TimerOn = codec.C_Timer_Disabled
-		setTimes(ic, dbIc)
+		rc.TimerOn = rcconst.C_Timer_Disabled
+		setTimes(rc, dbRc)
 	default:
 		return
 	}
 }
 
-func SetTimerOff(setting string, ic, dbIc *codec.IrConfig) {
+func SetTimerOff(setting string, rc, dbRc *codec.RcConfig) {
 	switch setting {
 	case "on":
-		ic.TimerOff = codec.C_Timer_Enabled
-		setTimes(ic, dbIc)
+		rc.TimerOff = rcconst.C_Timer_Enabled
+		setTimes(rc, dbRc)
 	case "off":
-		ic.TimerOff = codec.C_Timer_Disabled
-		setTimes(ic, dbIc)
+		rc.TimerOff = rcconst.C_Timer_Disabled
+		setTimes(rc, dbRc)
 	default:
 		return
 	}
 }
 
-func SetTimerOnTime(time string, ic, dbIc *codec.IrConfig) {
+func SetTimerOnTime(time string, rc, dbRc *codec.RcConfig) {
 	if time == "" {
 		return
 	}
@@ -267,11 +267,11 @@ func SetTimerOnTime(time string, ic, dbIc *codec.IrConfig) {
 	if err != nil {
 		return
 	}
-	ic.TimerOnTime = codec.NewTime(uint(hour), uint(minute))
-	setTimes(ic, dbIc)
+	rc.TimerOnTime = codec.NewTime(uint(hour), uint(minute))
+	setTimes(rc, dbRc)
 }
 
-func SetTimerOffTime(time string, ic, dbIc *codec.IrConfig) {
+func SetTimerOffTime(time string, rc, dbRc *codec.RcConfig) {
 	if time == "" {
 		return
 	}
@@ -279,6 +279,6 @@ func SetTimerOffTime(time string, ic, dbIc *codec.IrConfig) {
 	if err != nil {
 		return
 	}
-	ic.TimerOffTime = codec.NewTime(uint(hour), uint(minute))
-	setTimes(ic, dbIc)
+	rc.TimerOffTime = codec.NewTime(uint(hour), uint(minute))
+	setTimes(rc, dbRc)
 }

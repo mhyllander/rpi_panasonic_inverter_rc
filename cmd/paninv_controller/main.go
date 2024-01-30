@@ -26,17 +26,17 @@ func messageHandler(options *Options) func(*codec.Message) {
 		}
 
 		if options.PrintMessage {
-			codec.PrintMessage(msg)
+			msg.PrintMessage()
 		}
 		if options.PrintBytes {
-			codec.PrintByteRepresentation(msg)
+			msg.PrintByteRepresentation()
 		}
 
-		c := codec.NewIrConfig(msg)
+		c := codec.RcConfigFromFrame(msg)
 
-		codec.LogConfigAndChecksum(c, checksum)
+		c.LogConfigAndChecksum(checksum)
 		if options.PrintConfig {
-			codec.PrintConfigAndChecksum(c, checksum)
+			c.PrintConfigAndChecksum(checksum)
 		}
 
 		if checksum != "verified" {
@@ -45,13 +45,13 @@ func messageHandler(options *Options) func(*codec.Message) {
 		}
 
 		// get current configuration
-		dbIc, err := db.CurrentConfig()
+		dbRc, err := db.CurrentConfig()
 		if err != nil {
 			slog.Error("failed to get current config", "error", err)
 			return
 		}
 
-		err = db.SaveConfig(c, dbIc)
+		err = db.SaveConfig(c, dbRc)
 		if err != nil {
 			slog.Error("failed to save the new config", "error", err)
 			return
@@ -63,7 +63,7 @@ func messageHandler(options *Options) func(*codec.Message) {
 func main() {
 	var vIrInput = flag.String("irin", "/dev/lirc-rx", "LIRC receive device")
 	// var vIrOutput = flag.String("irout", "/dev/lirc-tx", "LIRC transmit device")
-	var vIrDb = flag.String("db", db.GetDBPath(), "SQLite database")
+	var vRcDb = flag.String("db", db.GetDBPath(), "SQLite database")
 	var vLogLevel = flag.String("log-level", "info", "log level [debug|info|warn|error]")
 	var vHelp = flag.Bool("help", false, "print usage")
 
@@ -90,7 +90,7 @@ func main() {
 	slog.New(slog.NewTextHandler(os.Stdout, utils.SetLoggerOpts(*vLogLevel)))
 
 	// open and initialize database
-	db.Initialize(*vIrDb)
+	db.Initialize(*vRcDb)
 	defer db.Close()
 
 	recOptions.Device = true
@@ -103,7 +103,7 @@ func main() {
 		PrintMessage: *vMessage,
 	}
 
-	err := codec.StartReceiver(*vIrInput, messageHandler(options), recOptions)
+	err := codec.StartIrReceiver(*vIrInput, messageHandler(options), recOptions)
 	if err != nil {
 		slog.Error("failed to start IR receiver", "error", err)
 		os.Exit(1)

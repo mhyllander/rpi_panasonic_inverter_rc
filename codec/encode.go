@@ -1,43 +1,46 @@
 package codec
 
-import "encoding/binary"
+import (
+	"encoding/binary"
+	"rpi_panasonic_inverter_rc/rcconst"
+)
 
 type LircBuffer struct {
 	buf []uint32
 }
 
 func NewLircBuffer() *LircBuffer {
-	return &LircBuffer{make([]uint32, 0, l_PANASONIC_LIRC_ITEMS)}
+	return &LircBuffer{make([]uint32, 0, rcconst.L_PANASONIC_LIRC_ITEMS)}
 }
 
 func (b *LircBuffer) BeginFrame() {
-	b.addPulse(l_PANASONIC_FRAME_MARK1_PULSE)
-	b.addSpace(l_PANASONIC_FRAME_MARK2_SPACE)
+	b.addPulse(rcconst.L_PANASONIC_FRAME_MARK1_PULSE)
+	b.addSpace(rcconst.L_PANASONIC_FRAME_MARK2_SPACE)
 }
 
 func (b *LircBuffer) EndFrame() {
-	b.addPulse(l_PANASONIC_PULSE)
+	b.addPulse(rcconst.L_PANASONIC_PULSE)
 }
 
 func (b *LircBuffer) FrameSpace() {
-	b.addSpace(l_PANASONIC_SEPARATOR)
+	b.addSpace(rcconst.L_PANASONIC_SEPARATOR)
 }
 
 func (b *LircBuffer) AddBit(bit uint) {
-	b.addPulse(l_PANASONIC_PULSE)
+	b.addPulse(rcconst.L_PANASONIC_PULSE)
 	if bit == 0 {
-		b.addSpace(l_PANASONIC_SPACE_0)
+		b.addSpace(rcconst.L_PANASONIC_SPACE_0)
 	} else {
-		b.addSpace(l_PANASONIC_SPACE_1)
+		b.addSpace(rcconst.L_PANASONIC_SPACE_1)
 	}
 }
 
 func (b *LircBuffer) addPulse(length uint32) {
-	b.buf = append(b.buf, length|l_LIRC_MODE2_PULSE)
+	b.buf = append(b.buf, length|rcconst.L_LIRC_MODE2_PULSE)
 }
 
 func (b *LircBuffer) addSpace(length uint32) {
-	b.buf = append(b.buf, length|l_LIRC_MODE2_SPACE)
+	b.buf = append(b.buf, length|rcconst.L_LIRC_MODE2_SPACE)
 }
 
 func (b *LircBuffer) ToBytes() (bytes []byte) {

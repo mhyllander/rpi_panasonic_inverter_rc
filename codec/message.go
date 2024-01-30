@@ -3,6 +3,7 @@ package codec
 import (
 	"fmt"
 	"math/big"
+	"rpi_panasonic_inverter_rc/rcconst"
 	"strings"
 )
 
@@ -44,8 +45,8 @@ func NewMessage() *Message {
 func InitializedMessage() *Message {
 	var bs1, bs2 big.Int
 	return &Message{
-		Frame1: &BitSet{bs1.SetBytes(p_PANASONIC_FRAME1()), l_PANASONIC_BITS_FRAME1},
-		Frame2: &BitSet{bs2.SetBytes(p_PANASONIC_FRAME2()), l_PANASONIC_BITS_FRAME2},
+		Frame1: &BitSet{bs1.SetBytes(rcconst.P_PANASONIC_FRAME1()), rcconst.L_PANASONIC_BITS_FRAME1},
+		Frame2: &BitSet{bs2.SetBytes(rcconst.P_PANASONIC_FRAME2()), rcconst.L_PANASONIC_BITS_FRAME2},
 	}
 }
 
@@ -154,7 +155,7 @@ func (f *BitSet) VerifyChecksum() bool {
 
 func (f *BitSet) SetChecksum() {
 	cs := f.ComputeChecksum()
-	f.SetValue(uint(cs), uint(f.n-p_PANASONIC_CHECKSUM_BITS), p_PANASONIC_CHECKSUM_BITS)
+	f.SetValue(uint(cs), uint(f.n-rcconst.P_PANASONIC_CHECKSUM_BITS), rcconst.P_PANASONIC_CHECKSUM_BITS)
 }
 
 func (f *BitSet) Equal(other Frame) bool {
