@@ -28,7 +28,10 @@ arm64-paninv_controller:
 #hello-arm64:
 #	GOOS=linux GOARCH=arm64 CGO_ENABLED=1 CC=aarch64-linux-gnu-gcc go build -o bin/hello-arm64 -ldflags="--sysroot=/home/mhy/chroot/rpi-bookworm-arm64" cmd/cgo/main_cgo.go
 
-deploy: build-rpi
+test:
+	go test ./codec ./utils
+
+deploy: test build-rpi
 	ssh piir sudo systemctl stop paninv_controller.service
 	scp $(BINARIES_RPI) piir:bin/
 	ssh piir sudo systemctl start paninv_controller.service

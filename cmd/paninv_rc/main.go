@@ -57,13 +57,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	slog.New(slog.NewTextHandler(os.Stdout, utils.SetLoggerOpts(*vLogLevel)))
-
 	err = unix.Setpriority(unix.PRIO_PROCESS, 0, *vPriority)
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(1)
 	}
+
+	logger := slog.New(slog.NewTextHandler(os.Stdout, utils.SetLoggerOpts(*vLogLevel)))
+	slog.SetDefault(logger)
 
 	// open and initialize database
 	db.Initialize(*vRcDb)

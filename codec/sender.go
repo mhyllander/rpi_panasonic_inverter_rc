@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-type senderOptions struct {
+type SenderOptions struct {
 	Mode2         bool
 	Device        bool
 	Transmissions int
@@ -17,8 +17,8 @@ type senderOptions struct {
 }
 
 // ensure there are reasonable defaults
-func NewSenderOptions() *senderOptions {
-	return &senderOptions{Device: true, Transmissions: 1, Interval_ms: 20}
+func NewSenderOptions() *SenderOptions {
+	return &SenderOptions{Device: true, Transmissions: 1, Interval_ms: 20}
 }
 
 func stripMode2Types(licrData *LircBuffer) {
@@ -31,7 +31,7 @@ func stripMode2Types(licrData *LircBuffer) {
 // When transmitting data over IR, the LIRC transmit socket expects a series of uint32 consisting of pulses and spaces.
 // The data must start and end with a pulse, so there must be an odd number of uint32. In addition, no mode2 bits
 // should be set in the pulses and spaces (i.e. the send format is different from the receive format).
-func SendIr(rc *RcConfig, f *os.File, options *senderOptions) error {
+func SendIr(rc *RcConfig, f *os.File, options *SenderOptions) error {
 	if options.Mode2 {
 		s := rc.ConvertToMode2LircData()
 		s2 := strings.Join(s, " ")

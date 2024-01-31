@@ -97,7 +97,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	slog.New(slog.NewTextHandler(os.Stdout, utils.SetLoggerOpts(*vLogLevel)))
+	logger := slog.New(slog.NewTextHandler(os.Stdout, utils.SetLoggerOpts(*vLogLevel)))
+	slog.SetDefault(logger)
 
 	recOptions.Device = *vDevice
 	recOptions.PrintRaw = *vRaw
@@ -110,6 +111,7 @@ func main() {
 		PrintMessage: *vMessage,
 	}
 
+	// this call blocks
 	err := codec.StartIrReceiver(*vIrInput, messageHandler(&options), recOptions)
 	if err != nil {
 		fmt.Println(err)

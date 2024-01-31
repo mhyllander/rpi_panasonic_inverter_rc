@@ -178,7 +178,7 @@ func appendPanasonicBit(space uint32, frame *Frame) error {
 	return nil
 }
 
-func parsePanasonicFrame(lircData []uint32, pos int, nBits int, frame *Frame, options *receiverOptions) parseState {
+func parsePanasonicFrame(lircData []uint32, pos int, nBits int, frame *Frame, options *ReceiverOptions) parseState {
 	state := skipPulse(lircData, pos, rcconst.L_PANASONIC_FRAME_MARK1_PULSE)
 	if state.status != PARSE_OK {
 		slog.Debug("mark1 pulse not found")
@@ -211,7 +211,7 @@ func parsePanasonicFrame(lircData []uint32, pos int, nBits int, frame *Frame, op
 	return state
 }
 
-func readPanasonicMessage(lircData []uint32, options *receiverOptions) (*Message, []uint32, parseState) {
+func readPanasonicMessage(lircData []uint32, options *ReceiverOptions) (*Message, []uint32, parseState) {
 	// slog.Debug("parse data", "items", len(lircData), "required", L_PANASONIC_LIRC_ITEMS)
 	start, err := findStartOfPanasonicFrame(lircData)
 	if err != nil {

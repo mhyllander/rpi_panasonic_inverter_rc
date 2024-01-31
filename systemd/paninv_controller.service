@@ -10,6 +10,7 @@ WorkingDirectory=/home/mhy/paninv
 Environment=PANINV_DB=/home/mhy/paninv/paninv.db
 ExecStart=/home/mhy/bin/paninv_controller
 
+Nice=-10
 TimeoutStopSec=0
 Restart=always
 RuntimeDirectory=paninv
