@@ -90,8 +90,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	logger := slog.New(slog.NewTextHandler(os.Stdout, utils.SetLoggerOpts(*vLogLevel)))
-	slog.SetDefault(logger)
+	utils.InitLogger(*vLogLevel)
 
 	if *vRcDb == "" {
 		slog.Error("please set the db name")

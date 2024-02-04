@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log/slog"
 	"os"
 	"rpi_panasonic_inverter_rc/codec"
 	"rpi_panasonic_inverter_rc/db"
@@ -62,8 +61,7 @@ func main() {
 		fmt.Println(err)
 	}
 
-	logger := slog.New(slog.NewTextHandler(os.Stdout, utils.SetLoggerOpts(*vLogLevel)))
-	slog.SetDefault(logger)
+	utils.InitLogger(*vLogLevel)
 
 	// open and initialize database
 	db.Initialize(*vRcDb)

@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log/slog"
 	"os"
 	"rpi_panasonic_inverter_rc/codec"
 	"rpi_panasonic_inverter_rc/utils"
@@ -97,8 +96,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	logger := slog.New(slog.NewTextHandler(os.Stdout, utils.SetLoggerOpts(*vLogLevel)))
-	slog.SetDefault(logger)
+	utils.InitLogger(*vLogLevel)
 
 	recOptions.Device = *vDevice
 	recOptions.PrintRaw = *vRaw

@@ -31,24 +31,40 @@ func ResumeReceiver() {
 	}
 }
 
+func QuitReceiver() {
+	slog.Debug("quiting IR receiver")
+	if receiveCommands != nil {
+		receiveCommands <- "quit"
+	}
+}
+
 // ensure there are reasonable defaults
 func NewReceiverOptions() *ReceiverOptions {
 	return &ReceiverOptions{Device: true}
 }
 
-func processMessages(messageStream chan *Message, processor func(*Message), options *ReceiverOptions) {
+func processMessages(messageStream <-chan *Message, processor func(*Message), options *ReceiverOptions) {
 	slog.Debug("starting Message processor")
 	for {
-		msg := <-messageStream
+		msg, ok := <-messageStream
+		if !ok {
+			slog.Debug("messageStream was closed")
+			return
+		}
 		processor(msg)
 	}
 }
 
-func processLircRawData(lircStream chan uint32, messageStream chan *Message, options *ReceiverOptions) {
+func processLircRawData(lircStream <-chan uint32, messageStream chan<- *Message, options *ReceiverOptions) {
 	slog.Debug("starting LIRC processor")
+	defer close(messageStream)
 	lircData := make([]uint32, 0, 10240)
 	for {
-		d := <-lircStream
+		d, ok := <-lircStream
+		if !ok {
+			slog.Debug("lircStream was closed")
+			return
+		}
 		if options.PrintRaw {
 			printLircData("raw", d)
 		}
@@ -76,21 +92,7 @@ func processLircRawData(lircStream chan uint32, messageStream chan *Message, opt
 	}
 }
 
-func openFile(file string, options *ReceiverOptions) (*os.File, error) {
-	slog.Debug("opening IR input", "file", file)
-	f, err := os.Open(file)
-	if err != nil {
-		return nil, err
-	}
-
-	if options.Device {
-		ioctl.SetLircReceiveMode(f)
-	}
-
-	return f, nil
-}
-
-func startReader(f *os.File, readStream chan []byte) {
+func startReader(f *os.File, lircStream chan<- uint32) {
 	slog.Debug("starting IR reader")
 	reader := bufio.NewReader(f)
 	for {
@@ -106,13 +108,33 @@ func startReader(f *os.File, readStream chan []byte) {
 			}
 			return
 		}
-		readStream <- readBuffer[:n]
+		bytes := readBuffer[:n]
+		if len(bytes)%4 != 0 {
+			slog.Debug("didn't get even 4 bytes matching uint32")
+		}
+		lircData := convertRawToLirc(bytes)
+		for _, d := range lircData {
+			lircStream <- d
+		}
 	}
+}
+
+func openFile(file string, options *ReceiverOptions) (*os.File, error) {
+	slog.Debug("opening IR input", "file", file)
+	f, err := os.Open(file)
+	if err != nil {
+		return nil, err
+	}
+
+	if options.Device {
+		ioctl.SetLircReceiveMode(f)
+	}
+
+	return f, nil
 }
 
 func StartIrReceiver(file string, messageHandler func(*Message), options *ReceiverOptions) error {
 	slog.Debug("starting IR receiver")
-	receiveCommands = make(chan string)
 
 	f, err := openFile(file, options)
 	if err != nil {
@@ -120,43 +142,48 @@ func StartIrReceiver(file string, messageHandler func(*Message), options *Receiv
 	}
 	defer f.Close()
 
+	receiveCommands = make(chan string)
+	defer func() {
+		close(receiveCommands)
+		receiveCommands = nil
+	}()
+
 	messageStream := make(chan *Message)
 	lircStream := make(chan uint32)
-	readStream := make(chan []byte)
+
+	// start the processing pipeline
 	go processMessages(messageStream, messageHandler, options)
 	go processLircRawData(lircStream, messageStream, options)
-	go startReader(f, readStream)
+	// closing lircStream will close the processing pipeline
+	defer close(lircStream)
+
+	// the reader can be started and stopped independently (by closing f)
+	go startReader(f, lircStream)
 
 	for {
-		select {
-		case bytes := <-readStream:
-			if len(bytes)%4 != 0 {
-				slog.Debug("didn't get even 4 bytes matching uint32")
+		cmd := <-receiveCommands
+		switch cmd {
+		case "suspend":
+			// Suspend is sent before sending an IR message. We close the input
+			// so that we don't receive our own message. This should cause the
+			// startReader func to return.
+			if f != nil {
+				f.Close()
 			}
-			lircData := convertRawToLirc(bytes)
-			for _, d := range lircData {
-				lircStream <- d
+		case "resume":
+			// Resume is sent after sending an IR message. Wait a moment and then open
+			// the input and start a new reader.
+			time.Sleep(2 * time.Second)
+			f, err = openFile(file, options)
+			if err != nil {
+				slog.Error("failed to open IR input", "file", file, "err", err)
+				break
 			}
-		case cmd := <-receiveCommands:
-			switch cmd {
-			case "suspend":
-				// Suspend is sent before sending an IR message. We close the input
-				// so that we don't receive our own message. This should cause the
-				// startReader func to return.
-				if f != nil {
-					f.Close()
-				}
-			case "resume":
-				// Resume is sent after sending an IR message. We a second and then open
-				// the input and start a new reader.
-				time.Sleep(time.Second)
-				f, err = openFile(file, options)
-				if err != nil {
-					slog.Error("failed to open IR input", "file", file, "err", err)
-					break
-				}
-				go startReader(f, readStream)
-			}
+			go startReader(f, lircStream)
+		case "quit":
+			// Quit is sent to stop the receiver completely. All channels and files will be closed,
+			// and goroutines will exit.
+			return nil
 		}
 
 		if !options.Device {

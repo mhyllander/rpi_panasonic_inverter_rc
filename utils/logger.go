@@ -1,6 +1,9 @@
 package utils
 
-import "log/slog"
+import (
+	"log/slog"
+	"os"
+)
 
 func SetLoggerOpts(level string) *slog.HandlerOptions {
 	var opts slog.HandlerOptions = slog.HandlerOptions{}
@@ -17,4 +20,9 @@ func SetLoggerOpts(level string) *slog.HandlerOptions {
 		opts.Level = slog.LevelInfo
 	}
 	return &opts
+}
+
+func InitLogger(logLevel string) {
+	logger := slog.New(slog.NewTextHandler(os.Stdout, SetLoggerOpts(logLevel)))
+	slog.SetDefault(logger)
 }
