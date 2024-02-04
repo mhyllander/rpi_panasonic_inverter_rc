@@ -114,7 +114,7 @@ func main() {
 	utils.SetTimerOff(*vTimerOff, sendRc, dbRc)
 	utils.SetTimerOffTime(*vTimerOffTime, sendRc, dbRc)
 
-	// set power last, adjusting for any current timers
+	// set power last, adjusting for any (updated) timers
 	utils.SetPower(*vPower, sendRc, dbRc)
 
 	if *vVerbose {

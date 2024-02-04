@@ -1,10 +1,13 @@
 package sched
 
 import (
+	"encoding/json"
 	"log/slog"
 	"os"
 	"rpi_panasonic_inverter_rc/codec"
 	"rpi_panasonic_inverter_rc/db"
+	"rpi_panasonic_inverter_rc/utils"
+	"strconv"
 	"time"
 
 	"github.com/go-co-op/gocron/v2"
@@ -29,16 +32,21 @@ func openIrOutputFile() *os.File {
 }
 
 func SendCurrentConfig() {
-	codec.SuspendReceiver()
-	defer codec.ResumeReceiver()
-
 	slog.Info("initializing: sending current config")
 
-	dbRc, err := db.CurrentConfigForSending()
+	codec.SuspendReceiver()
+	defer codec.ResumeReceiver()
+	time.Sleep(100 * time.Millisecond) // wait a moment for the receiver to stop
+
+	dbRc, err := db.CurrentConfig()
 	if err != nil {
 		slog.Error("failed to get current config", "err", err)
 		return
 	}
+	sendRc := dbRc.CopyForSendingAll()
+	// update power setting, adjusting for any timers
+	utils.SetPower("", sendRc, dbRc)
+
 	f := openIrOutputFile()
 	if f == nil {
 		slog.Error("failed to open IR output file", "err", err)
@@ -46,11 +54,74 @@ func SendCurrentConfig() {
 	}
 	defer f.Close()
 
-	err = codec.SendIr(dbRc, f, g_senderOptions)
+	sendRc.LogConfigAndChecksum("")
+	err = codec.SendIr(sendRc, f, g_senderOptions)
 	if err != nil {
 		slog.Error("failed to send current config", "err", err)
 		return
 	}
+
+	err = db.SaveConfig(sendRc, dbRc)
+	if err != nil {
+		slog.Error("failed to save config", "err", err)
+		return
+	}
+	slog.Debug("saved config")
+}
+
+func RunCronJob(settings db.Settings) {
+	slog.Info("processing cronjob")
+
+	codec.SuspendReceiver()
+	defer codec.ResumeReceiver()
+	time.Sleep(100 * time.Millisecond) // wait a moment for the receiver to stop
+
+	dbRc, err := db.CurrentConfig()
+	if err != nil {
+		slog.Error("failed to get current config", "err", err)
+		return
+	}
+
+	sendRc := dbRc.CopyForSending()
+	utils.SetMode(settings.Mode, sendRc)
+	utils.SetPowerful(settings.Powerful, sendRc)
+	utils.SetQuiet(settings.Quiet, sendRc)
+	if t, err := strconv.Atoi(settings.Temperature); err != nil {
+		utils.SetTemperature(t, sendRc)
+	}
+	utils.SetFanSpeed(settings.FanSpeed, sendRc)
+	utils.SetVentVerticalPosition(settings.VentVertical, sendRc)
+	utils.SetVentHorizontalPosition(settings.VentHorizontal, sendRc)
+
+	// if timers are changed in any way, time fields are initialized
+	utils.SetTimerOn(settings.TimerOn, sendRc, dbRc)
+	utils.SetTimerOnTime(settings.TimerOnTime, sendRc, dbRc)
+	utils.SetTimerOff(settings.TimerOff, sendRc, dbRc)
+	utils.SetTimerOffTime(settings.TimerOffTime, sendRc, dbRc)
+
+	// set power last, adjusting for any (updated) timers
+	utils.SetPower(settings.Power, sendRc, dbRc)
+
+	f := openIrOutputFile()
+	if f == nil {
+		slog.Error("failed to open IR output file", "err", err)
+		return
+	}
+	defer f.Close()
+
+	sendRc.LogConfigAndChecksum("")
+	err = codec.SendIr(sendRc, f, g_senderOptions)
+	if err != nil {
+		slog.Error("failed to send config", "err", err)
+		return
+	}
+
+	err = db.SaveConfig(sendRc, dbRc)
+	if err != nil {
+		slog.Error("failed to save config", "err", err)
+		return
+	}
+	slog.Debug("saved config")
 }
 
 func InitScheduler(irOutputFile string, senderOptions *codec.SenderOptions) error {
@@ -71,7 +142,7 @@ func InitScheduler(irOutputFile string, senderOptions *codec.SenderOptions) erro
 	// will be restarted.
 	j, err := scheduler.NewJob(
 		gocron.OneTimeJob(
-			gocron.OneTimeJobStartDateTime(time.Now().Add(time.Minute)),
+			gocron.OneTimeJobStartDateTime(time.Now().Add(2*time.Minute)),
 		),
 		gocron.NewTask(
 			SendCurrentConfig,
@@ -81,6 +152,32 @@ func InitScheduler(irOutputFile string, senderOptions *codec.SenderOptions) erro
 		return err
 	}
 	slog.Debug("scheduled initial job", "job_id", j.ID())
+
+	cjs, err := db.GetCronJobs()
+	if err != nil {
+
+	} else {
+		for _, cj := range *cjs {
+			var settings db.Settings
+			err = json.Unmarshal(cj.Settings, &settings)
+			if err != nil {
+				slog.Error("failed to unmarshal json", "err", err)
+				break
+			}
+			j, err := scheduler.NewJob(
+				gocron.CronJob(cj.Schedule, false),
+				gocron.NewTask(
+					RunCronJob,
+					settings,
+				),
+			)
+			if err != nil {
+				slog.Error("failed to schedule cronjob", "schedule", cj.Schedule, "err", err)
+				break
+			}
+			slog.Debug("scheduled cronjob", "job_id", j.ID())
+		}
+	}
 
 	// start the scheduler
 	scheduler.Start()

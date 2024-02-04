@@ -95,11 +95,23 @@ func RcConfigFromFrame(msg *Message) *RcConfig {
 	return rcconf
 }
 
+// Return the current config with timer times and clock unset, useful
+// for sending the updated config to the inverter.
 func (c *RcConfig) CopyForSending() *RcConfig {
 	rc := *c
 	rc.TimerOnTime = rcconst.C_Time_Unset
 	rc.TimerOffTime = rcconst.C_Time_Unset
 	rc.Clock = rcconst.C_Time_Unset
+	return &rc
+}
+
+// Return the current config with initialized clock, useful for
+// immediately sending the current config to the inverter after e.g.
+// a power outage. It could be used to send the current configuration
+// after the RPi has booted up.
+func (c *RcConfig) CopyForSendingAll() *RcConfig {
+	rc := *c
+	rc.SetClock()
 	return &rc
 }
 

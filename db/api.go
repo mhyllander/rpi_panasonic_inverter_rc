@@ -1,6 +1,7 @@
 package db
 
 import (
+	"encoding/json"
 	"log/slog"
 	"os"
 	"rpi_panasonic_inverter_rc/codec"
@@ -28,8 +29,7 @@ func Initialize(dbFile string) error {
 	}
 
 	// Migrate the schema
-	myDb.AutoMigrate(&DbIrConfig{})
-	myDb.AutoMigrate(&ModeSetting{})
+	myDb.AutoMigrate(&DbIrConfig{}, &ModeSetting{}, &CronJob{})
 
 	// Create initial records
 	var dbRc DbIrConfig
@@ -100,19 +100,6 @@ func CurrentConfig() (*codec.RcConfig, error) {
 	}, nil
 }
 
-// Return the current config with initialized clock, useful for
-// immediately sending the current config to the inverter after e.g.
-// a power outage. It could be used to send the current configuration
-// after the RPi has booted up.
-func CurrentConfigForSending() (*codec.RcConfig, error) {
-	dbRc, err := CurrentConfig()
-	if err != nil {
-		return dbRc, err
-	}
-	dbRc.SetClock()
-	return dbRc, nil
-}
-
 func SaveConfig(rc, dbRc *codec.RcConfig) error {
 	// update current configuration, but timer on and off should only be updated if set
 	// mode settings should be updated, but fan speed should be ignored if Powerful or Quiet is set
@@ -169,7 +156,7 @@ func SaveConfig(rc, dbRc *codec.RcConfig) error {
 	if rc.Powerful == rcconst.C_Powerful_Disabled && rc.Quiet == rcconst.C_Quiet_Disabled {
 		settings["FanSpeed"] = rc.FanSpeed
 	}
-	result = myDb.Model(ModeSetting{}).Where("mode = ?", rc.Mode).Updates(settings)
+	result = myDb.Model(&ModeSetting{}).Where(&ModeSetting{Mode: rc.Mode}).Updates(settings)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -184,4 +171,27 @@ func GetModeSettings(mode uint) (temp, fan uint, err error) {
 		return 0, 0, result.Error
 	}
 	return ms.Temperature, ms.FanSpeed, nil
+}
+
+func SaveCronJob(schedule string, settings Settings, jobset string) error {
+	json, err := json.Marshal(settings)
+	if err != nil {
+		return err
+	}
+	cj := CronJob{JobSet: jobset, Schedule: schedule, Settings: json}
+	myDb.Create(&cj)
+	return nil
+}
+
+func GetCronJobs() (*[]CronJob, error) {
+	var cronjobs []CronJob
+	if result := myDb.Find(&cronjobs); result.Error != nil {
+		return nil, result.Error
+	}
+	return &cronjobs, nil
+}
+
+func DeleteAllCronJobsPermanently() {
+	// AllowGlobalUpdate needed to delete all, Unscoped needed to bypass soft delete
+	myDb.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(&CronJob{})
 }

@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
+	"io"
 	"log/slog"
 	"os"
 	"rpi_panasonic_inverter_rc/codec"
@@ -62,6 +64,34 @@ func messageHandler(options *Options) func(*codec.Message) {
 	}
 }
 
+type cronJob struct {
+	Schedule string `json:"schedule,omitempty"`
+	Settings db.Settings
+}
+
+func loadCronJobs(jobfile string) {
+	f, err := os.Open(jobfile)
+	if err != nil {
+		slog.Error("failed to open jobs file")
+		return
+	}
+	data, err := io.ReadAll(f)
+	if err != nil {
+		slog.Error("failed to read jobs file")
+		return
+	}
+	var cronJobs []cronJob
+	err = json.Unmarshal(data, &cronJobs)
+	if err != nil {
+		slog.Error("failed to unmarshal json")
+		return
+	}
+	db.DeleteAllCronJobsPermanently()
+	for _, j := range cronJobs {
+		db.SaveCronJob(j.Schedule, j.Settings, "Normal")
+	}
+}
+
 func main() {
 	var vIrInput = flag.String("irin", "/dev/lirc-rx", "LIRC receive device")
 	var vIrOutput = flag.String("irout", "/dev/lirc-tx", "LIRC transmit device")
@@ -82,6 +112,8 @@ func main() {
 	var vTransmissions = flag.Int("send-tx", senderOptions.Transmissions, "send option: number of times to send the message")
 	var vInterval = flag.Int("send-int", senderOptions.Interval_ms, "send option: number of milliseconds between transmissions")
 	var vDevice = flag.Bool("send-dev", senderOptions.Device, "send option: writing to a LIRC device")
+
+	var vLoadJobs = flag.String("load-jobs", "", "load cronjobs from file")
 
 	flag.Parse()
 
@@ -108,6 +140,11 @@ func main() {
 	// open and initialize database
 	db.Initialize(*vRcDb)
 	defer db.Close()
+
+	if *vLoadJobs != "" {
+		loadCronJobs(*vLoadJobs)
+		os.Exit(0)
+	}
 
 	recOptions.Device = true
 	recOptions.PrintRaw = *vRaw
