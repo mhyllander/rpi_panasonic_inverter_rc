@@ -74,15 +74,16 @@ func main() {
 	var vLogLevel = flag.String("log-level", "debug", "log level [debug|info|warn|error]")
 	var vHelp = flag.Bool("help", false, "print usage")
 
-	var vMessage = flag.Bool("msg", false, "print message")
-	var vBytes = flag.Bool("bytes", false, "print message as bytes")
-	var vDiff = flag.Bool("diff", false, "print difference from previous")
-	var vConfig = flag.Bool("config", false, "print decoded configuration")
+	var options Options
+	flag.BoolVar(&options.PrintMessage, "msg", false, "print message")
+	flag.BoolVar(&options.PrintBytes, "bytes", false, "print message as bytes")
+	flag.BoolVar(&options.PrintDiff, "diff", false, "print difference from previous")
+	flag.BoolVar(&options.PrintConfig, "config", false, "print decoded configuration")
 
 	recOptions := codec.NewReceiverOptions()
-	var vDevice = flag.Bool("rec-dev", recOptions.Device, "receive option: reading from LIRC device")
-	var vRaw = flag.Bool("rec-raw", recOptions.PrintRaw, "receive option: print raw pulse data")
-	var vClean = flag.Bool("rec-clean", recOptions.PrintClean, "receive option: print cleaned up pulse data")
+	flag.BoolVar(&recOptions.Device, "rec-dev", recOptions.Device, "receive option: reading from LIRC device")
+	flag.BoolVar(&recOptions.PrintRaw, "rec-raw", recOptions.PrintRaw, "receive option: print raw pulse data")
+	flag.BoolVar(&recOptions.PrintClean, "rec-clean", recOptions.PrintClean, "receive option: print cleaned up pulse data")
 
 	flag.Parse()
 
@@ -97,17 +98,6 @@ func main() {
 	}
 
 	utils.InitLogger(*vLogLevel)
-
-	recOptions.Device = *vDevice
-	recOptions.PrintRaw = *vRaw
-	recOptions.PrintClean = *vClean
-
-	options := Options{
-		PrintBytes:   *vBytes,
-		PrintDiff:    *vDiff,
-		PrintConfig:  *vConfig,
-		PrintMessage: *vMessage,
-	}
 
 	// this call blocks
 	err := codec.StartIrReceiver(*vIrInput, messageHandler(&options), recOptions)

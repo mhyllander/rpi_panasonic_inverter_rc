@@ -78,11 +78,11 @@ func processLircRawData(lircStream <-chan uint32, messageStream chan<- *Message,
 		lircData = append(lircData, d)
 		msg, remainingData, state := readPanasonicMessage(lircData, options)
 		switch state.status {
-		case PARSE_NOT_ENOUGH_DATA:
-		case PARSE_END_OF_DATA:
 		case PARSE_OK:
 			// send message
 			messageStream <- msg
+		case PARSE_NOT_ENOUGH_DATA:
+		case PARSE_END_OF_DATA:
 		default:
 			slog.Debug("problem during parsing", "state", state)
 		}

@@ -8,6 +8,7 @@ import (
 	"os"
 	"rpi_panasonic_inverter_rc/codec"
 	"rpi_panasonic_inverter_rc/db"
+	"rpi_panasonic_inverter_rc/rcconst"
 	"rpi_panasonic_inverter_rc/sched"
 	"rpi_panasonic_inverter_rc/utils"
 	"time"
@@ -66,7 +67,7 @@ func messageHandler(options *Options) func(*codec.Message) {
 
 type cronJob struct {
 	Schedule string `json:"schedule,omitempty"`
-	Settings db.Settings
+	Settings rcconst.Settings
 }
 
 func loadCronJobs(jobfile string) {
@@ -88,7 +89,7 @@ func loadCronJobs(jobfile string) {
 	}
 	db.DeleteAllCronJobsPermanently()
 	for _, j := range cronJobs {
-		db.SaveCronJob(j.Schedule, j.Settings, "Normal")
+		db.SaveCronJob(j.Schedule, &j.Settings, "Normal")
 	}
 }
 
@@ -99,19 +100,20 @@ func main() {
 	var vLogLevel = flag.String("log-level", "info", "log level [debug|info|warn|error]")
 	var vHelp = flag.Bool("help", false, "print usage")
 
-	var vMessage = flag.Bool("msg", false, "print message")
-	var vBytes = flag.Bool("bytes", false, "print message as bytes")
-	var vConfig = flag.Bool("config", false, "print decoded configuration")
+	var options Options
+	flag.BoolVar(&options.PrintMessage, "msg", false, "print message")
+	flag.BoolVar(&options.PrintBytes, "bytes", false, "print message as bytes")
+	flag.BoolVar(&options.PrintConfig, "config", false, "print decoded configuration")
 
 	recOptions := codec.NewReceiverOptions()
-	var vRaw = flag.Bool("rec-raw", recOptions.PrintRaw, "receive option: print raw pulse data")
-	var vClean = flag.Bool("rec-clean", recOptions.PrintClean, "receive option: print cleaned up pulse data")
+	flag.BoolVar(&recOptions.PrintRaw, "rec-raw", recOptions.PrintRaw, "receive option: print raw pulse data")
+	flag.BoolVar(&recOptions.PrintClean, "rec-clean", recOptions.PrintClean, "receive option: print cleaned up pulse data")
 
 	senderOptions := codec.NewSenderOptions()
-	var vMode2 = flag.Bool("send-mode2", senderOptions.Mode2, "send option: output in mode2 format (when writing to file for sending with ir-ctl)")
-	var vTransmissions = flag.Int("send-tx", senderOptions.Transmissions, "send option: number of times to send the message")
-	var vInterval = flag.Int("send-int", senderOptions.Interval_ms, "send option: number of milliseconds between transmissions")
-	var vDevice = flag.Bool("send-dev", senderOptions.Device, "send option: writing to a LIRC device")
+	flag.BoolVar(&senderOptions.Mode2, "send-mode2", senderOptions.Mode2, "send option: output in mode2 format (when writing to file for sending with ir-ctl)")
+	flag.IntVar(&senderOptions.Transmissions, "send-tx", senderOptions.Transmissions, "send option: number of times to send the message")
+	flag.IntVar(&senderOptions.Interval_ms, "send-int", senderOptions.Interval_ms, "send option: number of milliseconds between transmissions")
+	flag.BoolVar(&senderOptions.Device, "send-dev", senderOptions.Device, "send option: writing to a LIRC device")
 
 	var vLoadJobs = flag.String("load-jobs", "", "load cronjobs from file")
 
@@ -146,25 +148,10 @@ func main() {
 		os.Exit(0)
 	}
 
-	recOptions.Device = true
-	recOptions.PrintRaw = *vRaw
-	recOptions.PrintClean = *vClean
-
-	options := &Options{
-		PrintBytes:   *vBytes,
-		PrintConfig:  *vConfig,
-		PrintMessage: *vMessage,
-	}
-
-	senderOptions.Mode2 = *vMode2
-	senderOptions.Device = *vDevice
-	senderOptions.Transmissions = *vTransmissions
-	senderOptions.Interval_ms = *vInterval
-
 	// start the IR receiver
 	go func() {
 		// this call blocks
-		err := codec.StartIrReceiver(*vIrInput, messageHandler(options), recOptions)
+		err := codec.StartIrReceiver(*vIrInput, messageHandler(&options), recOptions)
 		if err != nil {
 			slog.Error("failed to start IR receiver", "err", err)
 		}

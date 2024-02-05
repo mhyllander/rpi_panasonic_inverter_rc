@@ -6,8 +6,8 @@ import (
 	"os"
 	"rpi_panasonic_inverter_rc/codec"
 	"rpi_panasonic_inverter_rc/db"
+	"rpi_panasonic_inverter_rc/rcconst"
 	"rpi_panasonic_inverter_rc/utils"
-	"strconv"
 	"time"
 
 	"github.com/go-co-op/gocron/v2"
@@ -69,7 +69,7 @@ func SendCurrentConfig() {
 	slog.Debug("saved config")
 }
 
-func RunCronJob(settings db.Settings) {
+func RunCronJob(settings *rcconst.Settings) {
 	slog.Info("processing cronjob")
 
 	codec.SuspendReceiver()
@@ -82,25 +82,7 @@ func RunCronJob(settings db.Settings) {
 		return
 	}
 
-	sendRc := dbRc.CopyForSending()
-	utils.SetMode(settings.Mode, sendRc)
-	utils.SetPowerful(settings.Powerful, sendRc)
-	utils.SetQuiet(settings.Quiet, sendRc)
-	if t, err := strconv.Atoi(settings.Temperature); err != nil {
-		utils.SetTemperature(t, sendRc)
-	}
-	utils.SetFanSpeed(settings.FanSpeed, sendRc)
-	utils.SetVentVerticalPosition(settings.VentVertical, sendRc)
-	utils.SetVentHorizontalPosition(settings.VentHorizontal, sendRc)
-
-	// if timers are changed in any way, time fields are initialized
-	utils.SetTimerOn(settings.TimerOn, sendRc, dbRc)
-	utils.SetTimerOnTime(settings.TimerOnTime, sendRc, dbRc)
-	utils.SetTimerOff(settings.TimerOff, sendRc, dbRc)
-	utils.SetTimerOffTime(settings.TimerOffTime, sendRc, dbRc)
-
-	// set power last, adjusting for any (updated) timers
-	utils.SetPower(settings.Power, sendRc, dbRc)
+	sendRc := utils.ComposeSendConfig(settings, dbRc)
 
 	f := openIrOutputFile()
 	if f == nil {
@@ -158,7 +140,7 @@ func InitScheduler(irOutputFile string, senderOptions *codec.SenderOptions) erro
 
 	} else {
 		for _, cj := range *cjs {
-			var settings db.Settings
+			var settings rcconst.Settings
 			err = json.Unmarshal(cj.Settings, &settings)
 			if err != nil {
 				slog.Error("failed to unmarshal json", "err", err)
@@ -168,7 +150,7 @@ func InitScheduler(irOutputFile string, senderOptions *codec.SenderOptions) erro
 				gocron.CronJob(cj.Schedule, false),
 				gocron.NewTask(
 					RunCronJob,
-					settings,
+					&settings,
 				),
 			)
 			if err != nil {

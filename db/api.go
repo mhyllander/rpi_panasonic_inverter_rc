@@ -173,7 +173,7 @@ func GetModeSettings(mode uint) (temp, fan uint, err error) {
 	return ms.Temperature, ms.FanSpeed, nil
 }
 
-func SaveCronJob(schedule string, settings Settings, jobset string) error {
+func SaveCronJob(schedule string, settings *rcconst.Settings, jobset string) error {
 	json, err := json.Marshal(settings)
 	if err != nil {
 		return err

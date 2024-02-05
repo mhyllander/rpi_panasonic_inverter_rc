@@ -131,9 +131,11 @@ func SetQuiet(setting string, rc *codec.RcConfig) {
 	}
 }
 
-func SetTemperature(temp int, rc *codec.RcConfig) {
-	if rcconst.C_Temp_Min <= temp && temp <= rcconst.C_Temp_Max {
-		rc.Temperature = uint(temp)
+func SetTemperature(temp string, rc *codec.RcConfig) {
+	if t, err := strconv.Atoi(temp); err != nil {
+		if rcconst.C_Temp_Min <= t && t <= rcconst.C_Temp_Max {
+			rc.Temperature = uint(t)
+		}
 	}
 }
 
@@ -281,4 +283,26 @@ func SetTimerOffTime(time string, rc, dbRc *codec.RcConfig) {
 	}
 	rc.TimerOffTime = codec.NewTime(uint(hour), uint(minute))
 	setTimes(rc, dbRc)
+}
+
+func ComposeSendConfig(settings *rcconst.Settings, dbRc *codec.RcConfig) *codec.RcConfig {
+	sendRc := dbRc.CopyForSending()
+	SetMode(settings.Mode, sendRc)
+	SetPowerful(settings.Powerful, sendRc)
+	SetQuiet(settings.Quiet, sendRc)
+	SetTemperature(settings.Temperature, sendRc)
+	SetFanSpeed(settings.FanSpeed, sendRc)
+	SetVentVerticalPosition(settings.VentVertical, sendRc)
+	SetVentHorizontalPosition(settings.VentHorizontal, sendRc)
+
+	// if timers are changed in any way, time fields are initialized
+	SetTimerOn(settings.TimerOn, sendRc, dbRc)
+	SetTimerOnTime(settings.TimerOnTime, sendRc, dbRc)
+	SetTimerOff(settings.TimerOff, sendRc, dbRc)
+	SetTimerOffTime(settings.TimerOffTime, sendRc, dbRc)
+
+	// set power last, adjusting for any (updated) timers
+	SetPower(settings.Power, sendRc, dbRc)
+
+	return sendRc
 }

@@ -6,6 +6,7 @@ import (
 	"os"
 	"rpi_panasonic_inverter_rc/codec"
 	"rpi_panasonic_inverter_rc/db"
+	"rpi_panasonic_inverter_rc/rcconst"
 	"rpi_panasonic_inverter_rc/utils"
 
 	"golang.org/x/sys/unix"
@@ -21,24 +22,25 @@ func main() {
 	var vHelp = flag.Bool("help", false, "print usage")
 	var vPriority = flag.Int("prio", -10, "The priority, or niceness, of the process (-20..19)")
 
-	var vPower = flag.String("power", "", "power [on|off]")
-	var vMode = flag.String("mode", "", "mode [auto|heat|cool|dry]")
-	var vPowerful = flag.String("powerful", "", "powerful [on|off]")
-	var vQuiet = flag.String("quiet", "", "quiet [on|off]")
-	var vTemp = flag.Int("temp", 0, "temperature (set per mode)")
-	var vFan = flag.String("fan", "", "fan speed (set per mode, overridden if powerful or quiet is enabled) [auto|lowest|low|middle|high|highest]")
-	var vVert = flag.String("vent.vert", "", "vent vertical position [auto|lowest|low|middle|high|highest]")
-	var vHoriz = flag.String("vent.horiz", "", "vent horizontal position [auto|farleft|left|middle|right|farright]")
-	var vTimerOn = flag.String("timer_on", "", "timer_on [on|off]")
-	var vTimerOnTime = flag.String("timer_on.time", "", "timer_on time, e.g. 09:00")
-	var vTimerOff = flag.String("timer_off", "", "timer_off [on|off]")
-	var vTimerOffTime = flag.String("timer_off.time", "", "timer_off time, e.g. 21:00")
+	var settings rcconst.Settings
+	flag.StringVar(&settings.Power, "power", "", "power [on|off]")
+	flag.StringVar(&settings.Mode, "mode", "", "mode [auto|heat|cool|dry]")
+	flag.StringVar(&settings.Powerful, "powerful", "", "powerful [on|off]")
+	flag.StringVar(&settings.Quiet, "quiet", "", "quiet [on|off]")
+	flag.StringVar(&settings.Temperature, "temp", "", "temperature (set per mode)")
+	flag.StringVar(&settings.FanSpeed, "fan", "", "fan speed (set per mode, overridden if powerful or quiet is enabled) [auto|lowest|low|middle|high|highest]")
+	flag.StringVar(&settings.VentVertical, "vent.vert", "", "vent vertical position [auto|lowest|low|middle|high|highest]")
+	flag.StringVar(&settings.VentHorizontal, "vent.horiz", "", "vent horizontal position [auto|farleft|left|middle|right|farright]")
+	flag.StringVar(&settings.TimerOn, "timer_on", "", "timer_on [on|off]")
+	flag.StringVar(&settings.TimerOnTime, "timer_on.time", "", "timer_on time, e.g. 09:00")
+	flag.StringVar(&settings.TimerOff, "timer_off", "", "timer_off [on|off]")
+	flag.StringVar(&settings.TimerOffTime, "timer_off.time", "", "timer_off time, e.g. 21:00")
 
 	senderOptions := codec.NewSenderOptions()
-	var vMode2 = flag.Bool("send-mode2", senderOptions.Mode2, "send option: output in mode2 format (when writing to file for sending with ir-ctl)")
-	var vTransmissions = flag.Int("send-tx", senderOptions.Transmissions, "send option: number of times to send the message")
-	var vInterval = flag.Int("send-int", senderOptions.Interval_ms, "send option: number of milliseconds between transmissions")
-	var vDevice = flag.Bool("send-dev", senderOptions.Device, "send option: writing to a LIRC device")
+	flag.BoolVar(&senderOptions.Mode2, "send-mode2", senderOptions.Mode2, "send option: output in mode2 format (when writing to file for sending with ir-ctl)")
+	flag.IntVar(&senderOptions.Transmissions, "send-tx", senderOptions.Transmissions, "send option: number of times to send the message")
+	flag.IntVar(&senderOptions.Interval_ms, "send-int", senderOptions.Interval_ms, "send option: number of milliseconds between transmissions")
+	flag.BoolVar(&senderOptions.Device, "send-dev", senderOptions.Device, "send option: writing to a LIRC device")
 
 	flag.Parse()
 
@@ -69,7 +71,7 @@ func main() {
 
 	// open file or device for sending IR
 	flags := os.O_RDWR
-	if !*vDevice {
+	if !senderOptions.Device {
 		flags = flags | os.O_CREATE
 	}
 	f, err := os.OpenFile(*vIrOutput, flags, 0644)
@@ -99,33 +101,12 @@ func main() {
 	// Create a new configuration by making a copy of the current configuration. The copy contains
 	// everything except the time fields, which are unset by default. The new configuration is then
 	// modified according to command line arguments.
-	sendRc := dbRc.CopyForSending()
-	utils.SetMode(*vMode, sendRc)
-	utils.SetPowerful(*vPowerful, sendRc)
-	utils.SetQuiet(*vQuiet, sendRc)
-	utils.SetTemperature(*vTemp, sendRc)
-	utils.SetFanSpeed(*vFan, sendRc)
-	utils.SetVentVerticalPosition(*vVert, sendRc)
-	utils.SetVentHorizontalPosition(*vHoriz, sendRc)
-
-	// if timers are changed in any way, time fields are initialized
-	utils.SetTimerOn(*vTimerOn, sendRc, dbRc)
-	utils.SetTimerOnTime(*vTimerOnTime, sendRc, dbRc)
-	utils.SetTimerOff(*vTimerOff, sendRc, dbRc)
-	utils.SetTimerOffTime(*vTimerOffTime, sendRc, dbRc)
-
-	// set power last, adjusting for any (updated) timers
-	utils.SetPower(*vPower, sendRc, dbRc)
+	sendRc := utils.ComposeSendConfig(&settings, dbRc)
 
 	if *vVerbose {
 		fmt.Println("config to send")
 		sendRc.PrintConfigAndChecksum("")
 	}
-
-	senderOptions.Mode2 = *vMode2
-	senderOptions.Device = *vDevice
-	senderOptions.Transmissions = *vTransmissions
-	senderOptions.Interval_ms = *vInterval
 
 	err = codec.SendIr(sendRc, f, senderOptions)
 	if err != nil {

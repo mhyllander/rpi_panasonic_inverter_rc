@@ -131,37 +131,37 @@ func findEndOfData(data []uint32, pos int) (eod int, timeoutFound bool) {
 	return len(data), false
 }
 
-func skipToken(lircData []uint32, pos int, mode2, value uint32) parseState {
+func skipToken(lircData []uint32, pos int, mode2, value uint32) *parseState {
 	if pos >= len(lircData) {
-		return parseState{pos, PARSE_END_OF_DATA, fmt.Sprintf("reached end-of-data while parsing, pos=%d", pos)}
+		return &parseState{pos, PARSE_END_OF_DATA, fmt.Sprintf("reached end-of-data while parsing, pos=%d", pos)}
 	}
 	d := lircData[pos]
 	if d&rcconst.L_LIRC_MODE2_MASK != mode2 {
-		return parseState{pos, PARSE_UNEXPECTED_MODE2, fmt.Sprintf("expected mode2 %#08x, found %#08x", mode2, d&rcconst.L_LIRC_MODE2_MASK)}
+		return &parseState{pos, PARSE_UNEXPECTED_MODE2, fmt.Sprintf("expected mode2 %#08x, found %#08x", mode2, d&rcconst.L_LIRC_MODE2_MASK)}
 	}
 	if d&rcconst.L_LIRC_VALUE_MASK != value {
-		return parseState{pos, PARSE_UNEXPECTED_VALUE, fmt.Sprintf("expected value %d, found %d", value, d&rcconst.L_LIRC_VALUE_MASK)}
+		return &parseState{pos, PARSE_UNEXPECTED_VALUE, fmt.Sprintf("expected value %d, found %d", value, d&rcconst.L_LIRC_VALUE_MASK)}
 	}
-	return parseState{pos + 1, PARSE_OK, "skipped expected token"}
+	return &parseState{pos + 1, PARSE_OK, "skipped expected token"}
 }
 
-func skipSpace(lircData []uint32, pos int, expectedSpace uint32) parseState {
+func skipSpace(lircData []uint32, pos int, expectedSpace uint32) *parseState {
 	return skipToken(lircData, pos, rcconst.L_LIRC_MODE2_SPACE, expectedSpace)
 }
 
-func skipPulse(lircData []uint32, pos int, expectedPulse uint32) parseState {
+func skipPulse(lircData []uint32, pos int, expectedPulse uint32) *parseState {
 	return skipToken(lircData, pos, rcconst.L_LIRC_MODE2_PULSE, expectedPulse)
 }
 
-func readSpace(lircData []uint32, pos int) (uint32, parseState) {
+func readSpace(lircData []uint32, pos int) (uint32, *parseState) {
 	if pos >= len(lircData) {
-		return 0, parseState{pos, PARSE_END_OF_DATA, fmt.Sprintf("reached end-of-data while parsing, pos=%d", pos)}
+		return 0, &parseState{pos, PARSE_END_OF_DATA, fmt.Sprintf("reached end-of-data while parsing, pos=%d", pos)}
 	}
 	d := lircData[pos]
 	if d&rcconst.L_LIRC_MODE2_MASK != rcconst.L_LIRC_MODE2_SPACE {
-		return 0, parseState{pos, PARSE_UNEXPECTED_MODE2, fmt.Sprintf("expected mode2 %#08x, found %#08x", rcconst.L_LIRC_MODE2_SPACE, d&rcconst.L_LIRC_MODE2_MASK)}
+		return 0, &parseState{pos, PARSE_UNEXPECTED_MODE2, fmt.Sprintf("expected mode2 %#08x, found %#08x", rcconst.L_LIRC_MODE2_SPACE, d&rcconst.L_LIRC_MODE2_MASK)}
 	}
-	return d & rcconst.L_LIRC_VALUE_MASK, parseState{pos + 1, PARSE_OK, "read a space"}
+	return d & rcconst.L_LIRC_VALUE_MASK, &parseState{pos + 1, PARSE_OK, "read a space"}
 }
 
 func appendPanasonicBit(space uint32, frame *Frame) error {
@@ -178,7 +178,7 @@ func appendPanasonicBit(space uint32, frame *Frame) error {
 	return nil
 }
 
-func parsePanasonicFrame(lircData []uint32, pos int, nBits int, frame *Frame, options *ReceiverOptions) parseState {
+func parsePanasonicFrame(lircData []uint32, pos int, nBits int, frame *Frame, options *ReceiverOptions) *parseState {
 	state := skipPulse(lircData, pos, rcconst.L_PANASONIC_FRAME_MARK1_PULSE)
 	if state.status != PARSE_OK {
 		slog.Debug("mark1 pulse not found")
@@ -201,7 +201,7 @@ func parsePanasonicFrame(lircData []uint32, pos int, nBits int, frame *Frame, op
 		}
 		err := appendPanasonicBit(space, frame)
 		if err != nil {
-			return parseState{pos, PARSE_ERROR, err.Error()}
+			return &parseState{pos, PARSE_ERROR, err.Error()}
 		}
 	}
 	state = skipPulse(lircData, state.pos, rcconst.L_PANASONIC_PULSE)
@@ -211,22 +211,22 @@ func parsePanasonicFrame(lircData []uint32, pos int, nBits int, frame *Frame, op
 	return state
 }
 
-func readPanasonicMessage(lircData []uint32, options *ReceiverOptions) (*Message, []uint32, parseState) {
+func readPanasonicMessage(lircData []uint32, options *ReceiverOptions) (*Message, []uint32, *parseState) {
 	// slog.Debug("parse data", "items", len(lircData), "required", L_PANASONIC_LIRC_ITEMS)
 	start, err := findStartOfPanasonicFrame(lircData)
 	if err != nil {
-		return nil, lircData, parseState{0, PARSE_MISSING_START_OF_FRAME, "start of frame not found"}
+		return nil, lircData, &parseState{0, PARSE_MISSING_START_OF_FRAME, "start of frame not found"}
 	}
 	end, foundTimeout := findEndOfData(lircData, start)
 	// slog.Debug("findEndOfData", "start", start, "end", end, "timeout", foundTimeout)
 	if foundTimeout && end-start < rcconst.L_PANASONIC_LIRC_ITEMS {
-		// we found an end-of-trasmission but it can't be a full message
+		// we found an end-of-transmission but it can't be a full message
 		slog.Debug("discarding truncated message")
-		return nil, lircData[end:], parseState{end, PARSE_NOT_ENOUGH_DATA, "truncated message"}
+		return nil, lircData[end:], &parseState{end, PARSE_NOT_ENOUGH_DATA, "truncated message"}
 	}
 	if end-start < rcconst.L_PANASONIC_LIRC_ITEMS {
 		// read more until the minimum required bytes in a message have been received
-		return nil, lircData[start:], parseState{start, PARSE_NOT_ENOUGH_DATA, "expecting more data"}
+		return nil, lircData[start:], &parseState{start, PARSE_NOT_ENOUGH_DATA, "expecting more data"}
 	}
 
 	msg := NewMessage()
@@ -243,5 +243,5 @@ func readPanasonicMessage(lircData []uint32, options *ReceiverOptions) (*Message
 	if state.status != PARSE_OK {
 		return nil, lircData[state.pos+1:], state
 	}
-	return msg, lircData[state.pos:], parseState{state.pos, PARSE_OK, "parsed a complete message"}
+	return msg, lircData[state.pos:], &parseState{state.pos, PARSE_OK, "parsed a complete message"}
 }
