@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"log/slog"
 	"rpi_panasonic_inverter_rc/codec"
 	"rpi_panasonic_inverter_rc/db"
 	"rpi_panasonic_inverter_rc/rcconst"
@@ -132,10 +133,15 @@ func SetQuiet(setting string, rc *codec.RcConfig) {
 }
 
 func SetTemperature(temp string, rc *codec.RcConfig) {
-	if t, err := strconv.Atoi(temp); err != nil {
+	if temp == "" {
+		return
+	}
+	if t, err := strconv.Atoi(temp); err == nil {
 		if rcconst.C_Temp_Min <= t && t <= rcconst.C_Temp_Max {
 			rc.Temperature = uint(t)
 		}
+	} else {
+		slog.Warn("cannot convert temperature", "temp", temp, "err", err)
 	}
 }
 
@@ -166,9 +172,9 @@ func SetVentVerticalPosition(vert string, rc *codec.RcConfig) {
 	case "auto":
 		rc.VentVertical = rcconst.C_VentVertical_Auto
 	case "lowest", "bottom":
-		rc.VentVertical = rcconst.C_VentVertical_Low
-	case "low":
 		rc.VentVertical = rcconst.C_VentVertical_Lowest
+	case "low":
+		rc.VentVertical = rcconst.C_VentVertical_Low
 	case "middle", "center":
 		rc.VentVertical = rcconst.C_VentVertical_Middle
 	case "high":
