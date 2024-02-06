@@ -100,7 +100,7 @@ func main() {
 	utils.InitLogger(*vLogLevel)
 
 	// this call blocks
-	err := codec.StartIrReceiver(*vIrInput, messageHandler(&options), recOptions)
+	err := codec.RunIrReceiver(*vIrInput, messageHandler(&options), recOptions)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

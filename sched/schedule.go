@@ -34,9 +34,13 @@ func openIrOutputFile() *os.File {
 func SendCurrentConfig() {
 	slog.Info("initializing: sending current config")
 
-	codec.SuspendReceiver()
-	defer codec.ResumeReceiver()
-	time.Sleep(100 * time.Millisecond) // wait a moment for the receiver to stop
+	confirmCommand := make(chan struct{})
+	codec.SuspendReceiver(confirmCommand)
+	<-confirmCommand
+	defer func() {
+		codec.ResumeReceiver(confirmCommand)
+		<-confirmCommand
+	}()
 
 	dbRc, err := db.CurrentConfig()
 	if err != nil {
@@ -72,9 +76,13 @@ func SendCurrentConfig() {
 func RunCronJob(settings *rcconst.Settings) {
 	slog.Info("processing cronjob")
 
-	codec.SuspendReceiver()
-	defer codec.ResumeReceiver()
-	time.Sleep(100 * time.Millisecond) // wait a moment for the receiver to stop
+	confirmCommand := make(chan struct{})
+	codec.SuspendReceiver(confirmCommand)
+	<-confirmCommand
+	defer func() {
+		codec.ResumeReceiver(confirmCommand)
+		<-confirmCommand
+	}()
 
 	dbRc, err := db.CurrentConfig()
 	if err != nil {

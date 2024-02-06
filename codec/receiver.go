@@ -15,26 +15,31 @@ type ReceiverOptions struct {
 	PrintClean bool
 }
 
-var receiveCommands chan string
+type command struct {
+	cmd     string
+	confirm chan<- struct{}
+}
 
-func SuspendReceiver() {
+var receiveCommands chan command
+
+func SuspendReceiver(confirmCommand chan<- struct{}) {
 	slog.Debug("suspending IR receiver")
 	if receiveCommands != nil {
-		receiveCommands <- "suspend"
+		receiveCommands <- command{"suspend", confirmCommand}
 	}
 }
 
-func ResumeReceiver() {
+func ResumeReceiver(confirmCommand chan<- struct{}) {
 	slog.Debug("resuming IR receiver")
 	if receiveCommands != nil {
-		receiveCommands <- "resume"
+		receiveCommands <- command{"resume", confirmCommand}
 	}
 }
 
-func QuitReceiver() {
+func QuitReceiver(confirmCommand chan<- struct{}) {
 	slog.Debug("quiting IR receiver")
 	if receiveCommands != nil {
-		receiveCommands <- "quit"
+		receiveCommands <- command{"quit", confirmCommand}
 	}
 }
 
@@ -133,7 +138,7 @@ func openFile(file string, options *ReceiverOptions) (*os.File, error) {
 	return f, nil
 }
 
-func StartIrReceiver(file string, messageHandler func(*Message), options *ReceiverOptions) error {
+func RunIrReceiver(file string, messageHandler func(*Message), options *ReceiverOptions) error {
 	slog.Debug("starting IR receiver")
 
 	f, err := openFile(file, options)
@@ -142,7 +147,7 @@ func StartIrReceiver(file string, messageHandler func(*Message), options *Receiv
 	}
 	defer f.Close()
 
-	receiveCommands = make(chan string)
+	receiveCommands = make(chan command)
 	defer func() {
 		close(receiveCommands)
 		receiveCommands = nil
@@ -162,7 +167,7 @@ func StartIrReceiver(file string, messageHandler func(*Message), options *Receiv
 
 	for {
 		cmd := <-receiveCommands
-		switch cmd {
+		switch cmd.cmd {
 		case "suspend":
 			// Suspend is sent before sending an IR message. We close the input
 			// so that we don't receive our own message. This should cause the
@@ -185,11 +190,9 @@ func StartIrReceiver(file string, messageHandler func(*Message), options *Receiv
 			// and goroutines will exit.
 			return nil
 		}
-
-		if !options.Device {
-			time.Sleep(100 * time.Millisecond)
-			break
+		// send confirmation if requested
+		if cmd.confirm != nil {
+			cmd.confirm <- struct{}{}
 		}
 	}
-	return nil
 }

@@ -151,7 +151,7 @@ func main() {
 	// start the IR receiver
 	go func() {
 		// this call blocks
-		err := codec.StartIrReceiver(*vIrInput, messageHandler(&options), recOptions)
+		err := codec.RunIrReceiver(*vIrInput, messageHandler(&options), recOptions)
 		if err != nil {
 			slog.Error("failed to start IR receiver", "err", err)
 		}

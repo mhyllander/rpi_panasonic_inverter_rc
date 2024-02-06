@@ -23,6 +23,6 @@ func SetLoggerOpts(level string) *slog.HandlerOptions {
 }
 
 func InitLogger(logLevel string) {
-	logger := slog.New(slog.NewTextHandler(os.Stdout, SetLoggerOpts(logLevel)))
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, SetLoggerOpts(logLevel)))
 	slog.SetDefault(logger)
 }
