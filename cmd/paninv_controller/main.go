@@ -10,8 +10,8 @@ import (
 	"rpi_panasonic_inverter_rc/db"
 	"rpi_panasonic_inverter_rc/rcconst"
 	"rpi_panasonic_inverter_rc/sched"
+	"rpi_panasonic_inverter_rc/server"
 	"rpi_panasonic_inverter_rc/utils"
-	"time"
 )
 
 type Options struct {
@@ -164,8 +164,6 @@ func main() {
 	}
 	defer sched.Stop()
 
-	// wait here
-	for {
-		time.Sleep(time.Second)
-	}
+	// Start web server
+	server.StartServer(*vLogLevel)
 }

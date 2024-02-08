@@ -1,0 +1,82 @@
+<html>
+    <head>
+        <title>{{.PageTitle}}</title>
+        <script type='text/javascript'>
+            function getConfig() {
+
+            }
+            function sendConfig() {
+
+            }
+        </script>
+    </head>
+    <body>
+        <h1>{{.PageTitle}}</h1>
+        <h2>Settings</h2>
+        <form>
+            <label for="power">Power</label>
+            <input type="checkbox" id="power" name="power" checked>
+            <br>
+            <label for="mode">Mode</label>
+            <select name="mode" id="mode">
+                <option value="heat" selected>Heat</option>
+                <option value="cold">Cold</option>
+                <option value="dry">Dry</option>
+                <option value="auto">Auto</option>
+            </select>
+            <br>
+            <label for="profile">Profile</label>
+            <select id="profile">
+                <option value="normal" selected>Normal</option>
+                <option value="quiet">Quiet</option>
+                <option value="powerful">Powerful</option>
+            </select>
+            <br>
+            <label for="temperature">Temperature</label>
+            <input type="number" id="temperature" name="temperature" min="16" max="30" value="20" required>
+            <br>
+            <label for="fan_speed">Fan Speed</label>
+            <select id="fan_speed">
+                <option value="lowest">Lowest</option>
+                <option value="low">Low</option>
+                <option value="middle">Middle</option>
+                <option value="high">High</option>
+                <option value="highest" selected>Highest</option>
+            </select>
+            <br>
+            <label for="vent_vertical">Vents: Vertical</label>
+            <select id="vent_vertical">
+                <option value="lowest">Lowest</option>
+                <option value="low">Low</option>
+                <option value="middle">Middle</option>
+                <option value="high" selected>High</option>
+                <option value="highest">Highest</option>
+                <option value="auto">Auto</option>
+            </select>
+            <label for="vent_horizontal">Horizontal</label>
+            <select id="vent_horizontal">
+                <option value="farleft">Far left</option>
+                <option value="left">Left</option>
+                <option value="middle">Middle</option>
+                <option value="right">Right</option>
+                <option value="farright">Far right</option>
+                <option value="auto" selected>Auto</option>
+            </select>
+            <br>
+            <label for="timer_on">Timer On</label>
+            <input type="checkbox" id="timer_on" name="timer_on" checked>
+            <br>
+            <label for="time_on_time">Timer On Time</label>
+            <input type="time" id="time_on_time" name="time_on_time" value="06:00">
+            <br>
+            <label for="timer_off">Timer Off</label>
+            <input type="checkbox" id="timer_off" name="timer_off" checked>
+            <br>
+            <label for="time_off_time">Timer Off Time</label>
+            <input type="time" id="time_off_time" name="time_off_time" value="22:00">
+            <br>
+            <input type="button" onclick="getConfig();" value="Refresh">
+            <input type="button" onclick="sendConfig();" value="Send">
+        </form>
+    </body>
+</html>
