@@ -1,10 +1,10 @@
 <mxfile host="65bd71144e">
     <diagram id="rlfz_Lyc3eD7DQKUV7_A" name="Page-1">
-        <mxGraphModel dx="1296" dy="539" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="0" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" background="#808080" math="0" shadow="0">
+        <mxGraphModel dx="923" dy="362" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="0" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" background="#808080" math="0" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
-                <mxCell id="2" value="" style="pointerEvents=1;verticalLabelPosition=bottom;shadow=0;dashed=0;align=center;html=1;verticalAlign=top;shape=mxgraph.electrical.resistors.resistor_1;rotation=90;" parent="1" vertex="1">
+                <mxCell id="2" value="22&amp;nbsp;Ω" style="pointerEvents=1;verticalLabelPosition=middle;shadow=0;dashed=0;align=center;html=1;verticalAlign=middle;shape=mxgraph.electrical.resistors.resistor_1;rotation=90;labelPosition=center;" parent="1" vertex="1">
                     <mxGeometry x="260" y="209.5" width="120" height="20" as="geometry"/>
                 </mxCell>
                 <mxCell id="3" value="5V" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;" parent="1" vertex="1">
@@ -49,7 +49,7 @@
                         <mxPoint x="660" y="390" as="targetPoint"/>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="18" value="" style="pointerEvents=1;verticalLabelPosition=bottom;shadow=0;dashed=0;align=center;html=1;verticalAlign=top;shape=mxgraph.electrical.resistors.resistor_1;rotation=90;" parent="1" vertex="1">
+                <mxCell id="18" value="10 kΩ" style="pointerEvents=1;verticalLabelPosition=middle;shadow=0;dashed=0;align=center;html=1;verticalAlign=middle;shape=mxgraph.electrical.resistors.resistor_1;rotation=90;labelPosition=center;" parent="1" vertex="1">
                     <mxGeometry x="220" y="209.5" width="120" height="20" as="geometry"/>
                 </mxCell>
                 <mxCell id="20" value="" style="endArrow=none;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;fillColor=#0050ef;strokeColor=#001DBC;exitX=0;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;rounded=0;strokeWidth=2;" parent="1" source="18" target="6" edge="1">
@@ -137,7 +137,7 @@
                         </Array>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="27" value="" style="endArrow=none;html=1;fillColor=#008a00;strokeColor=#005700;strokeWidth=2;rounded=0;exitX=0.014;exitY=0.054;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" parent="1" source="22" edge="1" target="5">
+                <mxCell id="27" value="" style="endArrow=none;html=1;fillColor=#008a00;strokeColor=#005700;strokeWidth=2;rounded=0;exitX=0.014;exitY=0.054;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" parent="1" source="22" target="5" edge="1">
                     <mxGeometry width="50" height="50" relative="1" as="geometry">
                         <mxPoint x="600" y="360" as="sourcePoint"/>
                         <mxPoint x="360" y="120" as="targetPoint"/>
