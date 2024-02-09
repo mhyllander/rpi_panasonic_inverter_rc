@@ -34,8 +34,12 @@ test:
 deploy: test build-rpi
 	ssh piir 'sudo systemctl stop paninv_controller.service; [ -d bin ] || mkdir bin; [ -d paninv ] || mkdir paninv'
 	scp $(BINARIES_RPI) piir:bin/
-	scp -r web piir:paninv/web
+	scp -r web piir:paninv/
 	ssh piir sudo systemctl start paninv_controller.service
+
+deploy_jobs:
+	scp jobs.json piir:
+	ssh piir 'PANINV_DB=paninv/paninv.db bin/paninv_controller -load-jobs jobs.json; sudo systemctl restart paninv_controller.service'
 
 clean:
 	rm -f bin/* arm64/*

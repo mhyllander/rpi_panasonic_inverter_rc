@@ -29,7 +29,7 @@ func Initialize(dbFile string) error {
 	}
 
 	// Migrate the schema
-	myDb.AutoMigrate(&DbIrConfig{}, &ModeSetting{}, &CronJob{})
+	myDb.AutoMigrate(&DbIrConfig{}, &ModeSetting{}, &JobSet{}, &CronJob{})
 
 	// Create initial records
 	var dbRc DbIrConfig
@@ -173,7 +173,9 @@ func GetModeSettings(mode uint) (temp, fan uint, err error) {
 	return ms.Temperature, ms.FanSpeed, nil
 }
 
-func SaveCronJob(schedule string, settings *rcconst.Settings, jobset string) error {
+// CronJob
+
+func SaveCronJob(jobset string, schedule string, settings *rcconst.Settings) error {
 	json, err := json.Marshal(settings)
 	if err != nil {
 		return err
@@ -183,9 +185,9 @@ func SaveCronJob(schedule string, settings *rcconst.Settings, jobset string) err
 	return nil
 }
 
-func GetCronJobs() (*[]CronJob, error) {
+func GetCronJobs(jobset string) (*[]CronJob, error) {
 	var cronjobs []CronJob
-	if result := myDb.Find(&cronjobs); result.Error != nil {
+	if result := myDb.Where(&CronJob{JobSet: jobset}).Find(&cronjobs); result.Error != nil {
 		return nil, result.Error
 	}
 	return &cronjobs, nil
@@ -194,4 +196,33 @@ func GetCronJobs() (*[]CronJob, error) {
 func DeleteAllCronJobsPermanently() {
 	// AllowGlobalUpdate needed to delete all, Unscoped needed to bypass soft delete
 	myDb.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(&CronJob{})
+}
+
+// JobSets
+
+func SaveJobSet(jobset string, active bool) error {
+	cj := JobSet{Name: jobset, Active: active}
+	myDb.Create(&cj)
+	return nil
+}
+
+func GetJobSets() (*[]JobSet, error) {
+	var jobsets []JobSet
+	if result := myDb.Find(&jobsets); result.Error != nil {
+		return nil, result.Error
+	}
+	return &jobsets, nil
+}
+
+func GetActiveJobSets() (*[]JobSet, error) {
+	var jobsets []JobSet
+	if result := myDb.Where(map[string]interface{}{"active": true}).Find(&jobsets); result.Error != nil {
+		return nil, result.Error
+	}
+	return &jobsets, nil
+}
+
+func DeleteAllJobSetsPermanently() {
+	// AllowGlobalUpdate needed to delete all, Unscoped needed to bypass soft delete
+	myDb.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(&JobSet{})
 }

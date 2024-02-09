@@ -27,7 +27,7 @@ func getRoot(w http.ResponseWriter, r *http.Request) {
 
 	slog.Debug("GET /")
 	data := RootData{
-		PageTitle: "Panaonic Inverter Remote Controller",
+		PageTitle: "Panasonic Inverter RC",
 	}
 	rootTemplate.Execute(w, data)
 }

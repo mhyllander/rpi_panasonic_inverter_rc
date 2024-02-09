@@ -114,12 +114,50 @@ func RunCronJob(settings *rcconst.Settings) {
 	slog.Debug("saved config")
 }
 
+func createCronJobs() {
+	if jss, err := db.GetActiveJobSets(); err != nil {
+		slog.Error("failed to get active jobsets", "err", err)
+	} else {
+		for _, js := range *jss {
+			slog.Info("Scheduling job set", "jobset", js.Name)
+			cjs, err := db.GetCronJobs(js.Name)
+			if err != nil {
+				slog.Error("failed to get cronjobs", "err", err)
+				continue
+			}
+
+			for _, cj := range *cjs {
+				var settings rcconst.Settings
+				err = json.Unmarshal(cj.Settings, &settings)
+				if err != nil {
+					slog.Error("failed to unmarshal json", "err", err)
+					break
+				}
+				j, err := scheduler.NewJob(
+					gocron.CronJob(cj.Schedule, false),
+					gocron.NewTask(
+						RunCronJob,
+						&settings,
+					),
+				)
+				if err != nil {
+					slog.Error("failed to schedule cronjob", "schedule", cj.Schedule, "err", err)
+					break
+				}
+				slog.Debug("scheduled cronjob", "job_id", j.ID())
+			}
+		}
+	}
+}
+
 func InitScheduler(irOutputFile string, senderOptions *codec.SenderOptions) error {
+	var err error
+
 	g_irOutputFile = irOutputFile
 	g_senderOptions = senderOptions
 
 	// create a scheduler
-	scheduler, err := gocron.NewScheduler(
+	scheduler, err = gocron.NewScheduler(
 		gocron.WithLogger(slog.Default()),
 		gocron.WithLimitConcurrentJobs(1, gocron.LimitModeWait),
 	)
@@ -143,31 +181,8 @@ func InitScheduler(irOutputFile string, senderOptions *codec.SenderOptions) erro
 	}
 	slog.Debug("scheduled initial job", "job_id", j.ID())
 
-	cjs, err := db.GetCronJobs()
-	if err != nil {
-
-	} else {
-		for _, cj := range *cjs {
-			var settings rcconst.Settings
-			err = json.Unmarshal(cj.Settings, &settings)
-			if err != nil {
-				slog.Error("failed to unmarshal json", "err", err)
-				break
-			}
-			j, err := scheduler.NewJob(
-				gocron.CronJob(cj.Schedule, false),
-				gocron.NewTask(
-					RunCronJob,
-					&settings,
-				),
-			)
-			if err != nil {
-				slog.Error("failed to schedule cronjob", "schedule", cj.Schedule, "err", err)
-				break
-			}
-			slog.Debug("scheduled cronjob", "job_id", j.ID())
-		}
-	}
+	// Schedule all the active cron jobs
+	createCronJobs()
 
 	// start the scheduler
 	scheduler.Start()

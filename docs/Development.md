@@ -47,13 +47,13 @@ https://dev.to/metal3d/understand-how-to-use-c-libraries-in-go-with-cgo-3dbn
 
 https://jensd.be/1126/linux/cross-compiling-for-arm-or-aarch64-on-debian-or-ubuntu
 
-### Creating a Raspberry Pi OS root file system
+## Creating a Raspberry Pi OS root file system
 
 (This is for reference only, not needed in this project.)
 
 Adapted from [Setting Up a Cross-Compilation Environment](https://earthly.dev/blog/cross-compiling-raspberry-pi/).
 
-#### Collect some info on the Raspberry Pi Zero 2 W
+### Collect some info on the Raspberry Pi Zero 2 W
 
     dpkg --print-architecture
         arm64
@@ -74,7 +74,7 @@ Adapted from [Setting Up a Cross-Compilation Environment](https://earthly.dev/bl
         deb http://deb.debian.org/debian-security/ bookworm-security main contrib non-free non-free-firmware
         deb http://deb.debian.org/debian bookworm-updates main contrib non-free non-free-firmware
 
-#### On Ubuntu development system (e.g WSL2 on Windows)
+### On Ubuntu development system (e.g WSL2 on Windows)
 
 See <https://ftp-master.debian.org/keys.html> for PGP keys.
 

@@ -65,10 +65,18 @@ func messageHandler(options *Options) func(*codec.Message) {
 	}
 }
 
-type cronJob struct {
-	Schedule string `json:"schedule,omitempty"`
-	Settings rcconst.Settings
+type jobSet struct {
+	Name     string    `json:"jobset"`
+	Active   bool      `json:"active"`
+	CronJobs []cronJob `json:"cronjobs"`
 }
+
+type cronJob struct {
+	Schedule string           `json:"schedule"`
+	Settings rcconst.Settings `json:"settings"`
+}
+
+type jobSets []jobSet
 
 func loadCronJobs(jobfile string) {
 	f, err := os.Open(jobfile)
@@ -76,20 +84,31 @@ func loadCronJobs(jobfile string) {
 		slog.Error("failed to open jobs file")
 		return
 	}
+	defer f.Close()
 	data, err := io.ReadAll(f)
 	if err != nil {
 		slog.Error("failed to read jobs file")
 		return
 	}
-	var cronJobs []cronJob
-	err = json.Unmarshal(data, &cronJobs)
+
+	var jobsets jobSets
+	err = json.Unmarshal(data, &jobsets)
 	if err != nil {
-		slog.Error("failed to unmarshal json")
+		slog.Error("failed to unmarshal jobsets")
 		return
 	}
+
+	db.DeleteAllJobSetsPermanently()
 	db.DeleteAllCronJobsPermanently()
-	for _, j := range cronJobs {
-		db.SaveCronJob(j.Schedule, &j.Settings, "Normal")
+	for _, js := range jobsets {
+		if err := db.SaveJobSet(js.Name, js.Active); err != nil {
+			slog.Error("failed to save jobset", "err", err)
+		}
+		for _, j := range js.CronJobs {
+			if err := db.SaveCronJob(js.Name, j.Schedule, &j.Settings); err != nil {
+				slog.Error("failed to save cronjob", "err", err)
+			}
+		}
 	}
 }
 

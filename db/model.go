@@ -32,7 +32,7 @@ type ModeSetting struct {
 type JobSet struct {
 	gorm.Model
 	Name   string // name of the job set
-	Active string // "true" or "false"
+	Active bool   // true or false
 }
 
 // Define cronjobs, their schedules, and which job set each cronjob belongs to.
