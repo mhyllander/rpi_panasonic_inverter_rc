@@ -16,7 +16,7 @@ import (
 
 var rootTemplate *template.Template
 
-type contextKey string
+// type contextKey string
 
 type RootData struct {
 	PageTitle string
@@ -29,7 +29,10 @@ func getRoot(w http.ResponseWriter, r *http.Request) {
 	data := RootData{
 		PageTitle: "Panasonic Inverter RC",
 	}
-	rootTemplate.Execute(w, data)
+	err := rootTemplate.Execute(w, data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 func StartServer(logLevel string) {
@@ -59,7 +62,8 @@ func StartServer(logLevel string) {
 
 	// status page
 	r.Get("/", getRoot)
-	rootTemplate = template.Must(template.ParseFiles("web/root.html"))
+	webFunctions := template.FuncMap{}
+	rootTemplate = template.Must(template.New("root.gohtml").Funcs(webFunctions).ParseFiles("web/root.gohtml"))
 
 	err = http.ListenAndServe(":3333", r)
 	if errors.Is(err, http.ErrServerClosed) {

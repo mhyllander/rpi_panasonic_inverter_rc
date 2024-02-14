@@ -32,7 +32,7 @@ test:
 	go test ./codec ./utils
 
 deploy: test build-rpi
-	ssh piir 'sudo systemctl stop paninv_controller.service; [ -d bin ] || mkdir bin; [ -d paninv ] || mkdir paninv'
+	ssh piir 'sudo systemctl stop paninv_controller.service; [ -d bin ] || mkdir bin; [ -d paninv ] && rm -rf paninv/web || mkdir paninv'
 	scp $(BINARIES_RPI) piir:bin/
 	scp -r web piir:paninv/
 	ssh piir sudo systemctl start paninv_controller.service

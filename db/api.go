@@ -146,9 +146,10 @@ func SaveConfig(rc, dbRc *codec.RcConfig) error {
 	}
 
 	var nc DbIrConfig
-	myDb.First(&nc, 1)
-	result := myDb.Model(&nc).Updates(updates)
-	if result.Error != nil {
+	if result := myDb.First(&nc, 1); result.Error != nil {
+		return result.Error
+	}
+	if result := myDb.Model(&nc).Updates(updates); result.Error != nil {
 		return result.Error
 	}
 
@@ -156,8 +157,7 @@ func SaveConfig(rc, dbRc *codec.RcConfig) error {
 	if rc.Powerful == rcconst.C_Powerful_Disabled && rc.Quiet == rcconst.C_Quiet_Disabled {
 		settings["FanSpeed"] = rc.FanSpeed
 	}
-	result = myDb.Model(&ModeSetting{}).Where(&ModeSetting{Mode: rc.Mode}).Updates(settings)
-	if result.Error != nil {
+	if result := myDb.Model(&ModeSetting{}).Where(&ModeSetting{Mode: rc.Mode}).Updates(settings); result.Error != nil {
 		return result.Error
 	}
 

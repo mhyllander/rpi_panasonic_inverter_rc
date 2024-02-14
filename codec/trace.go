@@ -123,24 +123,23 @@ func toVentHorizontalString(horiz uint) string {
 }
 
 func (c *RcConfig) PrintConfigAndChecksum(checksumStatus string) {
-	fmt.Printf("power=%s(%d) mode=%s(%d) powerful=%s(%d) quiet=%s(%d)\n",
+	fmt.Printf("Settings : power=%s(%d) mode=%s(%d) powerful=%s(%d) quiet=%s(%d) temp=%d\n",
 		toOnOffString(c.Power), c.Power,
 		toModeString(c.Mode), c.Mode,
 		toOnOffString(c.Powerful), c.Powerful,
-		toOnOffString(c.Quiet), c.Quiet)
+		toOnOffString(c.Quiet), c.Quiet,
+		c.Temperature)
 
-	fmt.Printf("temp=%d fan=%s(%d) vent.vert=%s(%d) vent.horiz=%s(%d)\n",
-		c.Temperature,
+	fmt.Printf("Air vents: fan=%s(%d) vert=%s(%d) horiz=%s(%d)\n",
 		toFanSpeedString(c.FanSpeed), c.FanSpeed,
 		toVentVerticalString(c.VentVertical), c.VentVertical,
 		toVentHorizontalString(c.VentHorizontal), c.VentHorizontal)
 
-	fmt.Printf(
-		"timer_on=%s(%d) timer_on.time=%s,  timer_off=%s(%d) timer_off.time=%s,  clock: time=%s\n",
+	fmt.Printf("Timers   : ton=%s(%d) tont=%s; toff=%s(%d) tofft=%s; clock=%s\n",
 		toOnOffString(c.TimerOn), c.TimerOn, c.TimerOnTime, toOnOffString(c.TimerOff), c.TimerOff, c.TimerOffTime, c.Clock)
 
 	if checksumStatus != "" {
-		fmt.Printf("checksum: %s\n", checksumStatus)
+		fmt.Printf("Checksum: %s\n", checksumStatus)
 	}
 }
 
@@ -152,12 +151,12 @@ func (c *RcConfig) LogConfigAndChecksum(checksumStatus string) {
 		"quiet", toOnOffString(c.Quiet),
 		"temp", c.Temperature,
 		"fan", toFanSpeedString(c.FanSpeed),
-		"vent.vert", toVentVerticalString(c.VentVertical),
-		"vent.horiz", toVentHorizontalString(c.VentHorizontal),
-		"timer_on", toOnOffString(c.TimerOn),
-		"timer_on.time", c.TimerOnTime,
-		"timer_off", toOnOffString(c.TimerOff),
-		"timer_off.time", c.TimerOffTime,
+		"vert", toVentVerticalString(c.VentVertical),
+		"horiz", toVentHorizontalString(c.VentHorizontal),
+		"ton", toOnOffString(c.TimerOn),
+		"tont", c.TimerOnTime,
+		"toff", toOnOffString(c.TimerOff),
+		"tofft", c.TimerOffTime,
 		"clock", c.Clock,
 		"checksum", checksumStatus,
 	)
