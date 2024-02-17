@@ -26,6 +26,10 @@ func SuspendReceiver(confirmCommand chan<- struct{}) {
 	slog.Debug("suspending IR receiver")
 	if receiveCommands != nil {
 		receiveCommands <- command{"suspend", confirmCommand}
+	} else if confirmCommand != nil {
+		go func() {
+			confirmCommand <- struct{}{}
+		}()
 	}
 }
 
@@ -33,6 +37,10 @@ func ResumeReceiver(confirmCommand chan<- struct{}) {
 	slog.Debug("resuming IR receiver")
 	if receiveCommands != nil {
 		receiveCommands <- command{"resume", confirmCommand}
+	} else if confirmCommand != nil {
+		go func() {
+			confirmCommand <- struct{}{}
+		}()
 	}
 }
 
@@ -40,6 +48,10 @@ func QuitReceiver(confirmCommand chan<- struct{}) {
 	slog.Debug("quiting IR receiver")
 	if receiveCommands != nil {
 		receiveCommands <- command{"quit", confirmCommand}
+	} else if confirmCommand != nil {
+		go func() {
+			confirmCommand <- struct{}{}
+		}()
 	}
 }
 

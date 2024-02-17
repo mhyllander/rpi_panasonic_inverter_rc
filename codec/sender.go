@@ -3,8 +3,8 @@ package codec
 import (
 	"log/slog"
 	"os"
+	"rpi_panasonic_inverter_rc/common"
 	"rpi_panasonic_inverter_rc/ioctl"
-	"rpi_panasonic_inverter_rc/rcconst"
 	"strings"
 	"time"
 )
@@ -21,17 +21,90 @@ func NewSenderOptions() *SenderOptions {
 	return &SenderOptions{Device: true, Transmissions: 1, Interval_ms: 20}
 }
 
+type IrSender struct {
+	irOutputFile  string
+	senderOptions SenderOptions
+	sendChannel   chan *RcConfig
+}
+
+func StartIrSender(irOutputFile string, senderOptions *SenderOptions) *IrSender {
+	sender := &IrSender{irOutputFile, *senderOptions, make(chan *RcConfig, 10)}
+	go sender.processConfigs()
+	return sender
+}
+
+func (sender *IrSender) SendConfig(sendRc *RcConfig) {
+	sender.sendChannel <- sendRc
+}
+
+func (sender *IrSender) Stop() {
+	close(sender.sendChannel)
+	sender.sendChannel = nil
+}
+
+// Send the queued configs.
+func (sender *IrSender) processConfigs() {
+	for sendRc := range sender.sendChannel {
+		sender.send(sendRc)
+	}
+}
+
+// Actually send a config. This is a separate function so we can make use of defer to close resources after sending.
+func (sender *IrSender) send(sendRc *RcConfig) {
+	var err error
+
+	// suspend the receiver while sending
+	confirmCommand := make(chan struct{})
+	SuspendReceiver(confirmCommand)
+	<-confirmCommand
+	defer func() {
+		ResumeReceiver(confirmCommand)
+		<-confirmCommand
+	}()
+
+	f := sender.openIrOutputFile()
+	if f == nil {
+		slog.Error("failed to open IR output file", "err", err)
+		return
+	}
+	defer f.Close()
+
+	sendRc.LogConfigAndChecksum("")
+	err = SendIrConfig(sendRc, f, &sender.senderOptions)
+	if err != nil {
+		slog.Error("failed to send current config", "err", err)
+	}
+}
+
+// Open file or device for sending IR
+func (sender *IrSender) openIrOutputFile() *os.File {
+	flags := os.O_RDWR
+	if !sender.senderOptions.Device {
+		flags = flags | os.O_CREATE
+	}
+	f, err := os.OpenFile(sender.irOutputFile, flags, 0644)
+	if err != nil {
+		slog.Error("failed to open IR output file", "err", err)
+		return nil
+	}
+	return f
+}
+
+// Prepare for sending by zeroing out all Mode2 type bits.
 func stripMode2Types(licrData *LircBuffer) {
 	ln := len(licrData.buf)
 	for i := 0; i < ln; i++ {
-		licrData.buf[i] = licrData.buf[i] & rcconst.L_LIRC_VALUE_MASK
+		licrData.buf[i] = licrData.buf[i] & common.L_LIRC_VALUE_MASK
 	}
 }
 
 // When transmitting data over IR, the LIRC transmit socket expects a series of uint32 consisting of pulses and spaces.
-// The data must start and end with a pulse, so there must be an odd number of uint32. In addition, no mode2 bits
+// The data must start and end with a pulse, so there must be an odd number of uint32. In addition, no Mode2 bits
 // should be set in the pulses and spaces (i.e. the send format is different from the receive format).
-func SendIr(rc *RcConfig, f *os.File, options *SenderOptions) error {
+//
+// The function can also write Mode2 to a file, and in that case it will keep the Mode2 types. This can be used to
+// test that the output can be read as input, parsed correctly, and yield the original results.
+func SendIrConfig(rc *RcConfig, f *os.File, options *SenderOptions) error {
 	if options.Mode2 {
 		s := rc.ConvertToMode2LircData()
 		s2 := strings.Join(s, " ")

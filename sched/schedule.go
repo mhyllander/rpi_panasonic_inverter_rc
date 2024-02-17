@@ -3,10 +3,9 @@ package sched
 import (
 	"encoding/json"
 	"log/slog"
-	"os"
 	"rpi_panasonic_inverter_rc/codec"
+	"rpi_panasonic_inverter_rc/common"
 	"rpi_panasonic_inverter_rc/db"
-	"rpi_panasonic_inverter_rc/rcconst"
 	"rpi_panasonic_inverter_rc/utils"
 	"time"
 
@@ -14,56 +13,22 @@ import (
 )
 
 var scheduler gocron.Scheduler
-var g_senderOptions *codec.SenderOptions
-var g_irOutputFile string
-
-func openIrOutputFile() *os.File {
-	// open file or device for sending IR
-	flags := os.O_RDWR
-	if !g_senderOptions.Device {
-		flags = flags | os.O_CREATE
-	}
-	f, err := os.OpenFile(g_irOutputFile, flags, 0644)
-	if err != nil {
-		slog.Error("failed to open IR output file", "err", err)
-		return nil
-	}
-	return f
-}
+var g_irSender *codec.IrSender
 
 func SendCurrentConfig() {
 	slog.Info("initializing: sending current config")
-
-	confirmCommand := make(chan struct{})
-	codec.SuspendReceiver(confirmCommand)
-	<-confirmCommand
-	defer func() {
-		codec.ResumeReceiver(confirmCommand)
-		<-confirmCommand
-	}()
 
 	dbRc, err := db.CurrentConfig()
 	if err != nil {
 		slog.Error("failed to get current config", "err", err)
 		return
 	}
+
 	sendRc := dbRc.CopyForSendingAll()
 	// update power setting, adjusting for any timers
 	utils.SetPower("", sendRc, dbRc)
 
-	f := openIrOutputFile()
-	if f == nil {
-		slog.Error("failed to open IR output file", "err", err)
-		return
-	}
-	defer f.Close()
-
-	sendRc.LogConfigAndChecksum("")
-	err = codec.SendIr(sendRc, f, g_senderOptions)
-	if err != nil {
-		slog.Error("failed to send current config", "err", err)
-		return
-	}
+	g_irSender.SendConfig(sendRc)
 
 	err = db.SaveConfig(sendRc, dbRc)
 	if err != nil {
@@ -73,16 +38,8 @@ func SendCurrentConfig() {
 	slog.Debug("saved config")
 }
 
-func RunCronJob(settings *rcconst.Settings) {
+func RunCronJob(settings *common.Settings) {
 	slog.Info("processing cronjob")
-
-	confirmCommand := make(chan struct{})
-	codec.SuspendReceiver(confirmCommand)
-	<-confirmCommand
-	defer func() {
-		codec.ResumeReceiver(confirmCommand)
-		<-confirmCommand
-	}()
 
 	dbRc, err := db.CurrentConfig()
 	if err != nil {
@@ -91,20 +48,7 @@ func RunCronJob(settings *rcconst.Settings) {
 	}
 
 	sendRc := utils.ComposeSendConfig(settings, dbRc)
-
-	f := openIrOutputFile()
-	if f == nil {
-		slog.Error("failed to open IR output file", "err", err)
-		return
-	}
-	defer f.Close()
-
-	sendRc.LogConfigAndChecksum("")
-	err = codec.SendIr(sendRc, f, g_senderOptions)
-	if err != nil {
-		slog.Error("failed to send config", "err", err)
-		return
-	}
+	g_irSender.SendConfig(sendRc)
 
 	err = db.SaveConfig(sendRc, dbRc)
 	if err != nil {
@@ -127,7 +71,7 @@ func createCronJobs() {
 			}
 
 			for _, cj := range *cjs {
-				var settings rcconst.Settings
+				var settings common.Settings
 				err = json.Unmarshal(cj.Settings, &settings)
 				if err != nil {
 					slog.Error("failed to unmarshal json", "err", err)
@@ -150,11 +94,10 @@ func createCronJobs() {
 	}
 }
 
-func InitScheduler(irOutputFile string, senderOptions *codec.SenderOptions) error {
+func InitScheduler(irSender *codec.IrSender) error {
 	var err error
 
-	g_irOutputFile = irOutputFile
-	g_senderOptions = senderOptions
+	g_irSender = irSender
 
 	// create a scheduler
 	scheduler, err = gocron.NewScheduler(

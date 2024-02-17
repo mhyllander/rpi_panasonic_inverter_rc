@@ -7,8 +7,8 @@ import (
 	"log/slog"
 	"os"
 	"rpi_panasonic_inverter_rc/codec"
+	"rpi_panasonic_inverter_rc/common"
 	"rpi_panasonic_inverter_rc/db"
-	"rpi_panasonic_inverter_rc/rcconst"
 	"rpi_panasonic_inverter_rc/sched"
 	"rpi_panasonic_inverter_rc/server"
 	"rpi_panasonic_inverter_rc/utils"
@@ -72,8 +72,8 @@ type jobSet struct {
 }
 
 type cronJob struct {
-	Schedule string           `json:"schedule"`
-	Settings rcconst.Settings `json:"settings"`
+	Schedule string          `json:"schedule"`
+	Settings common.Settings `json:"settings"`
 }
 
 type jobSets []jobSet
@@ -176,13 +176,16 @@ func main() {
 		}
 	}()
 
+	irSender := codec.StartIrSender(*vIrOutput, senderOptions)
+	defer irSender.Stop()
+
 	// start gocron
-	err := sched.InitScheduler(*vIrOutput, senderOptions)
+	err := sched.InitScheduler(irSender)
 	if err != nil {
 		slog.Error("failed to start scheduler", "error", err)
 	}
 	defer sched.Stop()
 
 	// Start web server
-	server.StartServer(*vLogLevel)
+	server.StartServer(*vLogLevel, irSender)
 }

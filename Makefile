@@ -37,6 +37,10 @@ deploy: test build-rpi
 	scp -r web piir:paninv/
 	ssh piir sudo systemctl start paninv_controller.service
 
+deploy_web:
+	scp -r web piir:paninv/
+	ssh piir sudo systemctl restart paninv_controller.service
+
 deploy_jobs:
 	scp jobs.json piir:
 	ssh piir 'PANINV_DB=paninv/paninv.db bin/paninv_controller -load-jobs jobs.json; sudo systemctl restart paninv_controller.service'

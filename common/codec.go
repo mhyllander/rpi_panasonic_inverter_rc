@@ -1,4 +1,4 @@
-package rcconst
+package common
 
 // ---------------------------------------------------------------------------------------------------
 // Constants related to receiving and parsing LIRC

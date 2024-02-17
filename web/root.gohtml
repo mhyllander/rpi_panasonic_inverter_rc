@@ -1,44 +1,61 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <title>{{.PageTitle}}</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <style>
-        </style>
-        <script type='text/javascript'>
-            function getConfig() {
-
-            }
-            function sendConfig() {
-
-            }
-        </script>
-    </head>
-    <body>
-        <h1>{{.PageTitle}}</h1>
-        <h2>Settings</h2>
-        <form>
-            <label for="power">Power</label>
+<head>
+    <title>{{.PageTitle}}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        .col1 {
+            display: inline-block;
+            width: 120px;
+        }
+        .setting {
+            height: 28px;
+        }
+        .buttons {
+            margin-top: 10px;
+        }
+    </style>
+    <script type='text/javascript'>
+        function getConfig() {
+            
+        }
+        function sendConfig() {
+            
+        }
+    </script>
+</head>
+<body>
+    <h1>{{.PageTitle}}</h1>
+    <form>
+        <h3>Settings</h3>
+        <div class="setting">
+            <span class="col1"><label for="power">Power</label></span>
             <input type="checkbox" id="power" name="power" checked>
-            <br>
-            <label for="mode">Mode</label>
+        </div>
+        <div class="setting">
+            <span class="col1"><label for="mode">Mode</label></span>
             <select id="mode" name="mode">
                 <option value="heat" selected>Heat</option>
                 <option value="cold">Cold</option>
                 <option value="dry">Dry</option>
                 <option value="auto">Auto</option>
             </select>
-            <br>
-            <label for="powerful">Powerful</label>
+        </div>
+        <div class="setting">
+            <span class="col1"><label for="powerful">Powerful</label></span>
             <input type="checkbox" id="powerful" name="powerful">
-            <br>
-            <label for="quiet">Quiet</label>
+        </div>
+        <div class="setting">
+            <span class="col1"><label for="quiet">Quiet</label></span>
             <input type="checkbox" id="quiet" name="quiet">
-            <br>
-            <label for="temperature">Temperature</label>
+        </div>
+        <div class="setting">
+            <span class="col1"><label for="temperature">Temperature</label></span>
             <input type="number" id="temperature" name="temp" min="16" max="30" value="20" required>
-            <br>
-            <label for="fan_speed">Fan Speed</label>
+        </div>
+        <h3>Air vents</h3>
+        <div class="setting">
+            <span class="col1"><label for="fan_speed">Fan Speed</label></span>
             <select id="fan_speed" name="fan">
                 <option value="auto">Auto</option>
                 <option value="lowest">Lowest</option>
@@ -47,9 +64,9 @@
                 <option value="high">High</option>
                 <option value="highest" selected>Highest</option>
             </select>
-            <br>
-            Air vents:
-            <label for="vent_vertical">Vertical</label>
+        </div>
+        <div class="setting">
+            <span class="col1"><label for="vent_vertical">Vertical</label></span>
             <select id="vent_vertical" name="vert">
                 <option value="auto">Auto</option>
                 <option value="lowest">Lowest</option>
@@ -58,7 +75,9 @@
                 <option value="high" selected>High</option>
                 <option value="highest">Highest</option>
             </select>
-            <label for="vent_horizontal" name="horiz">Horizontal</label>
+        </div>
+        <div class="setting">
+            <span class="col1"><label for="vent_horizontal" name="horiz">Horizontal</label></span>
             <select id="vent_horizontal">
                 <option value="auto" selected>Auto</option>
                 <option value="farleft">Far left</option>
@@ -67,21 +86,28 @@
                 <option value="right">Right</option>
                 <option value="farright">Far right</option>
             </select>
-            <br>
-            <label for="timer_on">Timer On</label>
+        </div>
+        <h3>Timers</h3>
+        <div class="setting">
+            <span class="col1"><label for="timer_on">Timer On</label></span>
             <input type="checkbox" id="timer_on" name="ton" checked>
-            <br>
-            <label for="time_on_time">Timer On Time</label>
+        </div>
+        <div class="setting">
+            <span class="col1"><label for="time_on_time">Timer On Time</label></span>
             <input type="time" id="time_on_time" name="tont" value="06:00">
-            <br>
-            <label for="timer_off">Timer Off</label>
+        </div>
+        <div class="setting">
+            <span class="col1"><label for="timer_off">Timer Off</label></span>
             <input type="checkbox" id="timer_off" name="toff" checked>
-            <br>
-            <label for="time_off_time">Timer Off Time</label>
+        </div>
+        <div class="setting">
+            <span class="col1"><label for="time_off_time">Timer Off Time</label></span>
             <input type="time" id="time_off_time" name="tofft" value="22:00">
-            <br>
+        </div>
+        <div class="buttons">
             <input type="button" onclick="getConfig();" value="Refresh">
             <input type="button" onclick="sendConfig();" value="Send">
-        </form>
-    </body>
+        </div>
+    </form>
+</body>
 </html>

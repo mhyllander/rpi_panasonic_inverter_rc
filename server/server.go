@@ -1,11 +1,15 @@
 package server
 
 import (
+	"encoding/json"
 	"errors"
 	"html/template"
 	"log/slog"
 	"net/http"
 	"os"
+	"rpi_panasonic_inverter_rc/codec"
+	"rpi_panasonic_inverter_rc/common"
+	"rpi_panasonic_inverter_rc/db"
 	"rpi_panasonic_inverter_rc/utils"
 	"time"
 
@@ -14,6 +18,7 @@ import (
 	"github.com/go-chi/httplog/v2"
 )
 
+var g_irSender *codec.IrSender
 var rootTemplate *template.Template
 
 // type contextKey string
@@ -24,6 +29,8 @@ type RootData struct {
 
 func getRoot(w http.ResponseWriter, r *http.Request) {
 	// ctx := r.Context()
+	webFunctions := template.FuncMap{}
+	rootTemplate = template.Must(template.New("root.gohtml").Funcs(webFunctions).ParseFiles("web/root.gohtml"))
 
 	slog.Debug("GET /")
 	data := RootData{
@@ -35,8 +42,79 @@ func getRoot(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func StartServer(logLevel string) {
+// Return all settings as JSON
+func apiGetSettings(w http.ResponseWriter, r *http.Request) {
+	var theSettings common.AllSettings
+	theSettings.ModeSettings = make(common.ModeSettingsMap)
+
+	dbRc, err := db.CurrentConfig()
+	if err != nil {
+		slog.Error("apiGetSettings get current config failed", "err", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		return
+	}
+	utils.CopyToSettings(dbRc, &theSettings.Settings)
+
+	for _, m := range []uint{common.C_Mode_Auto, common.C_Mode_Heat, common.C_Mode_Cool, common.C_Mode_Dry} {
+		temp, fan, err := db.GetModeSettings(m)
+		if err != nil {
+			slog.Error("apiGetSettings get mode settings failed", "mode", m, "err", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(err.Error()))
+			return
+		}
+		ms := common.ModeSettings{}
+		utils.CopyToModeSettings(temp, fan, &ms)
+		theSettings.ModeSettings[common.Mode2String(m)] = ms
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content_Type", "application/json")
+	err = json.NewEncoder(w).Encode(&theSettings)
+	if err != nil {
+		slog.Error("apiGetSettings JSON encode settings failed", "err", err)
+	}
+}
+
+func apiPostSettings(w http.ResponseWriter, r *http.Request) {
+	var settings common.Settings
+
+	err := json.NewDecoder(r.Body).Decode(&settings)
+	if err != nil {
+		slog.Error("apiPostSettings decode body failed", "err", err)
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+	dbRc, err := db.CurrentConfig()
+	if err != nil {
+		slog.Error("apiPostSettings save config failed", "err", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+	sendRc := utils.ComposeSendConfig(&settings, dbRc)
+	sendRc.LogConfigAndChecksum("")
+	g_irSender.SendConfig(sendRc)
+
+	err = db.SaveConfig(sendRc, dbRc)
+	if err != nil {
+		slog.Error("failed to save config", "err", err)
+		w.Write([]byte(err.Error()))
+		return
+	}
+	slog.Debug("saved config")
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func StartServer(logLevel string, irSender *codec.IrSender) {
 	var err error
+
+	g_irSender = irSender
 
 	r := chi.NewRouter()
 
@@ -62,8 +140,13 @@ func StartServer(logLevel string) {
 
 	// status page
 	r.Get("/", getRoot)
-	webFunctions := template.FuncMap{}
-	rootTemplate = template.Must(template.New("root.gohtml").Funcs(webFunctions).ParseFiles("web/root.gohtml"))
+	// webFunctions := template.FuncMap{}
+	// rootTemplate = template.Must(template.New("root.gohtml").Funcs(webFunctions).ParseFiles("web/root.gohtml"))
+
+	r.Route("/api/v1", func(r chi.Router) {
+		r.Get("/settings", apiGetSettings)
+		r.Post("/settings", apiPostSettings)
+	})
 
 	err = http.ListenAndServe(":3333", r)
 	if errors.Is(err, http.ErrServerClosed) {

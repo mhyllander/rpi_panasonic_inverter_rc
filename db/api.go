@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"rpi_panasonic_inverter_rc/codec"
-	"rpi_panasonic_inverter_rc/rcconst"
+	"rpi_panasonic_inverter_rc/common"
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -59,10 +59,10 @@ func Initialize(dbFile string) error {
 		}
 
 		settings := []*ModeSetting{
-			{Mode: rcconst.C_Mode_Auto, Temperature: 21, FanSpeed: rcconst.C_FanSpeed_Auto},
-			{Mode: rcconst.C_Mode_Dry, Temperature: 20, FanSpeed: rcconst.C_FanSpeed_Auto},
-			{Mode: rcconst.C_Mode_Heat, Temperature: 24, FanSpeed: rcconst.C_FanSpeed_Auto},
-			{Mode: rcconst.C_Mode_Cool, Temperature: 18, FanSpeed: rcconst.C_FanSpeed_Auto},
+			{Mode: common.C_Mode_Auto, Temperature: 20, FanSpeed: common.C_FanSpeed_Auto},
+			{Mode: common.C_Mode_Dry, Temperature: 20, FanSpeed: common.C_FanSpeed_Auto},
+			{Mode: common.C_Mode_Heat, Temperature: 20, FanSpeed: common.C_FanSpeed_Auto},
+			{Mode: common.C_Mode_Cool, Temperature: 20, FanSpeed: common.C_FanSpeed_Auto},
 		}
 		result = myDb.Create(settings)
 		if result.Error != nil {
@@ -96,7 +96,7 @@ func CurrentConfig() (*codec.RcConfig, error) {
 		TimerOff:       dbRc.TimerOff,
 		TimerOnTime:    codec.Time(dbRc.TimerOnTime),
 		TimerOffTime:   codec.Time(dbRc.TimerOffTime),
-		Clock:          rcconst.C_Time_Unset,
+		Clock:          common.C_Time_Unset,
 	}, nil
 }
 
@@ -104,10 +104,7 @@ func SaveConfig(rc, dbRc *codec.RcConfig) error {
 	// update current configuration, but timer on and off should only be updated if set
 	// mode settings should be updated, but fan speed should be ignored if Powerful or Quiet is set
 
-	var updates, settings map[string]interface{}
-	updates = make(map[string]interface{})
-	settings = make(map[string]interface{})
-
+	updates := make(map[string]interface{})
 	if rc.Power != dbRc.Power {
 		updates["Power"] = rc.Power
 	}
@@ -138,10 +135,10 @@ func SaveConfig(rc, dbRc *codec.RcConfig) error {
 	if rc.TimerOff != dbRc.TimerOff {
 		updates["TimerOff"] = rc.TimerOff
 	}
-	if rc.TimerOnTime != dbRc.TimerOnTime && rc.TimerOnTime != rcconst.C_Time_Unset {
+	if rc.TimerOnTime != dbRc.TimerOnTime && rc.TimerOnTime != common.C_Time_Unset {
 		updates["TimerOnTime"] = rc.TimerOnTime
 	}
-	if rc.TimerOffTime != dbRc.TimerOffTime && rc.TimerOffTime != rcconst.C_Time_Unset {
+	if rc.TimerOffTime != dbRc.TimerOffTime && rc.TimerOffTime != common.C_Time_Unset {
 		updates["TimerOffTime"] = rc.TimerOffTime
 	}
 
@@ -153,11 +150,12 @@ func SaveConfig(rc, dbRc *codec.RcConfig) error {
 		return result.Error
 	}
 
+	settings := make(map[string]interface{})
 	settings["Temperature"] = rc.Temperature
-	if rc.Powerful == rcconst.C_Powerful_Disabled && rc.Quiet == rcconst.C_Quiet_Disabled {
+	if rc.Powerful == common.C_Powerful_Disabled && rc.Quiet == common.C_Quiet_Disabled {
 		settings["FanSpeed"] = rc.FanSpeed
 	}
-	if result := myDb.Model(&ModeSetting{}).Where(&ModeSetting{Mode: rc.Mode}).Updates(settings); result.Error != nil {
+	if result := myDb.Model(&ModeSetting{}).Where(map[string]interface{}{"Mode": rc.Mode}).Updates(settings); result.Error != nil {
 		return result.Error
 	}
 
@@ -175,7 +173,7 @@ func GetModeSettings(mode uint) (temp, fan uint, err error) {
 
 // CronJob
 
-func SaveCronJob(jobset string, schedule string, settings *rcconst.Settings) error {
+func SaveCronJob(jobset string, schedule string, settings *common.Settings) error {
 	json, err := json.Marshal(settings)
 	if err != nil {
 		return err

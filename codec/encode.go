@@ -2,7 +2,8 @@ package codec
 
 import (
 	"encoding/binary"
-	"rpi_panasonic_inverter_rc/rcconst"
+	"fmt"
+	"rpi_panasonic_inverter_rc/common"
 )
 
 type LircBuffer struct {
@@ -10,37 +11,37 @@ type LircBuffer struct {
 }
 
 func NewLircBuffer() *LircBuffer {
-	return &LircBuffer{make([]uint32, 0, rcconst.L_PANASONIC_LIRC_ITEMS)}
+	return &LircBuffer{make([]uint32, 0, common.L_PANASONIC_LIRC_ITEMS)}
 }
 
 func (b *LircBuffer) BeginFrame() {
-	b.addPulse(rcconst.L_PANASONIC_FRAME_MARK1_PULSE)
-	b.addSpace(rcconst.L_PANASONIC_FRAME_MARK2_SPACE)
+	b.addPulse(common.L_PANASONIC_FRAME_MARK1_PULSE)
+	b.addSpace(common.L_PANASONIC_FRAME_MARK2_SPACE)
 }
 
 func (b *LircBuffer) EndFrame() {
-	b.addPulse(rcconst.L_PANASONIC_PULSE)
+	b.addPulse(common.L_PANASONIC_PULSE)
 }
 
 func (b *LircBuffer) FrameSpace() {
-	b.addSpace(rcconst.L_PANASONIC_SEPARATOR)
+	b.addSpace(common.L_PANASONIC_SEPARATOR)
 }
 
 func (b *LircBuffer) AddBit(bit uint) {
-	b.addPulse(rcconst.L_PANASONIC_PULSE)
+	b.addPulse(common.L_PANASONIC_PULSE)
 	if bit == 0 {
-		b.addSpace(rcconst.L_PANASONIC_SPACE_0)
+		b.addSpace(common.L_PANASONIC_SPACE_0)
 	} else {
-		b.addSpace(rcconst.L_PANASONIC_SPACE_1)
+		b.addSpace(common.L_PANASONIC_SPACE_1)
 	}
 }
 
 func (b *LircBuffer) addPulse(length uint32) {
-	b.buf = append(b.buf, length|rcconst.L_LIRC_MODE2_PULSE)
+	b.buf = append(b.buf, length|common.L_LIRC_MODE2_PULSE)
 }
 
 func (b *LircBuffer) addSpace(length uint32) {
-	b.buf = append(b.buf, length|rcconst.L_LIRC_MODE2_SPACE)
+	b.buf = append(b.buf, length|common.L_LIRC_MODE2_SPACE)
 }
 
 func (b *LircBuffer) ToBytes() (bytes []byte) {
@@ -49,4 +50,27 @@ func (b *LircBuffer) ToBytes() (bytes []byte) {
 		bytes = binary.LittleEndian.AppendUint32(bytes, b.buf[i])
 	}
 	return bytes
+}
+
+func (b *LircBuffer) PrintLircBuffer() {
+	for _, code := range b.buf {
+		printLircData("LircBuffer", code)
+	}
+}
+
+func printLircData(label string, d uint32) {
+	v := d & common.L_LIRC_VALUE_MASK
+	fmt.Printf("%s\t", label)
+	switch d & common.L_LIRC_MODE2_MASK {
+	case common.L_LIRC_MODE2_SPACE:
+		fmt.Printf("space\t%d\n", v)
+	case common.L_LIRC_MODE2_PULSE:
+		fmt.Printf("pulse\t%d\n", v)
+	case common.L_LIRC_MODE2_FREQUENCY:
+		fmt.Printf("frequencyt%d\n", v)
+	case common.L_LIRC_MODE2_TIMEOUT:
+		fmt.Printf("timeout\t%d\n", v)
+	case common.L_LIRC_MODE2_OVERFLOW:
+		fmt.Printf("overflow\t%d\n", v)
+	}
 }

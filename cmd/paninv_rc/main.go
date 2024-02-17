@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 	"rpi_panasonic_inverter_rc/codec"
+	"rpi_panasonic_inverter_rc/common"
 	"rpi_panasonic_inverter_rc/db"
-	"rpi_panasonic_inverter_rc/rcconst"
 	"rpi_panasonic_inverter_rc/utils"
 
 	"golang.org/x/sys/unix"
@@ -22,7 +22,7 @@ func main() {
 	var vHelp = flag.Bool("help", false, "print usage")
 	var vPriority = flag.Int("prio", -10, "The priority, or niceness, of the process (-20..19)")
 
-	var settings rcconst.Settings
+	var settings common.Settings
 	flag.StringVar(&settings.Power, "power", "", "power [on|off]")
 	flag.StringVar(&settings.Mode, "mode", "", "mode [auto|heat|cool|dry]")
 	flag.StringVar(&settings.Powerful, "powerful", "", "powerful [on|off]")
@@ -69,18 +69,6 @@ func main() {
 	db.Initialize(*vRcDb)
 	defer db.Close()
 
-	// open file or device for sending IR
-	flags := os.O_RDWR
-	if !senderOptions.Device {
-		flags = flags | os.O_CREATE
-	}
-	f, err := os.OpenFile(*vIrOutput, flags, 0644)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	defer f.Close()
-
 	// get current configuration
 	dbRc, err := db.CurrentConfig()
 	if err != nil {
@@ -108,11 +96,10 @@ func main() {
 		sendRc.PrintConfigAndChecksum("")
 	}
 
-	err = codec.SendIr(sendRc, f, senderOptions)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
+	irSender := codec.StartIrSender(*vIrOutput, senderOptions)
+	defer irSender.Stop()
+
+	irSender.SendConfig(sendRc)
 
 	err = db.SaveConfig(sendRc, dbRc)
 	if err != nil {

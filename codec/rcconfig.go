@@ -2,7 +2,8 @@ package codec
 
 import (
 	"fmt"
-	"rpi_panasonic_inverter_rc/rcconst"
+	"log/slog"
+	"rpi_panasonic_inverter_rc/common"
 	"time"
 )
 
@@ -50,7 +51,7 @@ func (t Time) Minute() uint {
 	return uint(t) % 60
 }
 
-func (t Time) String() string {
+func (t Time) ToString() string {
 	return fmt.Sprintf("%02d:%02d", t.Hour(), t.Minute())
 }
 
@@ -58,19 +59,19 @@ func (t Time) String() string {
 // If msg is nil, return a default config.
 func NewRcConfig() *RcConfig {
 	return &RcConfig{
-		Power:          rcconst.C_Power_Off,
-		Mode:           rcconst.C_Mode_Auto,
-		Powerful:       rcconst.C_Powerful_Disabled,
-		Quiet:          rcconst.C_Quiet_Disabled,
+		Power:          common.C_Power_Off,
+		Mode:           common.C_Mode_Auto,
+		Powerful:       common.C_Powerful_Disabled,
+		Quiet:          common.C_Quiet_Disabled,
 		Temperature:    20,
-		FanSpeed:       rcconst.C_FanSpeed_Auto,
-		VentVertical:   rcconst.C_VentVertical_Auto,
-		VentHorizontal: rcconst.C_VentHorizontal_Auto,
-		TimerOn:        rcconst.C_Timer_Disabled,
-		TimerOff:       rcconst.C_Timer_Disabled,
-		TimerOnTime:    rcconst.C_Time_Unset,
-		TimerOffTime:   rcconst.C_Time_Unset,
-		Clock:          rcconst.C_Time_Unset,
+		FanSpeed:       common.C_FanSpeed_Auto,
+		VentVertical:   common.C_VentVertical_Auto,
+		VentHorizontal: common.C_VentHorizontal_Auto,
+		TimerOn:        common.C_Timer_Disabled,
+		TimerOff:       common.C_Timer_Disabled,
+		TimerOnTime:    common.C_Time_Unset,
+		TimerOffTime:   common.C_Time_Unset,
+		Clock:          common.C_Time_Unset,
 	}
 }
 
@@ -78,19 +79,19 @@ func RcConfigFromFrame(msg *Message) *RcConfig {
 	rcconf := NewRcConfig()
 
 	f := msg.Frame2
-	rcconf.Power = f.GetValue(rcconst.P_PANASONIC_POWER_BIT0, rcconst.P_PANASONIC_POWER_BITS)
-	rcconf.Mode = f.GetValue(rcconst.P_PANASONIC_MODE_BIT0, rcconst.P_PANASONIC_MODE_BITS)
-	rcconf.Powerful = f.GetValue(rcconst.P_PANASONIC_POWERFUL_BIT0, rcconst.P_PANASONIC_POWERFUL_BITS)
-	rcconf.Quiet = f.GetValue(rcconst.P_PANASONIC_QUIET_BIT0, rcconst.P_PANASONIC_QUIET_BITS)
-	rcconf.Temperature = f.GetValue(rcconst.P_PANASONIC_TEMP_BIT0, rcconst.P_PANASONIC_TEMP_BITS)
-	rcconf.FanSpeed = f.GetValue(rcconst.P_PANASONIC_FAN_SPEED_BIT0, rcconst.P_PANASONIC_FAN_SPEED_BITS)
-	rcconf.VentVertical = f.GetValue(rcconst.P_PANASONIC_VENT_VPOS_BIT0, rcconst.P_PANASONIC_VENT_VPOS_BITS)
-	rcconf.VentHorizontal = f.GetValue(rcconst.P_PANASONIC_VENT_HPOS_BIT0, rcconst.P_PANASONIC_VENT_HPOS_BITS)
-	rcconf.TimerOn = f.GetValue(rcconst.P_PANASONIC_TIMER_ON_ENABLED_BIT0, rcconst.P_PANASONIC_TIMER_ON_ENABLED_BITS)
-	rcconf.TimerOff = f.GetValue(rcconst.P_PANASONIC_TIMER_OFF_ENABLED_BIT0, rcconst.P_PANASONIC_TIMER_OFF_ENABLED_BITS)
-	rcconf.TimerOnTime = Time(f.GetValue(rcconst.P_PANASONIC_TIMER_ON_TIME_BIT0, rcconst.P_PANASONIC_TIMER_ON_TIME_BITS))
-	rcconf.TimerOffTime = Time(f.GetValue(rcconst.P_PANASONIC_TIMER_OFF_TIME_BIT0, rcconst.P_PANASONIC_TIMER_OFF_TIME_BITS))
-	rcconf.Clock = Time(f.GetValue(rcconst.P_PANASONIC_CLOCK_BIT0, rcconst.P_PANASONIC_CLOCK_BITS))
+	rcconf.Power = f.GetValue(common.P_PANASONIC_POWER_BIT0, common.P_PANASONIC_POWER_BITS)
+	rcconf.Mode = f.GetValue(common.P_PANASONIC_MODE_BIT0, common.P_PANASONIC_MODE_BITS)
+	rcconf.Powerful = f.GetValue(common.P_PANASONIC_POWERFUL_BIT0, common.P_PANASONIC_POWERFUL_BITS)
+	rcconf.Quiet = f.GetValue(common.P_PANASONIC_QUIET_BIT0, common.P_PANASONIC_QUIET_BITS)
+	rcconf.Temperature = f.GetValue(common.P_PANASONIC_TEMP_BIT0, common.P_PANASONIC_TEMP_BITS)
+	rcconf.FanSpeed = f.GetValue(common.P_PANASONIC_FAN_SPEED_BIT0, common.P_PANASONIC_FAN_SPEED_BITS)
+	rcconf.VentVertical = f.GetValue(common.P_PANASONIC_VENT_VPOS_BIT0, common.P_PANASONIC_VENT_VPOS_BITS)
+	rcconf.VentHorizontal = f.GetValue(common.P_PANASONIC_VENT_HPOS_BIT0, common.P_PANASONIC_VENT_HPOS_BITS)
+	rcconf.TimerOn = f.GetValue(common.P_PANASONIC_TIMER_ON_ENABLED_BIT0, common.P_PANASONIC_TIMER_ON_ENABLED_BITS)
+	rcconf.TimerOff = f.GetValue(common.P_PANASONIC_TIMER_OFF_ENABLED_BIT0, common.P_PANASONIC_TIMER_OFF_ENABLED_BITS)
+	rcconf.TimerOnTime = Time(f.GetValue(common.P_PANASONIC_TIMER_ON_TIME_BIT0, common.P_PANASONIC_TIMER_ON_TIME_BITS))
+	rcconf.TimerOffTime = Time(f.GetValue(common.P_PANASONIC_TIMER_OFF_TIME_BIT0, common.P_PANASONIC_TIMER_OFF_TIME_BITS))
+	rcconf.Clock = Time(f.GetValue(common.P_PANASONIC_CLOCK_BIT0, common.P_PANASONIC_CLOCK_BITS))
 
 	return rcconf
 }
@@ -99,9 +100,9 @@ func RcConfigFromFrame(msg *Message) *RcConfig {
 // for sending the updated config to the inverter.
 func (c *RcConfig) CopyForSending() *RcConfig {
 	rc := *c
-	rc.TimerOnTime = rcconst.C_Time_Unset
-	rc.TimerOffTime = rcconst.C_Time_Unset
-	rc.Clock = rcconst.C_Time_Unset
+	rc.TimerOnTime = common.C_Time_Unset
+	rc.TimerOffTime = common.C_Time_Unset
+	rc.Clock = common.C_Time_Unset
 	return &rc
 }
 
@@ -123,19 +124,19 @@ func (c *RcConfig) SetClock() {
 func (c *RcConfig) ToMessage() *Message {
 	msg := InitializedMessage()
 	f := msg.Frame2
-	f.SetValue(c.Power, rcconst.P_PANASONIC_POWER_BIT0, rcconst.P_PANASONIC_POWER_BITS).
-		SetValue(c.Mode, rcconst.P_PANASONIC_MODE_BIT0, rcconst.P_PANASONIC_MODE_BITS).
-		SetValue(c.Powerful, rcconst.P_PANASONIC_POWERFUL_BIT0, rcconst.P_PANASONIC_POWERFUL_BITS).
-		SetValue(c.Quiet, rcconst.P_PANASONIC_QUIET_BIT0, rcconst.P_PANASONIC_QUIET_BITS).
-		SetValue(c.Temperature, rcconst.P_PANASONIC_TEMP_BIT0, rcconst.P_PANASONIC_TEMP_BITS).
-		SetValue(c.FanSpeed, rcconst.P_PANASONIC_FAN_SPEED_BIT0, rcconst.P_PANASONIC_FAN_SPEED_BITS).
-		SetValue(c.VentVertical, rcconst.P_PANASONIC_VENT_VPOS_BIT0, rcconst.P_PANASONIC_VENT_VPOS_BITS).
-		SetValue(c.VentHorizontal, rcconst.P_PANASONIC_VENT_HPOS_BIT0, rcconst.P_PANASONIC_VENT_HPOS_BITS).
-		SetValue(c.TimerOn, rcconst.P_PANASONIC_TIMER_ON_ENABLED_BIT0, rcconst.P_PANASONIC_TIMER_ON_ENABLED_BITS).
-		SetValue(c.TimerOff, rcconst.P_PANASONIC_TIMER_OFF_ENABLED_BIT0, rcconst.P_PANASONIC_TIMER_OFF_ENABLED_BITS).
-		SetValue(c.TimerOnTime.Minutes(), rcconst.P_PANASONIC_TIMER_ON_TIME_BIT0, rcconst.P_PANASONIC_TIMER_ON_TIME_BITS).
-		SetValue(c.TimerOffTime.Minutes(), rcconst.P_PANASONIC_TIMER_OFF_TIME_BIT0, rcconst.P_PANASONIC_TIMER_OFF_TIME_BITS).
-		SetValue(c.Clock.Minutes(), rcconst.P_PANASONIC_CLOCK_BIT0, rcconst.P_PANASONIC_CLOCK_BITS)
+	f.SetValue(c.Power, common.P_PANASONIC_POWER_BIT0, common.P_PANASONIC_POWER_BITS).
+		SetValue(c.Mode, common.P_PANASONIC_MODE_BIT0, common.P_PANASONIC_MODE_BITS).
+		SetValue(c.Powerful, common.P_PANASONIC_POWERFUL_BIT0, common.P_PANASONIC_POWERFUL_BITS).
+		SetValue(c.Quiet, common.P_PANASONIC_QUIET_BIT0, common.P_PANASONIC_QUIET_BITS).
+		SetValue(c.Temperature, common.P_PANASONIC_TEMP_BIT0, common.P_PANASONIC_TEMP_BITS).
+		SetValue(c.FanSpeed, common.P_PANASONIC_FAN_SPEED_BIT0, common.P_PANASONIC_FAN_SPEED_BITS).
+		SetValue(c.VentVertical, common.P_PANASONIC_VENT_VPOS_BIT0, common.P_PANASONIC_VENT_VPOS_BITS).
+		SetValue(c.VentHorizontal, common.P_PANASONIC_VENT_HPOS_BIT0, common.P_PANASONIC_VENT_HPOS_BITS).
+		SetValue(c.TimerOn, common.P_PANASONIC_TIMER_ON_ENABLED_BIT0, common.P_PANASONIC_TIMER_ON_ENABLED_BITS).
+		SetValue(c.TimerOff, common.P_PANASONIC_TIMER_OFF_ENABLED_BIT0, common.P_PANASONIC_TIMER_OFF_ENABLED_BITS).
+		SetValue(c.TimerOnTime.Minutes(), common.P_PANASONIC_TIMER_ON_TIME_BIT0, common.P_PANASONIC_TIMER_ON_TIME_BITS).
+		SetValue(c.TimerOffTime.Minutes(), common.P_PANASONIC_TIMER_OFF_TIME_BIT0, common.P_PANASONIC_TIMER_OFF_TIME_BITS).
+		SetValue(c.Clock.Minutes(), common.P_PANASONIC_CLOCK_BIT0, common.P_PANASONIC_CLOCK_BITS)
 	return msg
 }
 
@@ -151,11 +152,51 @@ func (c *RcConfig) ConvertToMode2LircData() []string {
 	lircData := m.ToLirc()
 	s := make([]string, 0, 500)
 	for _, v := range lircData.buf {
-		if v&rcconst.L_LIRC_MODE2_MASK == rcconst.L_LIRC_MODE2_PULSE {
-			s = append(s, fmt.Sprintf("+%d", v&rcconst.L_LIRC_VALUE_MASK))
-		} else if v&rcconst.L_LIRC_MODE2_MASK == rcconst.L_LIRC_MODE2_SPACE {
-			s = append(s, fmt.Sprintf("-%d", v&rcconst.L_LIRC_VALUE_MASK))
+		if v&common.L_LIRC_MODE2_MASK == common.L_LIRC_MODE2_PULSE {
+			s = append(s, fmt.Sprintf("+%d", v&common.L_LIRC_VALUE_MASK))
+		} else if v&common.L_LIRC_MODE2_MASK == common.L_LIRC_MODE2_SPACE {
+			s = append(s, fmt.Sprintf("-%d", v&common.L_LIRC_VALUE_MASK))
 		}
 	}
 	return s
+}
+
+func (c *RcConfig) PrintConfigAndChecksum(checksumStatus string) {
+	fmt.Printf("Settings : power=%s(%d) mode=%s(%d) powerful=%s(%d) quiet=%s(%d) temp=%s\n",
+		common.Power2String(c.Power), c.Power,
+		common.Mode2String(c.Mode), c.Mode,
+		common.Powerful2String(c.Powerful), c.Powerful,
+		common.Quiet2String(c.Quiet), c.Quiet,
+		common.Temperatur2String(c.Temperature))
+
+	fmt.Printf("Air vents: fan=%s(%d) vert=%s(%d) horiz=%s(%d)\n",
+		common.FanSpeed2String(c.FanSpeed), c.FanSpeed,
+		common.VentVertical2String(c.VentVertical), c.VentVertical,
+		common.VentHorizontal2String(c.VentHorizontal), c.VentHorizontal)
+
+	fmt.Printf("Timers   : ton=%s(%d) tont=%s; toff=%s(%d) tofft=%s; clock=%s\n",
+		common.TimerToString(c.TimerOn), c.TimerOn, c.TimerOnTime.ToString(), common.TimerToString(c.TimerOff), c.TimerOff, c.TimerOffTime.ToString(), c.Clock.ToString())
+
+	if checksumStatus != "" {
+		fmt.Printf("Checksum: %s\n", checksumStatus)
+	}
+}
+
+func (c *RcConfig) LogConfigAndChecksum(checksumStatus string) {
+	slog.Info("config",
+		"power", common.Power2String(c.Power),
+		"mode", common.Mode2String(c.Mode),
+		"powerful", common.Powerful2String(c.Powerful),
+		"quiet", common.Quiet2String(c.Quiet),
+		"temp", common.Temperatur2String(c.Temperature),
+		"fan", common.FanSpeed2String(c.FanSpeed),
+		"vert", common.VentVertical2String(c.VentVertical),
+		"horiz", common.VentHorizontal2String(c.VentHorizontal),
+		"ton", common.TimerToString(c.TimerOn),
+		"tont", c.TimerOnTime.ToString(),
+		"toff", common.TimerToString(c.TimerOff),
+		"tofft", c.TimerOffTime.ToString(),
+		"clock", c.Clock.ToString(),
+		"checksum", checksumStatus,
+	)
 }
