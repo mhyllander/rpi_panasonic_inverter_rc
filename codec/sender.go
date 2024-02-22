@@ -6,6 +6,7 @@ import (
 	"rpi_panasonic_inverter_rc/common"
 	"rpi_panasonic_inverter_rc/ioctl"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -25,10 +26,12 @@ type IrSender struct {
 	irOutputFile  string
 	senderOptions SenderOptions
 	sendChannel   chan *RcConfig
+	stopWait      sync.WaitGroup
 }
 
 func StartIrSender(irOutputFile string, senderOptions *SenderOptions) *IrSender {
-	sender := &IrSender{irOutputFile, *senderOptions, make(chan *RcConfig, 10)}
+	sender := &IrSender{irOutputFile, *senderOptions, make(chan *RcConfig, 10), sync.WaitGroup{}}
+	sender.stopWait.Add(1)
 	go sender.processConfigs()
 	return sender
 }
@@ -39,11 +42,12 @@ func (sender *IrSender) SendConfig(sendRc *RcConfig) {
 
 func (sender *IrSender) Stop() {
 	close(sender.sendChannel)
-	sender.sendChannel = nil
+	sender.stopWait.Wait()
 }
 
 // Send the queued configs.
 func (sender *IrSender) processConfigs() {
+	defer sender.stopWait.Done()
 	for sendRc := range sender.sendChannel {
 		sender.send(sendRc)
 	}

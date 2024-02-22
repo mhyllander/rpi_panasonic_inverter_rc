@@ -97,9 +97,8 @@ func main() {
 	}
 
 	irSender := codec.StartIrSender(*vIrOutput, senderOptions)
-	defer irSender.Stop()
-
 	irSender.SendConfig(sendRc)
+	irSender.Stop()
 
 	err = db.SaveConfig(sendRc, dbRc)
 	if err != nil {

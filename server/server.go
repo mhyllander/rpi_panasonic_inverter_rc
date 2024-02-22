@@ -29,6 +29,7 @@ type RootData struct {
 
 func getRoot(w http.ResponseWriter, r *http.Request) {
 	// ctx := r.Context()
+	// TODO: remove
 	webFunctions := template.FuncMap{}
 	rootTemplate = template.Must(template.New("root.gohtml").Funcs(webFunctions).ParseFiles("web/root.gohtml"))
 

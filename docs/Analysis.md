@@ -6,6 +6,8 @@
 
 <https://www.instructables.com/Reverse-engineering-of-an-Air-Conditioning-control/>
 
+https://www.mess.org/2020/01/26/Moving-from-lirc-tools-to-rc-core-tooling/
+
 ## Interpreting the raw LIRC data
 
 The raw data provided by the LIRC kernel module consists of unsigned 32-bit integers. All data read from /dev/lirc-rc is LittleEndian, therefore each group of four bytes (32 bits) start with the least significant bit and end with the most significant bit.
