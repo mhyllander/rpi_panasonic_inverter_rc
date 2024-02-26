@@ -1,6 +1,7 @@
 [Unit]
 Description=Panasonic Inverter Controller
 After=network.target
+After=time-set.target
 
 [Service]
 Type=simple

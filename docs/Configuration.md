@@ -2,23 +2,13 @@
 
 ## Some reference material
 
-https://github.com/raspberrypi/linux/issues/2993#issuecomment-497420228
+<https://github.com/raspberrypi/linux/issues/2993#issuecomment-497420228>
 
-https://www.kernel.org/doc/html/v6.1/userspace-api/media/rc/lirc-dev.html
+<https://www.kernel.org/doc/html/v6.1/userspace-api/media/rc/lirc-dev.html>
 
-https://www.kernel.org/doc/html/v6.1/userspace-api/media/rc/lirc-dev-intro.html
+<https://www.kernel.org/doc/html/v6.1/userspace-api/media/rc/lirc-dev-intro.html>
 
-https://www.mess.org/2020/01/26/Moving-from-lirc-tools-to-rc-core-tooling/
-
-## Using a custom Raspberry Pi OS kernel
-
-At the time of writing (February 2024), a patch for `pwm-ir-tx` using hrtimers (high resolution timers) has been merged into Linux kernel 6.8, but is not yet available for the Raspberry Pi. Raspberry Pi OS is still based on 6.1, on the verge of upgrading to 6.6. The Raspberry Pi OS repo has a branch `rpi-6.6.y`, and the patches applied with only a little fuzz. With these patches, the `pwm-ir-tx` kernel module works _much_ better. _Note: It turns out that the patches work well when applied to 6.6.13, but not so much with 6.6.16 or 6.6.17._
-
-Building a custom kernel: https://www.raspberrypi.com/documentation/computers/linux_kernel.html#kernel
-
-Raspberry Pi OS 6.6 branch: https://github.com/raspberrypi/linux/tree/rpi-6.6.y
-
-Patches for the `pwm-ir-tx` driver:  https://lore.kernel.org/linux-pwm/cover.1703003288.git.sean@mess.org/
+<https://www.mess.org/2020/01/26/Moving-from-lirc-tools-to-rc-core-tooling/>
 
 ## Initial setup
 
@@ -32,24 +22,6 @@ sudo reboot
 sudo apt install -y etckeeper
 sudo apt install -y unattended-upgrades
 ```
-
-## Installing custom kernel
-
-```bash
-DATE=$(date +'%Y-%m-%d')
-
-sudo cp -a /boot/firmware /boot/firmware.backup.$DATE
-sudo cp -r BUILD/boot/firmware /boot/firmware
-
-# Assuming we are patching the current kernel version
-VERSION=$(uname -r)
-sudo cp -a /lib/modules/$VERSION /lib/modules/$VERSION.backup.$DATE
-sudo cp -r BUILD/lib/modules/$VERSION /lib/modules/$VERSION
-
-# add "" to /boot/firmware/config.txt
-```
-
-Add `kernel=kernel8-custom.img` to `/boot/firmware/config.txt`.
 
 ### HDMI no signal issue
 
@@ -157,3 +129,39 @@ index 7fbd3d4..b26d125 100644
  // Automatically reboot even if there are users currently logged in
  // when Unattended-Upgrade::Automatic-Reboot is set to true
 ```
+
+# Using a custom Raspberry Pi OS kernel
+
+At the time of writing (February 2024), patches for `pwm-ir-tx` using hrtimers (high resolution timers) have been merged into Linux kernel 6.8. Raspberry Pi OS is still based on 6.1, on the verge of upgrading to 6.6, so the pwm-ir-tx patches are not yet available. The patches were published e.g. [[PATCH v10 0/6] Improve pwm-ir-tx precision](https://lore.kernel.org/linux-pwm/cover.1703003288.git.sean@mess.org/), and can be found in [Raspberry Pi OS branch rpi-6.8.y](https://github.com/raspberrypi/linux/tree/rpi-6.8.y). These are the patches:
+
+1. c748a6d77c06 - pwm: Rename pwm_apply_state() to pwm_apply_might_sleep() (2023-12-20) \<Sean Young>
+1. dc518b378dce - pwm: Replace ENOTSUPP with EOPNOTSUPP (2023-12-20) \<Sean Young>
+1. 752193da3f8b - pwm: renesas: Remove unused include (2023-12-20) \<Sean Young>
+1. 7170d3beafc2 - pwm: Make it possible to apply PWM changes in atomic context (2023-12-20) \<Sean Young>
+1. fcc760729359 - pwm: bcm2835: Allow PWM driver to be used in atomic context (2023-12-20) \<Sean Young>
+1. 363d0e56285e - media: pwm-ir-tx: Trigger edges from hrtimer interrupt context (2023-12-20) \<Sean Young>
+1. 346c84e281a9 - media: pwm-ir-tx: Depend on CONFIG_HIGH_RES_TIMERS (2024-02-01) \<Sean Young>
+
+Backporting these patches to branch `rpi-6.6.y` makes the `pwm-ir-tx` kernel module work _much_ better. Before this patch I had to re-send the same message at least four times in the hope that one of the transmissions would be accepted by the inverter unit.
+
+I have [created an issue](https://github.com/raspberrypi/linux/issues/5987) to request that these patches be backported to kernel 6.6.
+
+Building a custom kernel: https://www.raspberrypi.com/documentation/computers/linux_kernel.html#kernel
+
+## Installing a custom kernel
+
+Notes on installing a custom `kernel8-custom.img` kernel.
+
+```bash
+DATE=$(date +'%Y-%m-%d')
+
+sudo cp -a /boot/firmware /boot/firmware.backup.$DATE
+sudo cp -r BUILD/boot/firmware /boot/firmware
+
+# Assuming we are patching the current kernel version
+VERSION=$(uname -r)
+sudo cp -a /lib/modules/$VERSION /lib/modules/$VERSION.backup.$DATE
+sudo cp -r BUILD/lib/modules/$VERSION /lib/modules/$VERSION
+```
+
+Add `kernel=kernel8-custom.img` to `/boot/firmware/config.txt`.
