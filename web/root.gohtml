@@ -4,110 +4,575 @@
     <title>{{.PageTitle}}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        .col1 {
-            display: inline-block;
-            width: 120px;
+        * {
+            font-family: arial;
         }
-        .setting {
-            height: 28px;
+
+        /* Control panel */
+        .controlpanel {
+            width: 100%;
+            margin-top: 10px;
+            align-items: center;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            background-color: #e7f0fe;
+            border-top: 1px solid black;
+            padding: 4px;
         }
         .buttons {
+            float: right;
+        }
+        .buttons button {
+            padding: 10px;
+            margin-right: 10px;
+            border-radius: 8px;
+            border: 2px solid gray;
+            font-size: 20px;
+        }
+
+        /* Info message box */
+        .info {
+            float: left;
+            margin-left: 10px;
+            padding: 10px;
+            border-radius: 8px;
+            border: 2px solid #0a69fa;
+            background-color: #5f9dfb;
+            color: white;
+            text-align: center;
+        }
+
+        /* Alert message box */
+        .alert {
+            background-color: #f44336; /* Red */
+            color: white;
+            padding: 4px;
             margin-top: 10px;
+            margin-bottom: 10px;
+        }
+        .alert p {
+            padding: 0px;
+            margin-top: 2px;
+            margin-bottom: 2px;
+        }
+
+        /* Control panel animation */
+        .hidden {
+            display: none;
+        }
+        .btn_highlight {
+            background-color: #adcaf7;
+        }
+
+        /* Settings */
+        .setting {
+            height: 28px;
+            font-size: 16px;
+        }
+        .setting label {
+            display: inline-block;
+            width: 130px;
+        }
+        .setting input, .setting select {
+            font-size: inherit;
+        }
+        .tempsetting {
+            height: unset;
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+        }
+        .tempinputs {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: left;
+        }
+        .tempinputs input[type=number] {
+            width: 50px;
+        }
+        .tempslider {
+            appearance: none;
+            flex-grow: 1;
+            height: 18px;
+            background: #d3d3d3;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+        }
+        .slider:hover {
+            opacity: 1;
+        }
+
+        /* Input validation */
+        input:invalid {
+            border: 2px dashed red;
+        }
+        input:invalid:required {
+            background-color: rgb(250,200,200);
+        }
+        input:valid {
+            border: 1px solid black;
         }
     </style>
-    <script type='text/javascript'>
-        function getConfig() {
-            
-        }
-        function sendConfig() {
-            
-        }
-    </script>
 </head>
 <body>
     <h1>{{.PageTitle}}</h1>
-    <form>
+    <div id="settingscontainer">
         <h3>Settings</h3>
         <div class="setting">
-            <span class="col1"><label for="power">Power</label></span>
-            <input type="checkbox" id="power" name="power" checked>
+            <label for="power">Power</label>
+            <input type="checkbox" id="power">
         </div>
         <div class="setting">
-            <span class="col1"><label for="mode">Mode</label></span>
-            <select id="mode" name="mode">
-                <option value="heat" selected>Heat</option>
-                <option value="cold">Cold</option>
+            <label for="mode">Mode</label>
+            <select id="mode">
+                <option value="heat">Heat</option>
+                <option value="cool">Cool</option>
                 <option value="dry">Dry</option>
-                <option value="auto">Auto</option>
+                <option value="auto" selected>Auto</option>
             </select>
         </div>
         <div class="setting">
-            <span class="col1"><label for="powerful">Powerful</label></span>
-            <input type="checkbox" id="powerful" name="powerful">
+            <label for="powerful">Powerful</label>
+            <input type="checkbox" id="powerful">
         </div>
         <div class="setting">
-            <span class="col1"><label for="quiet">Quiet</label></span>
-            <input type="checkbox" id="quiet" name="quiet">
+            <label for="quiet">Quiet</label>
+            <input type="checkbox" id="quiet">
         </div>
-        <div class="setting">
-            <span class="col1"><label for="temperature">Temperature</label></span>
-            <input type="number" id="temperature" name="temp" min="16" max="30" value="20" required>
+        <div class="setting tempsetting">
+            <label for="temperature">Temperature</label>
+            <div class="tempinputs">
+                <input type="number" id="temperature" min="16" max="30" value="20" required>
+                <input type="range" id="temperature_slider" class="tempslider" min="16" max="30" value="20">
+            </div>
         </div>
-        <h3>Air vents</h3>
+        <h3>Air Flow</h3>
         <div class="setting">
-            <span class="col1"><label for="fan_speed">Fan Speed</label></span>
-            <select id="fan_speed" name="fan">
-                <option value="auto">Auto</option>
+            <label for="fan_speed">Fan Speed</label>
+            <select id="fan_speed">
                 <option value="lowest">Lowest</option>
                 <option value="low">Low</option>
                 <option value="middle">Middle</option>
                 <option value="high">High</option>
-                <option value="highest" selected>Highest</option>
-            </select>
-        </div>
-        <div class="setting">
-            <span class="col1"><label for="vent_vertical">Vertical</label></span>
-            <select id="vent_vertical" name="vert">
-                <option value="auto">Auto</option>
-                <option value="lowest">Lowest</option>
-                <option value="low">Low</option>
-                <option value="middle">Middle</option>
-                <option value="high" selected>High</option>
                 <option value="highest">Highest</option>
+                <option value="auto" selected>Auto</option>
             </select>
         </div>
         <div class="setting">
-            <span class="col1"><label for="vent_horizontal" name="horiz">Horizontal</label></span>
-            <select id="vent_horizontal">
+            <label for="vent_vertical">Vertical Swing</label>
+            <select id="vent_vertical">
+                <option value="highest">Highest</option>
+                <option value="high">High</option>
+                <option value="middle">Middle</option>
+                <option value="low">Low</option>
+                <option value="lowest">Lowest</option>
                 <option value="auto" selected>Auto</option>
+            </select>
+        </div>
+        <div class="setting">
+            <label for="vent_horizontal">Horizontal Swing</label>
+            <select id="vent_horizontal">
                 <option value="farleft">Far left</option>
                 <option value="left">Left</option>
                 <option value="middle">Middle</option>
                 <option value="right">Right</option>
                 <option value="farright">Far right</option>
+                <option value="auto" selected>Auto</option>
             </select>
         </div>
         <h3>Timers</h3>
         <div class="setting">
-            <span class="col1"><label for="timer_on">Timer On</label></span>
-            <input type="checkbox" id="timer_on" name="ton" checked>
+            <label for="timer_on">Timer On</label>
+            <input type="checkbox" id="timer_on">
         </div>
         <div class="setting">
-            <span class="col1"><label for="time_on_time">Timer On Time</label></span>
-            <input type="time" id="time_on_time" name="tont" value="06:00">
+            <label for="timer_on_time">Timer On Time</label>
+            <input type="time" id="timer_on_time" value="">
         </div>
         <div class="setting">
-            <span class="col1"><label for="timer_off">Timer Off</label></span>
-            <input type="checkbox" id="timer_off" name="toff" checked>
+            <label for="timer_off">Timer Off</label>
+            <input type="checkbox" id="timer_off">
         </div>
         <div class="setting">
-            <span class="col1"><label for="time_off_time">Timer Off Time</label></span>
-            <input type="time" id="time_off_time" name="tofft" value="22:00">
+            <label for="timer_off_time">Timer Off Time</label>
+            <input type="time" id="timer_off_time" value="">
         </div>
-        <div class="buttons">
-            <input type="button" onclick="getConfig();" value="Refresh">
-            <input type="button" onclick="sendConfig();" value="Send">
+        <div class="controlpanel">
+            <div id="alert" class="alert hidden"></div>
+            <div class="buttons">
+                <button type="button" id="refresh_button">Refresh</button>
+                <button type="button" id="send_button">Send</button>
+            </div>
+            <div id="info" class="info hidden"></div>
         </div>
-    </form>
+    </div>
+    <script type="text/javascript">
+        async function getSettings() {
+            const response = await fetch('/api/v1/settings', {
+                method: 'GET',
+                mode: 'same-origin',
+                cache: 'no-cache',
+                redirect: 'error',
+                referrerPolicy: 'no-referrer'
+            })
+            if (!response.ok) {
+                throw new Error(`Retrieve settings failed: ${response.statusText} (${response.status})`)
+            }
+            return await response.json()
+        }
+
+        async function postSettings(settings) {
+            const response = await fetch('/api/v1/settings', {
+                method: 'POST',
+                mode: 'same-origin',
+                cache: 'no-cache',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                redirect: 'error',
+                referrerPolicy: 'no-referrer',
+                body: JSON.stringify(settings),
+            })
+            if (!response.ok) {
+                throw new Error(`Send settings failed: ${response.statusText} (${response.status})`)
+            }
+            return await response.json()
+        }
+
+        function refreshForm(settings) {
+            const ePower = document.getElementById('power')
+            const eMode = document.getElementById('mode')
+            const ePowerful = document.getElementById('powerful')
+            const eQuiet = document.getElementById('quiet')
+            const eTemp = document.getElementById('temperature')
+            const eTempSlider = document.getElementById('temperature_slider')
+            const eFan = document.getElementById('fan_speed')
+            const eVert = document.getElementById('vent_vertical')
+            const eHoriz = document.getElementById('vent_horizontal')
+            const eTon = document.getElementById('timer_on')
+            const eTont = document.getElementById('timer_on_time')
+            const eToff = document.getElementById('timer_off')
+            const eTofft = document.getElementById('timer_off_time')
+
+            // Set input values
+            ePower.checked = (settings.power == 'on')
+            eMode.value = settings.mode
+            ePowerful.checked = (settings.powerful == 'on')
+            eQuiet.checked = (settings.quiet == 'on')
+            eTemp.value = settings.temp
+            eTempSlider.value = settings.temp
+            eFan.value = settings.fan
+            eVert.value = settings.vert
+            eHoriz.value = settings.horiz
+            eTon.checked = (settings.ton == 'on')
+            eTont.value = (settings.tont == '25:36' ? '' : settings.tont)
+            eToff.checked = (settings.toff == 'on')
+            eTofft.value = (settings.tofft == '25:36' ? '' : settings.tofft)
+
+            // Set input attributes
+            eFan.disabled = ePowerful.checked || eQuiet.checked
+            eTont.required = eTon.checked
+            eTofft.required = eToff.checked
+
+            // Validate the input fields
+            validateInput()
+        }
+
+        function storeAndRefresh(allSettings) {
+            sessionStorage.setItem('paninvSettings', JSON.stringify(allSettings.settings))
+            sessionStorage.setItem('paninvModeSettings', JSON.stringify(allSettings.modeSettings))
+            refreshForm(allSettings.settings)
+        }
+
+        function refresh(confirm) {
+            getSettings()
+            .then((allSettings) => {
+                storeAndRefresh(allSettings)
+                if (confirm) {
+                    showConfirmation('Refreshed')
+                }
+            })
+            .catch((err) => {
+                if (err.name == 'TypeError' && err.message == 'Failed to fetch') {
+                    displayAlerts('Could not get settings')
+                } else {
+                    displayAlerts(err)
+                }
+                console.error(err)
+            })
+        }
+
+        function refreshButton(e) {
+            highlightButton(e.target)
+            refresh(true)
+        }
+
+        function sendButton(e) {
+            highlightButton(e.target)
+
+            const ePower = document.getElementById('power')
+            const eMode = document.getElementById('mode')
+            const ePowerful = document.getElementById('powerful')
+            const eQuiet = document.getElementById('quiet')
+            const eTemp = document.getElementById('temperature')
+            const eFan = document.getElementById('fan_speed')
+            const eVert = document.getElementById('vent_vertical')
+            const eHoriz = document.getElementById('vent_horizontal')
+            const eTon = document.getElementById('timer_on')
+            const eTont = document.getElementById('timer_on_time')
+            const eToff = document.getElementById('timer_off')
+            const eTofft = document.getElementById('timer_off_time')
+
+            if (!validateInput()) {
+                return
+            }
+
+            const settings = JSON.parse(sessionStorage.getItem('paninvSettings'))
+            let changedSettings = Object.create(null)
+
+            const ePowerValue = ePower.checked ? 'on' : 'off'
+            if (settings.power != ePowerValue) {
+                changedSettings.power = ePowerValue
+            }
+
+            const eModeValue = eMode.value
+            if (settings.mode != eModeValue) {
+                changedSettings.mode = eModeValue
+            }
+
+            const ePowerfulValue = ePowerful.checked ? 'on' : 'off'
+            if (settings.powerful != ePowerfulValue) {
+                changedSettings.powerful = ePowerfulValue
+            }
+
+            const eQuietValue = eQuiet.checked ? 'on' : 'off'
+            if (settings.quiet != eQuietValue) {
+                changedSettings.quiet = eQuietValue
+            }
+
+            const eTempValue = eTemp.value
+            if (settings.temp != eTempValue) {
+                changedSettings.temp = eTempValue
+            }
+
+            if (!eFan.disabled) {
+                const eFanValue = eFan.value
+                if (settings.fan != eFanValue) {
+                    changedSettings.fan = eFanValue
+                }
+            }
+
+            const eVertValue = eVert.value
+            if (settings.vert != eVertValue) {
+                changedSettings.vert = eVertValue
+            }
+
+            const eHorizValue = eHoriz.value
+            if (settings.horiz != eHorizValue) {
+                changedSettings.horiz = eHorizValue
+            }
+
+            const eTonValue = eTon.checked ? 'on' : 'off'
+            if (settings.ton != eTonValue) {
+                changedSettings.ton = eTonValue
+            }
+
+            const eTontValue = eTont.value
+            if (settings.tont != eTontValue && eTontValue != '') {
+                changedSettings.tont = eTontValue
+            }
+
+            const eToffValue = eToff.checked ? 'on' : 'off'
+            if (settings.toff != eToffValue) {
+                changedSettings.toff = eToffValue
+            }
+
+            const eTofftValue = eTofft.value
+            if (settings.tofft != eTofftValue && eTofftValue != '') {
+                changedSettings.tofft = eTofftValue
+            }
+
+            postSettings(changedSettings)
+            .then((allSettings) => {
+                storeAndRefresh(allSettings)
+                showConfirmation('Sent')
+            })
+            .catch((err) => {
+                if (err.name == 'TypeError' && err.message == 'Failed to fetch') {
+                    displayAlerts('Could not send settings')
+                } else {
+                    displayAlerts(err)
+                }
+                console.error(err)
+            })
+        }
+
+        function checkMode() {
+            restoreModeSettings()
+        }
+
+        function checkPowerful() {
+            const ePowerful = document.getElementById('powerful')
+            const eQuiet = document.getElementById('quiet')
+            const eFan = document.getElementById('fan_speed')
+            if (ePowerful.checked) {
+                eQuiet.checked = false
+                eFan.disabled = true
+            }
+            else if (!eQuiet.checked) {
+                eFan.disabled = false
+                restoreModeSettings()
+            }
+        }
+
+        function checkQuiet() {
+            const ePowerful = document.getElementById('powerful')
+            const eQuiet = document.getElementById('quiet')
+            const eFan = document.getElementById('fan_speed')
+            if (eQuiet.checked) {
+                ePowerful.checked = false
+                eFan.disabled = true
+            }
+            else if (!ePowerful.checked) {
+                eFan.disabled = false
+                restoreModeSettings()
+            }
+        }
+
+        function checkTemp() {
+            const eTemp = document.getElementById('temperature')
+            const eTempSlider = document.getElementById('temperature_slider')
+            if (eTemp.validity.valid) {
+                eTempSlider.value = eTemp.value
+            }
+        }
+
+        function checkTempSlider() {
+            const eTemp = document.getElementById('temperature')
+            const eTempSlider = document.getElementById('temperature_slider')
+            if (eTempSlider.validity.valid) {
+                eTemp.value = eTempSlider.value
+            }
+        }
+
+        function checkTon() {
+            const eTon = document.getElementById('timer_on')
+            const eTont = document.getElementById('timer_on_time')
+            eTont.required = eTon.checked
+        }
+
+        function checkToff() {
+            const eToff = document.getElementById('timer_off')
+            const eTofft = document.getElementById('timer_off_time')
+            eTofft.required = eToff.checked
+        }
+
+        function validateInput() {
+            let alertMsg = ''
+
+            const eTemp = document.getElementById('temperature')
+            const eTont = document.getElementById('timer_on_time')
+            const eTofft = document.getElementById('timer_off_time')
+
+            if (!eTemp.validity.valid) {
+                alertMsg += `<p>Temperature: ${eTemp.validationMessage}</p>`
+            }
+            if (!eTont.validity.valid) {
+                alertMsg += `<p>Timer On Time: ${eTont.validationMessage}</p>`
+            }
+            if (!eTofft.validity.valid) {
+                alertMsg += `<p>Timer Off Time: ${eTofft.validationMessage}</p>`
+            }
+
+            if (alertMsg != '') {
+                displayAlerts(alertMsg)
+                return false
+            }
+
+            resetAlerts()
+            return true
+        }
+
+        function restoreModeSettings() {
+            const modeSettings = JSON.parse(sessionStorage.getItem('paninvModeSettings'))
+            const eMode = document.getElementById('mode')
+            const mode = eMode.value
+            const ms = modeSettings[mode]
+
+            const eTemp = document.getElementById('temperature')
+            const eTempSlider = document.getElementById('temperature_slider')
+            eTemp.value = ms.temp
+            eTempSlider.value = ms.temp
+
+            const eFan = document.getElementById('fan_speed')
+            eFan.value = ms.fan
+        }
+
+        function displayAlerts(alertMsg) {
+            const alert = document.getElementById('alert')
+            alert.innerHTML = alertMsg
+            alert.classList.remove("hidden")
+        }
+
+        function resetAlerts() {
+            const alert = document.getElementById('alert')
+            alert.classList.add("hidden")
+            alert.innerHTML = ''
+        }
+
+        function showConfirmation(infoMsg) {
+            displayInfo(infoMsg)
+            setTimeout(resetInfo, 2000)
+        }
+
+        function displayInfo(infoMsg) {
+            const info = document.getElementById('info')
+            info.innerHTML = infoMsg
+            info.classList.remove("hidden")
+        }
+
+        function resetInfo() {
+            const info = document.getElementById('info')
+            info.classList.add("hidden")
+            info.innerHTML = ''
+        }
+
+        function highlightButton(btn) {
+            btn.classList.add('btn_highlight')
+            setTimeout(() => btn.classList.remove('btn_highlight'), 250)
+        }
+
+        function initialize() {
+            const eRefresh = document.getElementById('refresh_button')
+            const eSend = document.getElementById('send_button')
+
+            eRefresh.addEventListener('click', refreshButton)
+            eSend.addEventListener('click', sendButton)
+
+            const eMode = document.getElementById('mode')
+            const ePowerful = document.getElementById('powerful')
+            const eQuiet = document.getElementById('quiet')
+            const eTemp = document.getElementById('temperature')
+            const eTempSlider = document.getElementById('temperature_slider')
+            const eTon = document.getElementById('timer_on')
+            const eToff = document.getElementById('timer_off')
+
+            eMode.addEventListener('change', checkMode)
+            ePowerful.addEventListener('change', checkPowerful)
+            eQuiet.addEventListener('change', checkQuiet)
+            eTemp.addEventListener('input', checkTemp)
+            eTempSlider.addEventListener('input', checkTempSlider)
+            eTon.addEventListener('change', checkTon)
+            eToff.addEventListener('change', checkToff)
+
+            refresh(false)
+            window.addEventListener('focus', () => refresh(true))
+        }
+
+        window.addEventListener('load', initialize)
+    </script>
 </body>
 </html>

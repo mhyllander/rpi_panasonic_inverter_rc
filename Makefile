@@ -43,7 +43,7 @@ deploy_web:
 
 deploy_jobs:
 	scp jobs.json piir:
-	ssh piir 'PANINV_DB=paninv/paninv.db bin/paninv_controller -load-jobs jobs.json; sudo systemctl restart paninv_controller.service'
+	ssh piir 'bin/paninv_controller -db=paninv/paninv.db -load-jobs=jobs.json && sudo systemctl restart paninv_controller.service'
 
 clean:
 	rm -f bin/* arm64/*

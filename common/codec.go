@@ -141,15 +141,24 @@ const (
 	P_PANASONIC_TIME_UNSET = 0x600
 )
 
-// this is the constant first frame (64 bits) used by the Panasonic IR Controller A75C3115
+// The constant first frame (64 bits) used by the Panasonic IR Controller A75C3115
 func P_PANASONIC_FRAME1() []byte {
-	// this is the value in big.Int as bytes, which can be used to initialize a message when sending
-	return []byte{0b00000110, 0b00000000, 0b00000000, 0b00000000, 0b00000100, 0b11100000, 0b00100000, 0b00000010}
+	// this is the big.Int value as bytes, which can be used to initialize a message when sending
+	return []byte{
+		0b00000110,
+		0b00000000,
+		0b00000000,
+		0b00000000,
+		0b00000100,
+		0b11100000,
+		0b00100000,
+		0b00000010,
+	}
 }
 
-// this is a template for the second frame (152 bits) used by the Panasonic IR Controller A75C3115
+// A template for the second frame (152 bits) used by the Panasonic IR Controller A75C3115
 func P_PANASONIC_FRAME2() []byte {
-	// this is the value in big.Int as bytes, which can be used to initialize a message when sending
+	// this is the big.Int value as bytes, which can be used to initialize a message when sending
 	return []byte{
 		0b00000000, // checksum (8 bits)
 		0b00000000, // unused (5 bits), clock time (3 bits)

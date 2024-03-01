@@ -21,17 +21,16 @@ import (
 var g_irSender *codec.IrSender
 var rootTemplate *template.Template
 
-// type contextKey string
-
 type RootData struct {
 	PageTitle string
 }
 
 func getRoot(w http.ResponseWriter, r *http.Request) {
-	// ctx := r.Context()
-	// TODO: remove
-	webFunctions := template.FuncMap{}
-	rootTemplate = template.Must(template.New("root.gohtml").Funcs(webFunctions).ParseFiles("web/root.gohtml"))
+	if slog.Default().Enabled(r.Context(), slog.LevelDebug) {
+		slog.Info("reloading template while debugging")
+		webFunctions := template.FuncMap{}
+		rootTemplate = template.Must(template.New("root.gohtml").Funcs(webFunctions).ParseFiles("web/root.gohtml"))
+	}
 
 	slog.Debug("GET /")
 	data := RootData{
@@ -44,7 +43,7 @@ func getRoot(w http.ResponseWriter, r *http.Request) {
 }
 
 // Return all settings as JSON
-func apiGetSettings(w http.ResponseWriter, r *http.Request) {
+func returnCurrentSettings(w http.ResponseWriter) {
 	var theSettings common.AllSettings
 	theSettings.ModeSettings = make(common.ModeSettingsMap)
 
@@ -78,8 +77,19 @@ func apiGetSettings(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func apiGetSettings(w http.ResponseWriter, r *http.Request) {
+	returnCurrentSettings(w)
+}
+
 func apiPostSettings(w http.ResponseWriter, r *http.Request) {
 	var settings common.Settings
+
+	if r.Header.Get("Content-Type") != "application/json" {
+		slog.Error("apiPostSettings expecting JSON data", "Content-Type", r.Header.Get("Content-Type"))
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("expecting JSON in request"))
+		return
+	}
 
 	err := json.NewDecoder(r.Body).Decode(&settings)
 	if err != nil {
@@ -109,7 +119,7 @@ func apiPostSettings(w http.ResponseWriter, r *http.Request) {
 	}
 	slog.Debug("saved config")
 
-	w.WriteHeader(http.StatusNoContent)
+	returnCurrentSettings(w)
 }
 
 func StartServer(logLevel string, irSender *codec.IrSender) {
@@ -141,8 +151,8 @@ func StartServer(logLevel string, irSender *codec.IrSender) {
 
 	// status page
 	r.Get("/", getRoot)
-	// webFunctions := template.FuncMap{}
-	// rootTemplate = template.Must(template.New("root.gohtml").Funcs(webFunctions).ParseFiles("web/root.gohtml"))
+	webFunctions := template.FuncMap{}
+	rootTemplate = template.Must(template.New("root.gohtml").Funcs(webFunctions).ParseFiles("web/root.gohtml"))
 
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/settings", apiGetSettings)
