@@ -25,37 +25,17 @@ func roundToPanasonicIrTimings(v uint32) uint32 {
 
 	switch mode2 {
 	case common.L_LIRC_MODE2_SPACE:
-		// first make a nice try to find values close to the expected
 		for _, t := range common.L_PANASONIC_IR_SPACE_TIMINGS() {
 			if t-common.L_PANASONIC_TIMING_SPREAD < length && length < t+common.L_PANASONIC_TIMING_SPREAD {
 				return t
 			}
 		}
-		// if the previous didn't work, try a really coarse categorization
-		// expected values are 435, 1300, 1750, or 10000
-		// if length < 900 {
-		// 	return L_PANASONIC_SPACE_0
-		// } else if length < 1550 {
-		// 	return L_PANASONIC_SPACE_1
-		// } else if length < 2200 {
-		// 	return L_PANASONIC_FRAME_MARK2_SPACE
-		// } else if length > 9000 && length < L_PANASONIC_SPACE_OUTLIER {
-		// 	return L_PANASONIC_SEPARATOR
-		// }
 	case common.L_LIRC_MODE2_PULSE:
-		// first make a nice try to find values close to the expected
 		for _, t := range common.L_PANASONIC_IR_PULSE_TIMINGS() {
 			if t-common.L_PANASONIC_TIMING_SPREAD < length && length < t+common.L_PANASONIC_TIMING_SPREAD {
 				return t
 			}
 		}
-		// if the previous didn't work, try a really coarse categorization
-		// expected values are 435 or 3500
-		// if length < 900 {
-		// 	return L_PANASONIC_PULSE
-		// } else if length > 2500 && length < L_PANASONIC_PULSE_OUTLIER {
-		// 	return L_PANASONIC_FRAME_MARK1_PULSE
-		// }
 	}
 	return length
 }
