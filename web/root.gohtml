@@ -30,6 +30,9 @@
             border: 2px solid gray;
             font-size: 20px;
         }
+        .bottomspace {
+            height: 60px;
+        }
 
         /* Info message box */
         .info {
@@ -69,33 +72,31 @@
         .setting {
             height: 28px;
             font-size: 16px;
+            display: flex;
         }
-        .setting label {
-            display: inline-block;
-            width: 130px;
+        .label {
+            flex-basis: 130px;
         }
-        .setting input, .setting select {
+        .input input, .input select {
             font-size: inherit;
         }
         .tempsetting {
             height: unset;
-            display: flex;
-            flex-direction: row;
-            align-items: flex-start;
         }
         .tempinputs {
             flex-grow: 1;
             display: flex;
             flex-direction: column;
-            align-items: left;
-        }
-        .tempinputs input[type=number] {
-            width: 50px;
         }
         .tempslider {
+            flex-grow: 1;
+            display: flex;
+        }
+        .slider {
             appearance: none;
             flex-grow: 1;
             height: 18px;
+            max-width: 300px;
             background: #d3d3d3;
             outline: none;
             opacity: 0.7;
@@ -103,6 +104,22 @@
         }
         .slider:hover {
             opacity: 1;
+        }
+
+        /* Responsive layout */
+        @media (max-width: 280px) {
+            .setting {
+                flex-direction: column;
+                height: unset;
+                margin-bottom: 10px;
+            }
+            .label {
+                flex-basis: unset;
+                align-self: flex-start;
+            }
+            .input {
+                align-self: flex-end;
+            }
         }
 
         /* Input validation */
@@ -122,84 +139,111 @@
     <div id="settingscontainer">
         <h3>Settings</h3>
         <div class="setting">
-            <label for="power">Power</label>
-            <input type="checkbox" id="power">
+            <div class="label">Power</div>
+            <div class="input">
+                <input type="checkbox" id="power">
+            </div>
         </div>
         <div class="setting">
-            <label for="mode">Mode</label>
-            <select id="mode">
-                <option value="heat">Heat</option>
-                <option value="cool">Cool</option>
-                <option value="dry">Dry</option>
-                <option value="auto" selected>Auto</option>
-            </select>
+            <div class="label">Mode</div>
+            <div class="input">
+                <select id="mode">
+                    <option value="heat">Heat</option>
+                    <option value="cool">Cool</option>
+                    <option value="dry">Dry</option>
+                    <option value="auto" selected>Auto</option>
+                </select>
+            </div>
         </div>
         <div class="setting">
-            <label for="powerful">Powerful</label>
-            <input type="checkbox" id="powerful">
+            <div class="label">Powerful</div>
+            <div class="input">
+                <input type="checkbox" id="powerful">
+            </div>
         </div>
         <div class="setting">
-            <label for="quiet">Quiet</label>
-            <input type="checkbox" id="quiet">
+            <div class="label">Quiet</div>
+            <div class="input">
+                <input type="checkbox" id="quiet">
+            </div>
         </div>
         <div class="setting tempsetting">
-            <label for="temperature">Temperature</label>
-            <div class="tempinputs">
-                <input type="number" id="temperature" min="16" max="30" value="20" required>
-                <input type="range" id="temperature_slider" class="tempslider" min="16" max="30" value="20">
+            <div class="label">Temperature</div>
+            <div class="input tempinputs">
+                <div class="tempinput">
+                    <input type="number" id="temperature" min="16" max="30" value="20" required>
+                </div>
+                <div class="tempslider">
+                    <input type="range" id="temperature_slider" class="slider" min="16" max="30" value="20">
+                </div>
             </div>
         </div>
         <h3>Air Flow</h3>
         <div class="setting">
-            <label for="fan_speed">Fan Speed</label>
-            <select id="fan_speed">
-                <option value="lowest">Lowest</option>
-                <option value="low">Low</option>
-                <option value="middle">Middle</option>
-                <option value="high">High</option>
-                <option value="highest">Highest</option>
-                <option value="auto" selected>Auto</option>
-            </select>
+            <div class="label">Fan Speed</div>
+            <div class="input">
+                <select id="fan_speed">
+                    <option value="lowest">Lowest</option>
+                    <option value="low">Low</option>
+                    <option value="middle">Middle</option>
+                    <option value="high">High</option>
+                    <option value="highest">Highest</option>
+                    <option value="auto" selected>Auto</option>
+                </select>
+            </div>
         </div>
         <div class="setting">
-            <label for="vent_vertical">Vertical Swing</label>
-            <select id="vent_vertical">
-                <option value="highest">Highest</option>
-                <option value="high">High</option>
-                <option value="middle">Middle</option>
-                <option value="low">Low</option>
-                <option value="lowest">Lowest</option>
-                <option value="auto" selected>Auto</option>
-            </select>
+            <div class="label">Vertical Swing</div>
+            <div class="input">
+                <select id="vent_vertical">
+                    <option value="highest">Highest</option>
+                    <option value="high">High</option>
+                    <option value="middle">Middle</option>
+                    <option value="low">Low</option>
+                    <option value="lowest">Lowest</option>
+                    <option value="auto" selected>Auto</option>
+                </select>
+            </div>
         </div>
         <div class="setting">
-            <label for="vent_horizontal">Horizontal Swing</label>
-            <select id="vent_horizontal">
-                <option value="farleft">Far left</option>
-                <option value="left">Left</option>
-                <option value="middle">Middle</option>
-                <option value="right">Right</option>
-                <option value="farright">Far right</option>
-                <option value="auto" selected>Auto</option>
-            </select>
+            <div class="label">Horizontal Swing</div>
+            <div class="input">
+                <select id="vent_horizontal">
+                    <option value="farleft">Far left</option>
+                    <option value="left">Left</option>
+                    <option value="middle">Middle</option>
+                    <option value="right">Right</option>
+                    <option value="farright">Far right</option>
+                    <option value="auto" selected>Auto</option>
+                </select>
+            </div>
         </div>
         <h3>Timers</h3>
         <div class="setting">
-            <label for="timer_on">Timer On</label>
-            <input type="checkbox" id="timer_on">
+            <div class="label">Timer On</div>
+            <div class="input">
+                <input type="checkbox" id="timer_on">
+            </div>
         </div>
         <div class="setting">
-            <label for="timer_on_time">Timer On Time</label>
-            <input type="time" id="timer_on_time" value="">
+            <div class="label">Timer On Time</div>
+            <div class="input">
+                <input type="time" id="timer_on_time" value="">
+            </div>
         </div>
         <div class="setting">
-            <label for="timer_off">Timer Off</label>
-            <input type="checkbox" id="timer_off">
+            <div class="label">Timer Off</div>
+            <div class="input">
+                <input type="checkbox" id="timer_off">
+            </div>
         </div>
         <div class="setting">
-            <label for="timer_off_time">Timer Off Time</label>
-            <input type="time" id="timer_off_time" value="">
+            <div class="label">Timer Off Time</div>
+            <div class="input">
+                <input type="time" id="timer_off_time" value="">
+            </div>
         </div>
+        <div class="bottomspace"></div>
         <div class="controlpanel">
             <div id="alert" class="alert hidden"></div>
             <div class="buttons">
