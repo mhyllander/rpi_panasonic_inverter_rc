@@ -30,9 +30,6 @@
             border: 2px solid gray;
             font-size: 20px;
         }
-        .bottomspace {
-            height: 60px;
-        }
 
         /* Info message box */
         .info {
@@ -183,11 +180,11 @@
             <div class="label">Fan Speed</div>
             <div class="input">
                 <select id="fan_speed">
-                    <option value="lowest">Lowest</option>
-                    <option value="low">Low</option>
-                    <option value="middle">Middle</option>
-                    <option value="high">High</option>
                     <option value="highest">Highest</option>
+                    <option value="high">High</option>
+                    <option value="middle">Middle</option>
+                    <option value="low">Low</option>
+                    <option value="lowest">Lowest</option>
                     <option value="auto" selected>Auto</option>
                 </select>
             </div>
@@ -243,8 +240,8 @@
                 <input type="time" id="timer_off_time" value="">
             </div>
         </div>
-        <div class="bottomspace"></div>
-        <div class="controlpanel">
+        <div id="filler"></div>
+        <div id="controlpanel" class="controlpanel">
             <div id="alert" class="alert hidden"></div>
             <div class="buttons">
                 <button type="button" id="refresh_button">Refresh</button>
@@ -349,12 +346,12 @@
             })
         }
 
-        function refreshButton(e) {
+        function btnRefresh(e) {
             highlightButton(e.target)
             refresh(true)
         }
 
-        function sendButton(e) {
+        function btnSend(e) {
             highlightButton(e.target)
 
             const ePower = document.getElementById('power')
@@ -589,12 +586,21 @@
             setTimeout(() => btn.classList.remove('btn_highlight'), 250)
         }
 
+        function updateFillerHeight(entries) {
+            for (const entry of entries) {
+                if (entry.target.id == 'controlpanel') {
+                    const eFiller = document.getElementById('filler')
+                    eFiller.style.height = entry.borderBoxSize[0].blockSize + "px"
+                }
+            }
+        }
+
         function initialize() {
             const eRefresh = document.getElementById('refresh_button')
             const eSend = document.getElementById('send_button')
 
-            eRefresh.addEventListener('click', refreshButton)
-            eSend.addEventListener('click', sendButton)
+            eRefresh.addEventListener('click', btnRefresh)
+            eSend.addEventListener('click', btnSend)
 
             const eMode = document.getElementById('mode')
             const ePowerful = document.getElementById('powerful')
@@ -614,6 +620,9 @@
 
             refresh(false)
             window.addEventListener('focus', () => refresh(true))
+
+            const eControlPanel = document.getElementById('controlpanel')
+            new ResizeObserver(updateFillerHeight).observe(eControlPanel)
         }
 
         window.addEventListener('load', initialize)
