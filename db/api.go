@@ -159,6 +159,18 @@ func SaveConfig(rc, dbRc *codec.RcConfig) error {
 		return result.Error
 	}
 
+	slog.Debug("saved config to db")
+	return nil
+}
+
+func SetPower(power uint) error {
+	var nc DbIrConfig
+	if result := myDb.First(&nc, 1); result.Error != nil {
+		return result.Error
+	}
+	if result := myDb.Model(&nc).Updates(map[string]interface{}{"Power": power}); result.Error != nil {
+		return result.Error
+	}
 	return nil
 }
 
@@ -214,7 +226,7 @@ func GetJobSets() (*[]JobSet, error) {
 
 func GetActiveJobSets() (*[]JobSet, error) {
 	var jobsets []JobSet
-	if result := myDb.Where(map[string]interface{}{"active": true}).Find(&jobsets); result.Error != nil {
+	if result := myDb.Where(map[string]interface{}{"Active": true}).Find(&jobsets); result.Error != nil {
 		return nil, result.Error
 	}
 	return &jobsets, nil

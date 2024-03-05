@@ -25,8 +25,6 @@ func SendCurrentConfig() {
 	}
 
 	sendRc := dbRc.CopyForSendingAll()
-	// update power setting, adjusting for any timers
-	utils.SetPower("", sendRc, dbRc)
 
 	g_irSender.SendConfig(sendRc)
 
@@ -35,7 +33,6 @@ func SendCurrentConfig() {
 		slog.Error("failed to save config", "err", err)
 		return
 	}
-	slog.Debug("saved config")
 }
 
 func RunCronJob(settings *common.Settings) {
@@ -55,7 +52,6 @@ func RunCronJob(settings *common.Settings) {
 		slog.Error("failed to save config", "err", err)
 		return
 	}
-	slog.Debug("saved config")
 }
 
 func createCronJobs() {
@@ -94,6 +90,77 @@ func createCronJobs() {
 	}
 }
 
+func TimerJob(power uint) {
+	slog.Info("processing timer job")
+	if err := db.SetPower(power); err != nil {
+		slog.Error("TimerJob: failed to set power", "err", err)
+		return
+	}
+	slog.Debug("TimerJob: updated power", "power", power)
+}
+
+func scheduleTimerJob(name string, power uint, t codec.Time) (gocron.Job, error) {
+	j, err := scheduler.NewJob(
+		gocron.DailyJob(1, gocron.NewAtTimes(gocron.NewAtTime(t.Hour(), t.Minute(), 0))),
+		gocron.NewTask(
+			TimerJob,
+			power,
+		),
+		gocron.WithName(name),
+	)
+	if err != nil {
+		return nil, err
+	}
+	return j, nil
+}
+
+var timerOnJob, timerOffJob gocron.Job
+
+func UpdateTimerJobs() {
+	dbRc, err := db.CurrentConfig()
+	if err != nil {
+		slog.Error("UpdateTimerJobs: failed to get current config", "err", err)
+		return
+	}
+
+	if timerOnJob != nil {
+		if err := scheduler.RemoveJob(timerOnJob.ID()); err != nil {
+			slog.Error("UpdateTimerJobs: failed to remove timer on job", "err", err)
+		}
+		timerOnJob = nil
+	}
+	if dbRc.TimerOn == common.C_Timer_Enabled {
+		// The inverter can power on before the configured time to achieve the desired temperature. After being off
+		// during the night it sometimes starts 45 minutes before. It probably depends on the difference between the
+		// current and the desired temperatures. Since we can't know when it will start, we'll just have to use a
+		// hard-coded default.
+		t := dbRc.TimerOnTime - 45
+		if j, err := scheduleTimerJob("timer_on", common.C_Power_On, t); err == nil {
+			timerOnJob = j
+			slog.Info("UpdateTimerJobs: scheduled timer on job", "t", t.ToString())
+		} else {
+			slog.Error("UpdateTimerJobs: failed to schedule timer on job", "err", err)
+		}
+	}
+
+	if timerOffJob != nil {
+		if err := scheduler.RemoveJob(timerOffJob.ID()); err != nil {
+			slog.Error("UpdateTimerJobs: failed to remove timer off job", "err", err)
+		}
+		timerOffJob = nil
+	}
+	if dbRc.TimerOff == common.C_Timer_Enabled {
+		if j, err := scheduleTimerJob("timer_off", common.C_Power_Off, dbRc.TimerOffTime); err == nil {
+			timerOffJob = j
+			slog.Info("UpdateTimerJobs: scheduled timer off job", "t", dbRc.TimerOffTime.ToString())
+		} else {
+			slog.Error("UpdateTimerJobs: failed to schedule timer off job", "err", err)
+		}
+	}
+
+	slog.Debug("updated timer jobs")
+}
+
 func InitScheduler(irSender *codec.IrSender) error {
 	var err error
 
@@ -126,6 +193,7 @@ func InitScheduler(irSender *codec.IrSender) error {
 
 	// Schedule all the active cron jobs
 	createCronJobs()
+	UpdateTimerJobs()
 
 	// start the scheduler
 	scheduler.Start()

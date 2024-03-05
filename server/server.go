@@ -10,6 +10,7 @@ import (
 	"rpi_panasonic_inverter_rc/codec"
 	"rpi_panasonic_inverter_rc/common"
 	"rpi_panasonic_inverter_rc/db"
+	"rpi_panasonic_inverter_rc/sched"
 	"rpi_panasonic_inverter_rc/utils"
 	"time"
 
@@ -117,7 +118,8 @@ func apiPostSettings(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(err.Error()))
 		return
 	}
-	slog.Debug("saved config")
+
+	sched.UpdateTimerJobs()
 
 	returnCurrentSettings(w)
 }

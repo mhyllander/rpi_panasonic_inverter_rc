@@ -61,7 +61,8 @@ func messageHandler(options *Options) func(*codec.Message) {
 			slog.Error("failed to save the new config", "error", err)
 			return
 		}
-		slog.Debug("saved config to db")
+
+		sched.UpdateTimerJobs()
 	}
 }
 

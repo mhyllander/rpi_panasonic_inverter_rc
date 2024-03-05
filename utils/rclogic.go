@@ -8,62 +8,16 @@ import (
 	"rpi_panasonic_inverter_rc/db"
 	"strconv"
 	"strings"
-	"time"
 )
 
-func SetPower(setting string, rc, dbRc *codec.RcConfig) {
-	now := time.Now()
-	setPower(setting, rc, dbRc, codec.NewTime(uint(now.Hour()), uint(now.Minute())))
-}
-
-func setPower(setting string, rc, dbRc *codec.RcConfig, clock codec.Time) {
+func SetPower(setting string, rc *codec.RcConfig) {
 	switch setting {
 	case "on", "yes", "enable", "enabled":
 		rc.Power = common.C_Power_On
 	case "off", "no", "disable", "disabled":
 		rc.Power = common.C_Power_Off
 	default:
-		// Adjust Power according to current time and any enabled timers. The assumption is
-		// that if timers are set, the inverter's Power state may have changed to on or off
-		// automatically, which is not reflected in the saved state, and we don't want to
-		// inadvertently change it while changing some other parameter. Therefore Power will
-		// be set to what is expected according to the timers. This automatic behavior can
-		// be overridden by explicitly setting Power.
-		// Note that rc may contain updated timer configuration - if not, fallback to using
-		// saved values in dbRc.
-		timer_on := rc.TimerOn == common.C_Timer_Enabled
-		on_time := rc.TimerOnTime
-		if on_time == common.C_Time_Unset {
-			on_time = dbRc.TimerOnTime
-		}
-		timer_off := rc.TimerOff == common.C_Timer_Enabled
-		off_time := rc.TimerOffTime
-		if off_time == common.C_Time_Unset {
-			off_time = dbRc.TimerOffTime
-		}
-		if timer_on && timer_off && on_time != common.C_Time_Unset && off_time != common.C_Time_Unset {
-			if on_time <= off_time {
-				rc.Power = common.C_Power_On
-				if clock < on_time || clock >= off_time {
-					rc.Power = common.C_Power_Off
-				}
-			} else {
-				rc.Power = common.C_Power_Off
-				if clock < off_time || clock >= on_time {
-					rc.Power = common.C_Power_On
-				}
-			}
-		} else if timer_on && on_time != common.C_Time_Unset {
-			rc.Power = common.C_Power_Off
-			if clock >= on_time {
-				rc.Power = common.C_Power_On
-			}
-		} else if timer_off && off_time != common.C_Time_Unset {
-			rc.Power = common.C_Power_On
-			if clock >= off_time {
-				rc.Power = common.C_Power_Off
-			}
-		}
+		return
 	}
 }
 
@@ -293,6 +247,7 @@ func SetTimerOffTime(time string, rc, dbRc *codec.RcConfig) {
 
 func ComposeSendConfig(settings *common.Settings, dbRc *codec.RcConfig) *codec.RcConfig {
 	sendRc := dbRc.CopyForSending()
+	SetPower(settings.Power, sendRc)
 	SetMode(settings.Mode, sendRc)
 	SetPowerful(settings.Powerful, sendRc)
 	SetQuiet(settings.Quiet, sendRc)
@@ -306,9 +261,6 @@ func ComposeSendConfig(settings *common.Settings, dbRc *codec.RcConfig) *codec.R
 	SetTimerOnTime(settings.TimerOnTime, sendRc, dbRc)
 	SetTimerOff(settings.TimerOff, sendRc, dbRc)
 	SetTimerOffTime(settings.TimerOffTime, sendRc, dbRc)
-
-	// set power last, adjusting for any (updated) timers
-	SetPower(settings.Power, sendRc, dbRc)
 
 	return sendRc
 }
