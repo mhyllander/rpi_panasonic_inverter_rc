@@ -1,14 +1,14 @@
 # Configuring the Raspberry Pi
 
-## Some reference material
-
-<https://github.com/raspberrypi/linux/issues/2993#issuecomment-497420228>
+## Reference material for kernel LIRC Device Interface
 
 <https://www.kernel.org/doc/html/v6.1/userspace-api/media/rc/lirc-dev.html>
 
-<https://www.kernel.org/doc/html/v6.1/userspace-api/media/rc/lirc-dev-intro.html>
-
 <https://www.mess.org/2020/01/26/Moving-from-lirc-tools-to-rc-core-tooling/>
+
+## Some tips
+
+<https://github.com/raspberrypi/linux/issues/2993#issuecomment-497420228> (the beginning, not the part regarding lircd which is not relevant here)
 
 ## Initial setup
 
@@ -31,7 +31,7 @@ My screen went black after initial boot messages. No login prompt. I found this 
 cat /sys/class/drm/card?-HDMI-A-1/edid
 ```
 
-did not return an EDID, suggesting that KMS had problems reading the displays EDID. Adding the following to `/boot/firmware/cmdline.txt` solved the problem:
+did not return an EDID, suggesting that KMS had problems reading the displays EDID. Appending the following video setting to `/boot/firmware/cmdline.txt` solved the problem:
 
 ```
 video=HDMI-A-1:1280x720@60D
@@ -39,7 +39,7 @@ video=HDMI-A-1:1280x720@60D
 
 ## LIRC
 
-No LIRC user space packages are needed. The Panasonic inverter remote control does not transmit simple button presses, therefore the LIRC functionality for mapping IR pulse/space sequences to buttons is of no use. Instead we must ourselves read (and write) the RAW LIRC data provided on the /dev/lirc devices by kernel drivers.
+No LIRC user space packages are needed. There are many example projects out there that use [LIRC](https://lirc.org) to receive and send IR signals, but parts of LIRC have been moved into the kernel, and the remaining user space tools that were needed are now provided by the `v4l-utils` package (see the [blog](https://www.mess.org/2020/01/26/Moving-from-lirc-tools-to-rc-core-tooling/)). The Panasonic inverter remote control does not transmit simple button presses, therefore the `lircd` functionality for translating IR pulse/space sequences into button presses is of no use. Instead we must ourselves read (and write) the RAW LIRC data provided on the /dev/lirc devices by the kernel LIRC device drivers.
 
 ### Configuring the IR modules
 

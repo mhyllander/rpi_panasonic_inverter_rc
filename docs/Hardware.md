@@ -1,9 +1,5 @@
 # Hardware and Circuits
 
-The Panasonic Inverter Remote Controller A75C3115
-
-![Remote Controller A75C3115](Panasonic_IR_Controller_A75C3115.jpg)
-
 ## Various tutorials
 
 1. https://www.digikey.se/en/maker/tutorials/2021/how-to-send-and-receive-ir-signals-with-a-raspberry-pi
@@ -58,16 +54,10 @@ The next biggest resistor was 22 Ω.
 
 ## Pictures
 
-![](pizero_bottom.jpg)
-
-![](pizero_top.jpg)
-
-![](breadboard.jpg)
-
-![](pizero_with_breadboard.jpg)
-
-![](pcb1.jpg)
-
-![](pcb2.jpg)
-
-![](pizero_with_pcb.jpg)
+<img src="pizero_bottom.jpg" width="400">
+<img src="pizero_top.jpg" width="400">
+<img src="breadboard.jpg" width="400">
+<img src="pizero_with_breadboard.jpg" width="400">
+<img src="pcb1.jpg" width="400">
+<img src="pcb2.jpg" width="400">
+<img src="pizero_with_pcb.jpg" width="400">
