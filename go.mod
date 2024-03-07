@@ -1,12 +1,12 @@
 module rpi_panasonic_inverter_rc
 
-go 1.22.0
+go 1.22.1
 
 require (
 	github.com/go-chi/chi/v5 v5.0.12
-	github.com/go-chi/httplog/v2 v2.0.9
-	github.com/go-co-op/gocron/v2 v2.2.4
-	golang.org/x/sys v0.17.0
+	github.com/go-co-op/gocron/v2 v2.2.5
+	github.com/mhyllander/go-chi-httplog/v2 v2.0.0-20240307083016-6cc81b613b09
+	golang.org/x/sys v0.18.0
 	gorm.io/driver/sqlite v1.5.5
 	gorm.io/gorm v1.25.7
 )

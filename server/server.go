@@ -16,7 +16,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/go-chi/httplog/v2"
+	httplog "github.com/mhyllander/go-chi-httplog/v2"
 )
 
 var g_irSender *codec.IrSender
