@@ -11,7 +11,6 @@ import (
 	"rpi_panasonic_inverter_rc/db"
 	"rpi_panasonic_inverter_rc/sched"
 	"rpi_panasonic_inverter_rc/server"
-	"rpi_panasonic_inverter_rc/utils"
 )
 
 type Options struct {
@@ -62,7 +61,7 @@ func messageHandler(options *Options) func(*codec.Message) {
 			return
 		}
 
-		sched.UpdateTimerJobs()
+		sched.RestartTimerJobs()
 	}
 }
 
@@ -144,7 +143,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	utils.InitLogger(*vLogLevel)
+	common.InitLogger(*vLogLevel)
 
 	if *vRcDb == "" {
 		slog.Error("please set the db name")

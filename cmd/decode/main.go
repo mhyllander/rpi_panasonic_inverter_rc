@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 	"rpi_panasonic_inverter_rc/codec"
-	"rpi_panasonic_inverter_rc/utils"
+	"rpi_panasonic_inverter_rc/common"
 )
 
 type Options struct {
@@ -97,7 +97,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	utils.InitLogger(*vLogLevel)
+	common.InitLogger(*vLogLevel)
 
 	// this call blocks
 	err := codec.RunIrReceiver(*vIrInput, messageHandler(&options), recOptions)

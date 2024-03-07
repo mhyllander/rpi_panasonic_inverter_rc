@@ -27,7 +27,7 @@ type RootData struct {
 }
 
 func getRoot(w http.ResponseWriter, r *http.Request) {
-	if slog.Default().Enabled(r.Context(), slog.LevelDebug) {
+	if common.IsLogLevelDebug() {
 		slog.Info("reloading template while debugging")
 		webFunctions := template.FuncMap{}
 		rootTemplate = template.Must(template.New("root.gohtml").Funcs(webFunctions).ParseFiles("web/root.gohtml"))
@@ -83,7 +83,7 @@ func apiGetSettings(w http.ResponseWriter, r *http.Request) {
 }
 
 func apiPostSettings(w http.ResponseWriter, r *http.Request) {
-	var settings common.Settings
+	var settings = new(common.Settings)
 
 	if r.Header.Get("Content-Type") != "application/json" {
 		slog.Error("apiPostSettings expecting JSON data", "Content-Type", r.Header.Get("Content-Type"))
@@ -92,7 +92,7 @@ func apiPostSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := json.NewDecoder(r.Body).Decode(&settings)
+	err := json.NewDecoder(r.Body).Decode(settings)
 	if err != nil {
 		slog.Error("apiPostSettings decode body failed", "err", err)
 		w.WriteHeader(http.StatusBadRequest)
@@ -108,7 +108,7 @@ func apiPostSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sendRc := utils.ComposeSendConfig(&settings, dbRc)
+	sendRc := utils.ComposeSendConfig(settings, dbRc)
 	sendRc.LogConfigAndChecksum("")
 	g_irSender.SendConfig(sendRc)
 
@@ -119,7 +119,7 @@ func apiPostSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sched.UpdateTimerJobs()
+	sched.CondRestartTimerJobs(settings)
 
 	returnCurrentSettings(w)
 }
@@ -134,7 +134,7 @@ func StartServer(logLevel string, irSender *codec.IrSender) {
 	// Logger
 	logger := httplog.NewLogger("paninv-controller", httplog.Options{
 		JSON:            true,
-		LogLevel:        utils.SetLoggerOpts(logLevel).Level.Level(),
+		LogLevel:        common.SetLoggerOpts(logLevel).Level.Level(),
 		Concise:         true,
 		RequestHeaders:  false,
 		SourceFieldName: "",

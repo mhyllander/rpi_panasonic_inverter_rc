@@ -1,6 +1,7 @@
-package utils
+package common
 
 import (
+	"context"
 	"log/slog"
 	"os"
 )
@@ -25,4 +26,8 @@ func SetLoggerOpts(level string) *slog.HandlerOptions {
 func InitLogger(logLevel string) {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, SetLoggerOpts(logLevel)))
 	slog.SetDefault(logger)
+}
+
+func IsLogLevelDebug() bool {
+	return slog.Default().Enabled(context.Background(), slog.LevelDebug)
 }

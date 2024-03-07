@@ -63,7 +63,7 @@ func main() {
 		fmt.Println(err)
 	}
 
-	utils.InitLogger(*vLogLevel)
+	common.InitLogger(*vLogLevel)
 
 	// open and initialize database
 	db.Initialize(*vRcDb)
