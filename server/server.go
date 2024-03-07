@@ -133,11 +133,13 @@ func StartServer(logLevel string, irSender *codec.IrSender) {
 
 	// Logger
 	logger := httplog.NewLogger("paninv-controller", httplog.Options{
-		JSON:            true,
-		LogLevel:        common.SetLoggerOpts(logLevel).Level.Level(),
-		Concise:         true,
-		RequestHeaders:  false,
-		SourceFieldName: "",
+		JSON:             true,
+		LogLevel:         common.SetLoggerOpts(logLevel).Level.Level(),
+		Concise:          true,
+		RequestHeaders:   false,
+		SourceFieldName:  "",
+		TimeFieldName:    "time",
+		MessageFieldName: "msg",
 	})
 
 	// A good base middleware stack

@@ -182,7 +182,7 @@ func InitScheduler(irSender *codec.IrSender) error {
 
 	// create a scheduler
 	scheduler, err = gocron.NewScheduler(
-		// gocron.WithLogger(slog.Default()),
+		gocron.WithLogger(slog.Default()),
 		gocron.WithLimitConcurrentJobs(1, gocron.LimitModeWait),
 	)
 	if err != nil {
