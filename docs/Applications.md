@@ -117,3 +117,5 @@ $ paninv_controller -help
 ```
 
 <img src="paninv_controller.jpg" alt="Web interface" width="400">
+
+Using icons from [Icons8](https://icons8.com).

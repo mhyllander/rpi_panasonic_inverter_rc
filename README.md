@@ -45,3 +45,4 @@ There is currently no web interface to manage jobs scheduling. They can be uploa
 * [Development environment](docs/Development.md)
 * [Analysis of the remote control](docs/Analysis.md)
 
+Using icons from [Icons8](https://icons8.com).
