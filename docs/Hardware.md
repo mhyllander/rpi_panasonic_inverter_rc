@@ -31,7 +31,7 @@ https://www.raspberrypi.com/documentation/computers/raspberry-pi.html#gpio-and-t
 
 https://pinout.xyz
 
-![PCB circuit](./pcb_circuit.svg)
+![PCB circuit](./pcb_circuit.png)
 
 [pcb_circuit.drawio](./pcb_circuit.drawio)
 
