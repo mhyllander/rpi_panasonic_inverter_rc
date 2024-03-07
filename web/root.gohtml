@@ -70,12 +70,21 @@
             height: 28px;
             font-size: 16px;
             display: flex;
+            align-items: center;
         }
         .label {
             flex-basis: 130px;
         }
         .input input, .input select {
             font-size: inherit;
+            margin-left: 0px;
+            margin-right: 0px;
+        }
+        input[type="checkbox"] {
+            margin-top: 4px;
+            margin-bottom: 4px;
+            width: 18px;
+            height: 18px;
         }
         .tempsetting {
             height: unset;
@@ -92,6 +101,8 @@
         .slider {
             appearance: none;
             flex-grow: 1;
+            margin-top: 4px;
+            margin-bottom: 4px;
             height: 18px;
             max-width: 300px;
             background: #d3d3d3;
@@ -125,9 +136,6 @@
         }
         input:invalid:required {
             background-color: rgb(250,200,200);
-        }
-        input:valid {
-            border: 1px solid black;
         }
     </style>
 </head>
