@@ -1,9 +1,11 @@
 package server
 
 import (
+	"compress/gzip"
 	"encoding/json"
 	"errors"
 	"html/template"
+	"io"
 	"log/slog"
 	"net/http"
 	"os"
@@ -12,6 +14,7 @@ import (
 	"rpi_panasonic_inverter_rc/db"
 	"rpi_panasonic_inverter_rc/sched"
 	"rpi_panasonic_inverter_rc/utils"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -24,6 +27,30 @@ var rootTemplate *template.Template
 
 type RootData struct {
 	PageTitle string
+}
+
+// Gzip Compression
+type gzipResponseWriter struct {
+	io.Writer
+	http.ResponseWriter
+}
+
+func (w gzipResponseWriter) Write(b []byte) (int, error) {
+	return w.Writer.Write(b)
+}
+
+func Gzip(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+			handler.ServeHTTP(w, r)
+			return
+		}
+		w.Header().Set("Content-Encoding", "gzip")
+		gz := gzip.NewWriter(w)
+		defer gz.Close()
+		gzw := gzipResponseWriter{Writer: gz, ResponseWriter: w}
+		handler.ServeHTTP(gzw, r)
+	})
 }
 
 func getRoot(w http.ResponseWriter, r *http.Request) {
@@ -71,7 +98,7 @@ func returnCurrentSettings(w http.ResponseWriter) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content_Type", "application/json")
+	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(&theSettings)
 	if err != nil {
 		slog.Error("apiGetSettings JSON encode settings failed", "err", err)
@@ -86,7 +113,7 @@ func apiPostSettings(w http.ResponseWriter, r *http.Request) {
 	var settings = new(common.Settings)
 
 	if r.Header.Get("Content-Type") != "application/json" {
-		slog.Error("apiPostSettings expecting JSON data", "Content-Type", r.Header.Get("Content-Type"))
+		slog.Error("apiPostSettings: expecting JSON data", "Content-Type", r.Header.Get("Content-Type"))
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("expecting JSON in request"))
 		return
@@ -94,7 +121,7 @@ func apiPostSettings(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(settings)
 	if err != nil {
-		slog.Error("apiPostSettings decode body failed", "err", err)
+		slog.Error("apiPostSettings: decode body failed", "err", err)
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(err.Error()))
 		return
@@ -102,7 +129,7 @@ func apiPostSettings(w http.ResponseWriter, r *http.Request) {
 
 	dbRc, err := db.CurrentConfig()
 	if err != nil {
-		slog.Error("apiPostSettings save config failed", "err", err)
+		slog.Error("apiPostSettings: save config failed", "err", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(err.Error()))
 		return
@@ -114,7 +141,7 @@ func apiPostSettings(w http.ResponseWriter, r *http.Request) {
 
 	err = db.SaveConfig(sendRc, dbRc)
 	if err != nil {
-		slog.Error("failed to save config", "err", err)
+		slog.Error("apiPostSettings: failed to save config", "err", err)
 		w.Write([]byte(err.Error()))
 		return
 	}
@@ -152,6 +179,9 @@ func StartServer(logLevel string, irSender *codec.IrSender) {
 	// through ctx.Done() that the request has timed out and further
 	// processing should be stopped.
 	r.Use(middleware.Timeout(60 * time.Second))
+
+	// Handler to return compressed responses
+	r.Use(Gzip)
 
 	// status page
 	r.Get("/", getRoot)
