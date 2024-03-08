@@ -143,15 +143,15 @@ func RestartTimerJobs() {
 	if dbRc.TimerOn == common.C_Timer_Enabled {
 		job1Time := dbRc.TimerOnTime - job1MinutesBefore
 		if _, err := scheduleTimerJob("timer_on_1", common.C_Power_On, job1Time); err == nil {
-			slog.Info("scheduled first timer_on job", "at", job1Time.ToString())
+			slog.Info("scheduled timer_on_1 job", "at", job1Time.ToString())
 		} else {
-			slog.Error("failed to schedule first timer_on job", "err", err)
+			slog.Error("failed to schedule timer_on_1 job", "err", err)
 		}
 		job2Time := dbRc.TimerOnTime
 		if _, err := scheduleTimerJob("timer_on_2", common.C_Power_On, job2Time); err == nil {
-			slog.Info("scheduled second timer_on job", "at", job2Time.ToString())
+			slog.Info("scheduled timer_on_2 job", "at", job2Time.ToString())
 		} else {
-			slog.Error("failed to schedule second timer_on job", "err", err)
+			slog.Error("failed to schedule timer_on_2 job", "err", err)
 		}
 	}
 	if dbRc.TimerOff == common.C_Timer_Enabled {

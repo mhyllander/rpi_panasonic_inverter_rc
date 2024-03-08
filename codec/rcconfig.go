@@ -182,8 +182,11 @@ func (c *RcConfig) PrintConfigAndChecksum(checksumStatus string) {
 	}
 }
 
-func (c *RcConfig) LogConfigAndChecksum(checksumStatus string) {
-	slog.Info("config",
+func (c *RcConfig) LogConfigAndChecksum(msg, checksumStatus string) {
+	if msg == "" {
+		msg = "config"
+	}
+	slog.Info(msg,
 		"power", common.Power2String(c.Power),
 		"mode", common.Mode2String(c.Mode),
 		"powerful", common.Powerful2String(c.Powerful),

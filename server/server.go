@@ -136,7 +136,6 @@ func apiPostSettings(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sendRc := utils.ComposeSendConfig(settings, dbRc)
-	sendRc.LogConfigAndChecksum("")
 	g_irSender.SendConfig(sendRc)
 
 	err = db.SaveConfig(sendRc, dbRc)

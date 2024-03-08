@@ -38,7 +38,7 @@ func messageHandler(options *Options) func(*codec.Message) {
 
 		c := codec.RcConfigFromFrame(msg)
 
-		c.LogConfigAndChecksum(checksum)
+		c.LogConfigAndChecksum("received config", checksum)
 		if options.PrintConfig {
 			c.PrintConfigAndChecksum(checksum)
 		}
@@ -66,7 +66,6 @@ func messageHandler(options *Options) func(*codec.Message) {
 }
 
 type jobSet struct {
-	Name     string    `json:"jobset"`
 	Active   bool      `json:"active"`
 	CronJobs []cronJob `json:"cronjobs"`
 }
@@ -76,7 +75,7 @@ type cronJob struct {
 	Settings common.Settings `json:"settings"`
 }
 
-type jobSets []jobSet
+type jobSets map[string]jobSet
 
 func loadCronJobs(jobfile string) {
 	f, err := os.Open(jobfile)
@@ -100,12 +99,12 @@ func loadCronJobs(jobfile string) {
 
 	db.DeleteAllJobSetsPermanently()
 	db.DeleteAllCronJobsPermanently()
-	for _, js := range jobsets {
-		if err := db.SaveJobSet(js.Name, js.Active); err != nil {
-			slog.Error("failed to save jobset", "err", err)
+	for name, js := range jobsets {
+		if err := db.SaveJobSet(name, js.Active); err != nil {
+			slog.Error("failed to save jobset", "jobset", name, "err", err)
 		}
 		for _, j := range js.CronJobs {
-			if err := db.SaveCronJob(js.Name, j.Schedule, &j.Settings); err != nil {
+			if err := db.SaveCronJob(name, j.Schedule, &j.Settings); err != nil {
 				slog.Error("failed to save cronjob", "err", err)
 			}
 		}

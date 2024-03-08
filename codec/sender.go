@@ -73,7 +73,7 @@ func (sender *IrSender) send(sendRc *RcConfig) {
 	}
 	defer f.Close()
 
-	sendRc.LogConfigAndChecksum("")
+	sendRc.LogConfigAndChecksum("sending config", "")
 	err = SendIrConfig(sendRc, f, &sender.senderOptions)
 	if err != nil {
 		slog.Error("failed to send current config", "err", err)
