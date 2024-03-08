@@ -39,7 +39,7 @@ video=HDMI-A-1:1280x720@60D
 
 ## LIRC
 
-No LIRC user space packages are needed. There are many example projects out there that use [LIRC](https://lirc.org) to receive and send IR signals, but parts of LIRC have been moved into the kernel, and the remaining user space tools that were needed are now provided by the `v4l-utils` package (see the [blog](https://www.mess.org/2020/01/26/Moving-from-lirc-tools-to-rc-core-tooling/)). The Panasonic inverter remote control does not transmit simple button presses, therefore the `lircd` functionality for translating IR pulse/space sequences into button presses is of no use. Instead we must ourselves read (and write) the RAW LIRC data provided on the /dev/lirc devices by the kernel LIRC device drivers.
+No LIRC user space packages are needed. There are many example projects out there that use [LIRC](https://lirc.org) to receive and send IR signals, but it turns out that the LIRC packages are not needed for this project. Parts of LIRC have been moved into the kernel, and the remaining user space tools that were needed are now provided by the `v4l-utils` package (see the [blog](https://www.mess.org/2020/01/26/Moving-from-lirc-tools-to-rc-core-tooling/)). The Panasonic inverter remote control does not transmit simple button presses, therefore the `lircd` functionality for translating IR pulse/space sequences into button presses is of no use. Instead we must ourselves read (and write) the raw LIRC data provided on the /dev/lirc devices by the kernel LIRC device drivers.
 
 ### Configuring the IR modules
 
@@ -55,7 +55,10 @@ dtoverlay=pwm-ir-tx,gpio_pin=18
 Note that there are two different drivers for transmission:
 
 * `gpio-ir-tx` uses what is known as "bit-banging", where the processor must control the IR output directly. I was not able to get this to work.
-* `pwm-ir-tx` uses PWM to control the IR output. This does not require as much of the processor, but it still needs to trigger the edges, and is therefore sensitive to delays. The duration of pulses and spaces is therefore not very precise, and I had problems where transmissions were not reliably accepted by the receiver.
+* `pwm-ir-tx` uses PWM to control the IR output. This does not require as much of the processor, but it still needs to trigger the edges, and is therefore sensitive to delays.
+
+> [!NOTE]
+> Regarding the `pwm-ir-tx`, the duration of pulses and spaces is not sufficiently precise in kernel 6.1 and 6.6, and I had problems where transmissions were not reliably received by the inverter. [See below](#custom_kernel) for kernel patches that increase the precision.
 
 To be able to test both transmission drivers, I chose GPIO pin 18 for output, since it can be used with PWM. In the end, I was only able to get PWM to work.
 
@@ -130,7 +133,7 @@ index 7fbd3d4..b26d125 100644
  // when Unattended-Upgrade::Automatic-Reboot is set to true
 ```
 
-# Using a custom Raspberry Pi OS kernel
+# <a name="custom_kernel"></a>Using a custom Raspberry Pi OS kernel
 
 At the time of writing (February 2024), patches for `pwm-ir-tx` using hrtimers (high resolution timers) have been merged into Linux kernel 6.8. Raspberry Pi OS is still based on 6.1, on the verge of upgrading to 6.6, so the pwm-ir-tx patches are not yet available. The patches were published e.g. [[PATCH v10 0/6] Improve pwm-ir-tx precision](https://lore.kernel.org/linux-pwm/cover.1703003288.git.sean@mess.org/), and can be found in [Raspberry Pi OS branch rpi-6.8.y](https://github.com/raspberrypi/linux/tree/rpi-6.8.y). These are the patches:
 
@@ -148,20 +151,16 @@ I have [created an issue](https://github.com/raspberrypi/linux/issues/5987) to r
 
 Building a custom kernel: https://www.raspberrypi.com/documentation/computers/linux_kernel.html#kernel
 
-## Installing a custom kernel
+## Installing a custom 6.6 kernel
 
-Notes on installing a custom `kernel8-custom.img` kernel.
+Notes on installing a custom `kernel8-pwm.img` kernel. During the build a custom `LOCALVERSION` was set, which generates a unique name for the modules directory. This simplifies installation.
 
 ```bash
 DATE=$(date +'%Y-%m-%d')
 
 sudo cp -a /boot/firmware /boot/firmware.backup.$DATE
-sudo cp -r BUILD/boot/firmware /boot/firmware
-
-# Assuming we are patching the current kernel version
-VERSION=$(uname -r)
-sudo cp -a /lib/modules/$VERSION /lib/modules/$VERSION.backup.$DATE
-sudo cp -r BUILD/lib/modules/$VERSION /lib/modules/$VERSION
+sudo cp -r BUILD/boot/firmware /boot/
+sudo cp -r BUILD/lib/modules/6.6.* /lib/modules/
 ```
 
-Add `kernel=kernel8-custom.img` to `/boot/firmware/config.txt`.
+Add `kernel=kernel8-pwm.img` to `/boot/firmware/config.txt`.

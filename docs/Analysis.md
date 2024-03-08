@@ -4,7 +4,7 @@ The Panasonic Inverter Remote Controller A75C3115
 
 <img src="Panasonic_IR_Controller_A75C3115.jpg" alt="Remote Controller A75C3115" width="400">
 
-## Examples of reverse engineering of Panasonic Inverter Remote Controllers
+## <a name="previous_analysis"></a>Examples of reverse engineering of Panasonic Inverter Remote Controllers
 
 <https://www.analysir.com/blog/2014/12/27/reverse-engineering-panasonic-ac-infrared-protocol/>
 
@@ -22,9 +22,13 @@ The raw data provided by the LIRC kernel module consists of unsigned 32-bit inte
 
 The unsigned integers are in a format known as [LIRC Mode2](https://www.kernel.org/doc/html/v6.1/userspace-api/media/rc/lirc-dev-intro.html#lirc-modes). These represent the pulses and spaces detected by the IR receiver. Each integer is the duration of either a pulse or a space. The duration is never exact, so the data needs to be "cleaned" (rounded to the expected values). The cleaned-up LIRC Mode2 integers can then be interpreted as bits. It's actually the spaces that represent the bits, using two different durations, while pulses are all the same duration.
 
-According to the previous Panasonic Inverter remote control IR protocol analysis linked to above, the data sent by the remote control consists of two frames. The first frame is constant, while the second contains the configuration. In these previous analysis, the authors have chosen to append each bit to the previous bits, and view them as bytes. This leads to some problems later when interpreting the bits, because configuration fields are not multiples of 8 bits, instead they can be e.g. 5 or 11 bits. They are also not aligned to byte boundaries. In addition, the bits are sent in LitleEndian (the first received bit is the least significant), which means the bit order would also need to be reversed to get the correct values.
+According to the [previous analysis](#previous_analysis) of the Panasonic Inverter remote control IR protocol, the data sent by the remote control consists of two frames. The first frame is constant, while the second contains the configuration. In these previous analysis, the authors have chosen to view the bits as a series of bytes. This leads to some problems later when interpreting the bits, because 
 
-I have chosen regard the received bits in each frame as a stream of bits, with the least significant bit received first and the most significant bit received last. Each frame is stored in a BigInt. The first received bit is saved at index 0 in the BigInt, the second at index 1 in the BigInt, and so on. This reverses the bit order, so that we end up with bits saved in normal BigEndian representation. To get the value of a field, we can specify the field's first bit (the index of the least significant bit) and number of bits (to the left of the first bit), and extract those bits with simple bit operations on the BigInt.
+* fields are not multiples of 8 bits, instead they can be e.g. 5 or 11 bits
+* fields are not always aligned to byte boundaries
+* bits are sent in LitleEndian (the first received bit is the least significant), which means the bit order would also need to be reversed to get the correct values.
+
+I have chosen to regard the received bits in each frame as a stream of bits. The first received bit is the least significant and the last received bit is the most significant. Each frame is stored in a BigInt. The first received bit is saved at index 0 in the BigInt, the second at index 1 in the BigInt, and so on. This reverses the bit order, so that we end up with bits saved in normal BigEndian representation. To get the value of a field, we can specify the field's first bit (the index of the least significant bit) and the number of bits (to the left of the first bit), and extract those bits with simple bit operations on the BigInt.
 
 ### Message structure
 
@@ -42,10 +46,10 @@ A message consists of two frames. The first frame has 64 bits which never change
 
 ### Conversion steps
 
-1. Read bytes from the LIRC device. (raw bytes)
-1. Convert to unsigned 32-bit integers in LittelEndian mode. (LIRC Mode2 data)
-1. Clean up the Mode2 data by rounding pulses and spaces to the expected values, using the known Panasonic Inverter remote control IR protocol. (Clean LIRC Mode2 data)
-1. Parse the clean LIRC Mode2 data to a Panasonic message, consisting of two frames of bits. (Message)
+1. Read bytes from the LIRC device. (raw []byte)
+1. Convert to unsigned 32-bit integers in LittelEndian mode. (LIRC Mode2 []uint)
+1. Clean up the Mode2 data by rounding pulses and spaces to the expected values, using the known Panasonic Inverter remote control IR protocol. (Clean LIRC Mode2 []uint)
+1. Parse the clean LIRC Mode2 data to a Panasonic message, consisting of two frames of bits. (Message with two Frames)
 1. Verify the checksum.
 1. Extract the known fields from the second frame of the message to a configuration struct. (RcConfig)
 
@@ -53,7 +57,7 @@ The code contains code to convert back and forth between these different represe
 
 * raw bytes
 * LIRC Mode2 unsigned integers
-* Message frames
+* Message with Frames
 * Configuration settings
 
 ## Analyzing frame 2 (the configuration)
@@ -128,7 +132,7 @@ Message as bit stream (first and least significant bit to the right)
 
 ### Interpretation of frame 2
 
-Bits are counted from right to left in the BigInt. Bit 0 is the least significant bit, and bit 151 is the most significant bit. The number of bits are counted to the left from the start bit.
+Bits are counted from right to left in the BigInt. Bit 0 is the least significant bit, and bit 151 is the most significant bit. The number of bits in a field are counted to the left from the start bit.
 
 <img src="analysis.png" alt="analysis">
 
@@ -204,7 +208,7 @@ The checksum of a frame is easily computed by converting the BigInt to bytes, th
 
 ### Message template
 
-Just like the bits in frame 1 never change, frame 2 also contains bits that never change. Presumably these have some kind of internal purpose for development and debugging. There ar also a few special buttons on the remote control (Check, Reset AC, Reset RC), which I haven't investigated.
+Just like the bits in frame 1 never change, frame 2 also contains bits that never change. Presumably these are for other types of configuration, or have some kind of internal purpose for development and debugging. There are also a few special buttons on the remote control (Check, Reset AC, Reset RC), which I haven't investigated.
 
 When sending a message, we can start from a message "template" containing all the bits that never change, and simply merge in the configuration bits before sending the message. Here is the byte representation of the frame templates:
 

@@ -1,11 +1,12 @@
 # Raspberry Pi IR Remote Control for the Panasonic Inverter
 
-<img src="docs/Panasonic_IR_Controller_A75C3115.jpg" alt="Remote Controller A75C3115" height="400">
-<img src="docs/pizero_with_pcb.jpg" alt="Raspberry Pi Zero 2 W" height="400">
-
-This Raspberry Pi project is a reverse engineering of the Panasonic Inverter IR Controller A75C3115. The Panasonic inverter can only be controlled with IR signals, there is no WiFi. The only "programming" that can be done is to set a daily on and off timer.
+This Raspberry Pi project is a reverse engineering of the Panasonic Inverter IR Remote Control A75C3115. The Panasonic inverter can only be controlled with IR signals, there is no WiFi. The only "programming" that can be done is to set a daily on and off timer.
 
 The goal of this Raspberry Pi project is to create an IR remote control connected to the network, allowing the Panasonic inverter to be controlled remotely, and the ability to schedule configuration changes to be applied at given times.
+
+<img src="docs/Panasonic_IR_Controller_A75C3115.jpg" alt="Panasonic Remote Control A75C3115" height="400">
+<img src="docs/paninv_controller.jpg" alt="Web interface" height="400">
+<img src="docs/pizero_with_pcb.jpg" alt="Raspberry Pi Zero 2 W" width="400">
 
 The project builds upon and draws inspiration from multiple Pi projects and work done by others. In the documentation, I have linked to some of the material that I found particularly useful for this project.
 
@@ -36,12 +37,17 @@ The project spans over everything from hardware (Raspberry Pi, microcomponents, 
 
 Data is stored in an SQLite database, which is shared between `paninv_controller` and `paninv_rc`.
 
-There is currently no web interface to manage jobs scheduling. They can be uploaded to the database from a JSON file using the command line.
+There is currently no web interface to manage jobs. They can be uploaded to the database from a JSON file using the command line.
 
 ## Documentation
 
-* [Hardware](docs/Hardware.md)
-* [Configuration](docs/Configuration.md)
-* [Development environment](docs/Development.md)
+* [Raspberry Pi hardware](docs/Hardware.md)
+* [Raspberry Pi configuration](docs/Configuration.md)
+* [Development cross-compilation environment](docs/Development.md)
 * [Analysis of the remote control](docs/Analysis.md)
 * [Developed applications](docs/Applications.md)
+
+## To do
+
+* Web interface to manage and edit jobs
+* Test websockets to get real-time web interface updates
