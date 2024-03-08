@@ -583,18 +583,9 @@
         }
 
         function showRefreshIcon() {
-            displayRefreshIcon()
-            setTimeout(resetRefreshIcon, 1000)
-        }
-
-        function displayRefreshIcon() {
             const icon = document.getElementById('refresh')
             icon.classList.remove("hidden")
-        }
-
-        function resetRefreshIcon() {
-            const icon = document.getElementById('refresh')
-            icon.classList.add("hidden")
+            setTimeout(() => { icon.classList.add("hidden") }, 1000)
         }
 
         function showInfo(infoMsg) {
