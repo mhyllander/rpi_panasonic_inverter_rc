@@ -224,6 +224,11 @@ func GetJobSets() (*[]JobSet, error) {
 	return &jobsets, nil
 }
 
+func UpdateJobSet(jobset string, active bool) error {
+	myDb.Model(&JobSet{}).Where("name = ?", jobset).Updates(map[string]interface{}{"Active": active})
+	return nil
+}
+
 func GetActiveJobSets() (*[]JobSet, error) {
 	var jobsets []JobSet
 	if result := myDb.Where(map[string]interface{}{"Active": true}).Find(&jobsets); result.Error != nil {

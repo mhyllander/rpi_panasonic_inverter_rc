@@ -150,6 +150,64 @@ func apiPostSettings(w http.ResponseWriter, r *http.Request) {
 	returnCurrentSettings(w)
 }
 
+type JobSet struct {
+	Name   string `json:"name"`
+	Active bool   `json:"active"`
+}
+
+func returnJobSets(w http.ResponseWriter) {
+	var allJS []JobSet = make([]JobSet, 0)
+
+	jss, err := db.GetJobSets()
+	if err != nil {
+		slog.Error("apiGetJobsets get jobset failed", "err", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+	for _, js := range *jss {
+		allJS = append(allJS, JobSet{Name: js.Name, Active: js.Active})
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(&allJS)
+	if err != nil {
+		slog.Error("apiGetJobsets JSON encode jobsets failed", "err", err)
+	}
+}
+
+func apiGetJobsets(w http.ResponseWriter, r *http.Request) {
+	returnJobSets(w)
+}
+
+func apiPostJobsets(w http.ResponseWriter, r *http.Request) {
+	var allJS []JobSet
+
+	if r.Header.Get("Content-Type") != "application/json" {
+		slog.Error("apiPostJobsets: expecting JSON data", "Content-Type", r.Header.Get("Content-Type"))
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("expecting JSON in request"))
+		return
+	}
+
+	err := json.NewDecoder(r.Body).Decode(&allJS)
+	if err != nil {
+		slog.Error("apiPostJobsets: decode body failed", "err", err)
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+	for _, js := range allJS {
+		db.UpdateJobSet(js.Name, js.Active)
+		sched.ScheduleJobsForJobset(js.Name, js.Active)
+	}
+
+	returnJobSets(w)
+}
+
 func StartServer(logLevel string, irSender *codec.IrSender) {
 	var err error
 
@@ -190,6 +248,8 @@ func StartServer(logLevel string, irSender *codec.IrSender) {
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/settings", apiGetSettings)
 		r.Post("/settings", apiPostSettings)
+		r.Get("/jobsets", apiGetJobsets)
+		r.Post("/jobsets", apiPostJobsets)
 	})
 
 	err = http.ListenAndServe(":3333", r)

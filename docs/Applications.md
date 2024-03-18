@@ -116,6 +116,7 @@ $ paninv_controller -help
         send option: number of times to send the message (default 1)
 ```
 
-<img src="paninv_controller.jpg" alt="Web interface" width="400">
+<img src="paninv_controller.jpg" alt="Web interface for settings" width="400">
+<img src="paninv_controller_sched.jpg" alt="Web interface for schedules" width="400">
 
 Using icons from [Icons8](https://icons8.com).

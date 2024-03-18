@@ -9,9 +9,29 @@
             font-family: arial;
         }
 
+        div.navbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            max-width: 600px;
+            background-color: #e7f0fe;
+        }
+        div.navitem {
+            padding: 4px;
+            display: inline;
+            color: #3382f7;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        div.navitem.navactive {
+            background-color: #3382f7;
+            color: white;
+        }
+
         /* Control panel */
         .controlpanel {
             width: 100%;
+            max-width: 600px;
             margin-top: 10px;
             align-items: center;
             position: fixed;
@@ -119,6 +139,11 @@
             opacity: 1;
         }
 
+        .jobset {
+            display: flex;
+            align-items: center;
+        }
+
         /* Responsive layout */
         @media (max-width: 280px) {
             .setting {
@@ -146,7 +171,11 @@
 </head>
 <body>
     <h1>{{.PageTitle}}</h1>
-    <div id="settingscontainer">
+    <div class="navbar">
+        <div id="nav_settings" class="navitem navactive">Settings</div>
+        <div id="nav_schedule" class="navitem">Schedule</div>
+    </div>
+    <div id="settings_section">
         <h3>Settings</h3>
         <div class="setting">
             <div class="label">Power</div>
@@ -253,20 +282,35 @@
                 <input type="time" id="timer_off_time" value="">
             </div>
         </div>
-        <div id="filler"></div>
-        <div id="controlpanel" class="controlpanel">
-            <div id="alert" class="alert hidden"></div>
-            <div class="buttons">
-                <button type="button" id="refresh_button">Refresh</button>
-                <button type="button" id="send_button">Send</button>
-            </div>
-            <div id="refresh" class="refresh hidden">
-                <image src="data:image/png;base64,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" alt="Send/Receive">
-            </div>
-            <div id="info" class="info hidden"></div>
+    </div>
+    <div id="schedule_section" class="hidden">
+        <h3>Job Sets</h3>
+        <div id="jobsets"></div>
+    </div>
+    <div id="filler"></div>
+    <div id="controlpanel" class="controlpanel">
+        <div id="alert" class="alert hidden"></div>
+        <div id="settings_buttons" class="buttons">
+            <button type="button" id="refresh_button">Refresh</button>
+            <button type="button" id="send_button">Send</button>
         </div>
+        <div id="schedule_buttons" class="buttons hidden">
+            <button type="button" id="sched_refresh_button">Refresh</button>
+            <button type="button" id="sched_save_button">Save</button>
+        </div>
+        <div id="refresh" class="refresh hidden">
+            <image src="data:image/png;base64,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" alt="Send/Receive">
+        </div>
+        <div id="info" class="info hidden"></div>
     </div>
     <script type="text/javascript">
+        function escapeHtml(unsafe) {
+            return unsafe.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;');
+        }
+        /* ---------------------------------------------------------------------------------------------------------------------------------------
+           Settings
+           ---------------------------------------------------------------------------------------------------------------------------------------
+        */
         async function getSettings() {
             const response = await fetch('/api/v1/settings', {
                 method: 'GET',
@@ -344,7 +388,7 @@
             refreshForm(allSettings.settings)
         }
 
-        function refresh(confirm) {
+        function refreshSettings(confirm) {
             getSettings()
             .then((allSettings) => {
                 storeAndRefresh(allSettings)
@@ -365,7 +409,7 @@
 
         function btnRefresh(e) {
             highlightButton(e.target)
-            refresh(true)
+            refreshSettings(true)
         }
 
         function btnSend(e) {
@@ -570,6 +614,125 @@
             eFan.value = ms.fan
         }
 
+        /* ---------------------------------------------------------------------------------------------------------------------------------------
+           Schedule
+           ---------------------------------------------------------------------------------------------------------------------------------------
+        */
+        async function getJobsets() {
+            const response = await fetch('/api/v1/jobsets', {
+                method: 'GET',
+                mode: 'same-origin',
+                cache: 'no-cache',
+                redirect: 'error',
+                referrerPolicy: 'no-referrer'
+            })
+            if (!response.ok) {
+                throw new Error(`Retrieve jobsets failed: ${response.statusText} (${response.status})`)
+            }
+            return await response.json()
+        }
+
+        async function postJobsets(jobsets) {
+            const response = await fetch('/api/v1/jobsets', {
+                method: 'POST',
+                mode: 'same-origin',
+                cache: 'no-cache',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                redirect: 'error',
+                referrerPolicy: 'no-referrer',
+                body: JSON.stringify(jobsets),
+            })
+            if (!response.ok) {
+                throw new Error(`Send jobsets failed: ${response.statusText} (${response.status})`)
+            }
+            return await response.json()
+        }
+
+        function updateJobsetsList(jobsets) {
+            var list = ''
+            jobsets.sort((a,b) => a.name.localeCompare(b.name))
+            jobsets.forEach(js => {
+                const n = escapeHtml(js.name)
+                list += `<div class="jobset"><input name="${js.name}" type="checkbox"`
+                if (js.active) {
+                    list += ' checked'
+                }
+                list += `> ${n}</div>`
+            })
+
+            const eList = document.getElementById('jobsets')
+            eList.innerHTML = list
+        }
+
+        function storeAndUpdateJobsets(jobsets) {
+            sessionStorage.setItem('paninvJobsets', JSON.stringify(jobsets))
+            updateJobsetsList(jobsets)
+        }
+
+        function refreshJobsets() {
+            getJobsets()
+            .then((allJobsets) => {
+                storeAndUpdateJobsets(allJobsets)
+                showRefreshIcon()
+                resetAlerts()
+            })
+            .catch((err) => {
+                if (err.name == 'TypeError' && err.message == 'Failed to fetch') {
+                    displayAlerts('Could not get jobsets')
+                } else {
+                    displayAlerts(err)
+                }
+                console.error(err)
+            })
+        }
+
+        function btnSchedRefresh(e) {
+            highlightButton(e.target)
+            refreshJobsets()
+        }
+
+        function btnSchedSave(e) {
+            highlightButton(e.target)
+
+            const eList = document.getElementById('jobsets')
+            const inputs = eList.getElementsByTagName('input')
+
+            const jobsets = JSON.parse(sessionStorage.getItem('paninvJobsets'))
+            const changedJobsets = []
+
+            for (var i = 0; i < inputs.length; i++) {
+                for (var j = 0; i < jobsets.length; j++) {
+                    if (inputs[i].name == jobsets[j].name) {
+                        if (inputs[i].checked != jobsets[j].active) {
+                            changedJobsets.push({name: jobsets[j].name, active: inputs[i].checked})
+                        }
+                        break
+                    }
+                }
+            }
+
+            postJobsets(changedJobsets)
+            .then((allJobsets) => {
+                storeAndUpdateJobsets(allJobsets)
+                showRefreshIcon()
+                // showInfo('Updated')
+            })
+            .catch((err) => {
+                if (err.name == 'TypeError' && err.message == 'Failed to fetch') {
+                    displayAlerts('Could not save jobsets')
+                } else {
+                    displayAlerts(err)
+                }
+                console.error(err)
+            })
+        }
+
+        /* ---------------------------------------------------------------------------------------------------------------------------------------
+           Main
+           ---------------------------------------------------------------------------------------------------------------------------------------
+        */
         function displayAlerts(alertMsg) {
             const alert = document.getElementById('alert')
             alert.innerHTML = alertMsg
@@ -619,10 +782,44 @@
             }
         }
 
+        function activateSection(section) {
+            const eNavSettings = document.getElementById('nav_settings')
+            const eNavSchedule = document.getElementById('nav_schedule')
+            const eSettings = document.getElementById('settings_section')
+            const eSchedule = document.getElementById('schedule_section')
+            const eBtnSettings = document.getElementById('settings_buttons')
+            const eBtnSchedule = document.getElementById('schedule_buttons')
+
+            eNavSchedule.classList.remove('navactive')
+            eNavSettings.classList.remove('navactive')
+            eSettings.classList.add('hidden')
+            eSchedule.classList.add('hidden')
+            eBtnSettings.classList.add('hidden')
+            eBtnSchedule.classList.add('hidden')
+
+            if (section == 'settings') {
+                eNavSettings.classList.add('navactive')
+                eSettings.classList.remove('hidden')
+                eBtnSettings.classList.remove('hidden')
+                refreshSettings(true)
+            } else {
+                eNavSchedule.classList.add('navactive')
+                eSchedule.classList.remove('hidden')
+                eBtnSchedule.classList.remove('hidden')
+                refreshJobsets()
+            }
+
+            activeSection = section
+        }
+
         function initialize() {
+            const eNavSettings = document.getElementById('nav_settings')
+            const eNavSchedule = document.getElementById('nav_schedule')
+            eNavSettings.addEventListener('click', () => activateSection('settings'))
+            eNavSchedule.addEventListener('click', () => activateSection('schedule'))
+
             const eRefresh = document.getElementById('refresh_button')
             const eSend = document.getElementById('send_button')
-
             eRefresh.addEventListener('click', btnRefresh)
             eSend.addEventListener('click', btnSend)
 
@@ -642,12 +839,25 @@
             eTon.addEventListener('change', checkTon)
             eToff.addEventListener('change', checkToff)
 
-            refresh(false)
-            window.addEventListener('focus', () => refresh(true))
+            const eSchedRefresh = document.getElementById('sched_refresh_button')
+            const eSchedSave = document.getElementById('sched_save_button')
+            eSchedRefresh.addEventListener('click', btnSchedRefresh)
+            eSchedSave.addEventListener('click', btnSchedSave)
 
             const eControlPanel = document.getElementById('controlpanel')
             new ResizeObserver(updateFillerHeight).observe(eControlPanel)
+
+            window.addEventListener('focus', () => {
+                if (activeSection == 'settings') {
+                    refreshSettings(true)
+                } else if (activeSection == 'schedule') {
+                    refreshJobsets()
+                }
+            })
+            activateSection('settings')
         }
+
+        var activeSection = 'settings'
 
         window.addEventListener('load', initialize)
     </script>

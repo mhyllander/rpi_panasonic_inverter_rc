@@ -2,6 +2,7 @@ package sched
 
 import (
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"rpi_panasonic_inverter_rc/codec"
 	"rpi_panasonic_inverter_rc/common"
@@ -15,15 +16,15 @@ import (
 var scheduler gocron.Scheduler
 var g_irSender *codec.IrSender
 
-const settingsJobTag = "settings"
-const timerJobTag = "timer"
+const settingsJobCategory = "settings"
+const timerJobCategory = "timer"
 
-func SendCurrentConfig() {
-	slog.Info("running initialization job: send current config")
+func RunInitializationJob() {
+	slog.Info("running initialization job")
 
 	dbRc, err := db.CurrentConfig()
 	if err != nil {
-		slog.Error("SendCurrentConfig: failed to get current config", "err", err)
+		slog.Error("RunInitializationJob: failed to get current config", "err", err)
 		return
 	}
 
@@ -31,8 +32,8 @@ func SendCurrentConfig() {
 	g_irSender.SendConfig(sendRc)
 }
 
-func RunSettingsJob(settings *common.Settings) {
-	slog.Info("running settings job")
+func RunSettingsJob(settings common.Settings, jobName string) {
+	slog.Info("running settings job", "jobName", jobName)
 
 	dbRc, err := db.CurrentConfig()
 	if err != nil {
@@ -40,7 +41,7 @@ func RunSettingsJob(settings *common.Settings) {
 		return
 	}
 
-	sendRc := utils.ComposeSendConfig(settings, dbRc)
+	sendRc := utils.ComposeSendConfig(&settings, dbRc)
 	g_irSender.SendConfig(sendRc)
 
 	err = db.SaveConfig(sendRc, dbRc)
@@ -49,7 +50,54 @@ func RunSettingsJob(settings *common.Settings) {
 		return
 	}
 
-	CondRestartTimerJobs(settings)
+	CondRestartTimerJobs(&settings)
+}
+
+func ScheduleJobsForJobset(jobset string, active bool) {
+	// remove existing jobs of the current generation
+	jobsetGen := jobsetGens.currentGen(settingsJobCategory, jobset)
+	scheduler.RemoveByTags(jobsetGen)
+
+	if !active {
+		slog.Info("Unscheduled inactive jobset", "jobset", jobset, "jobsetGen", jobsetGen)
+		return
+	}
+
+	// get the next job generation before creating new jobs
+	jobsetGen = jobsetGens.nextGen(settingsJobCategory, jobset)
+	slog.Info("Scheduling jobset", "jobset", jobset, "jobsetGen", jobsetGen)
+
+	cjs, err := db.GetCronJobs(jobset)
+	if err != nil {
+		slog.Error("failed to get cronjobs", "err", err)
+		return
+	}
+
+	for _, cj := range *cjs {
+		var settings = new(common.Settings)
+		err = json.Unmarshal(cj.Settings, settings)
+		if err != nil {
+			slog.Error("failed to unmarshal json", "err", err)
+			break
+		}
+		name := fmt.Sprintf("%s_%d %s", jobset, cj.ID, cj.Schedule)
+		j, err := scheduler.NewJob(
+			gocron.CronJob(cj.Schedule, false),
+			gocron.NewTask(
+				RunSettingsJob,
+				*settings,
+				name,
+			),
+			gocron.WithName(name),
+			gocron.WithTags(settingsJobCategory, jobset, jobsetGen),
+		)
+		if err != nil {
+			slog.Error("failed to schedule settings job", "schedule", cj.Schedule, "err", err)
+			break
+		}
+		slog.Debug("scheduled settings job", "jobset", jobset, "jobsetGen", jobsetGen, "job_id", j.ID())
+	}
+	listJobs()
 }
 
 func createSettingsJobs() {
@@ -57,40 +105,13 @@ func createSettingsJobs() {
 		slog.Error("failed to get active jobsets", "err", err)
 	} else {
 		for _, js := range *jss {
-			slog.Info("Scheduling jobset", "jobset", js.Name)
-			cjs, err := db.GetCronJobs(js.Name)
-			if err != nil {
-				slog.Error("failed to get cronjobs", "err", err)
-				continue
-			}
-
-			for _, cj := range *cjs {
-				var settings = new(common.Settings)
-				err = json.Unmarshal(cj.Settings, settings)
-				if err != nil {
-					slog.Error("failed to unmarshal json", "err", err)
-					break
-				}
-				j, err := scheduler.NewJob(
-					gocron.CronJob(cj.Schedule, false),
-					gocron.NewTask(
-						RunSettingsJob,
-						settings,
-					),
-					gocron.WithTags(settingsJobTag, js.Name),
-				)
-				if err != nil {
-					slog.Error("failed to schedule settings job", "schedule", cj.Schedule, "err", err)
-					break
-				}
-				slog.Debug("scheduled settings job", "js", js.Name, "job_id", j.ID())
-			}
+			ScheduleJobsForJobset(js.Name, js.Active)
 		}
 	}
 }
 
 func RunTimerJob(power uint, jobName string) {
-	slog.Info("running timer job", "job", jobName, "power", power)
+	slog.Info("running timer job", "jobName", jobName, "power", power)
 	if err := db.SetPower(power); err != nil {
 		slog.Error("RunTimerJob: failed to set power", "err", err)
 		return
@@ -98,7 +119,7 @@ func RunTimerJob(power uint, jobName string) {
 	slog.Debug("RunTimerJob: updated power", "power", power)
 }
 
-func scheduleTimerJob(jobName string, power uint, t codec.Time) (gocron.Job, error) {
+func scheduleTimerJob(jobName, jobsetGen string, power uint, t codec.Time) (gocron.Job, error) {
 	j, err := scheduler.NewJob(
 		gocron.DailyJob(1, gocron.NewAtTimes(gocron.NewAtTime(t.Hour(), t.Minute(), 0))),
 		gocron.NewTask(
@@ -107,7 +128,7 @@ func scheduleTimerJob(jobName string, power uint, t codec.Time) (gocron.Job, err
 			jobName,
 		),
 		gocron.WithName(jobName),
-		gocron.WithTags(timerJobTag),
+		gocron.WithTags(timerJobCategory, jobsetGen),
 	)
 	if err != nil {
 		return nil, err
@@ -135,29 +156,32 @@ func RestartTimerJobs() {
 		return
 	}
 
-	// If you remove two jobs individually directly after one another, the second removal fails with "job not found".
-	// But removing multiple jobs by tag works fine.
-	scheduler.RemoveByTags(timerJobTag)
+	// remove existing jobs of the current generation
+	jobsetGen := jobsetGens.currentGen(timerJobCategory, timerJobCategory)
+	scheduler.RemoveByTags(jobsetGen)
+
+	// get the next job generation before creating new jobs
+	jobsetGen = jobsetGens.nextGen(timerJobCategory, timerJobCategory)
 
 	const job1MinutesBefore = 45
 	if dbRc.TimerOn == common.C_Timer_Enabled {
 		job1Time := dbRc.TimerOnTime - job1MinutesBefore
-		if _, err := scheduleTimerJob("timer_on_1", common.C_Power_On, job1Time); err == nil {
-			slog.Info("scheduled timer_on_1 job", "at", job1Time.ToString())
+		if _, err := scheduleTimerJob("timer_on_1", jobsetGen, common.C_Power_On, job1Time); err == nil {
+			slog.Info("scheduled timer_on_1 job", "jobsetGen", jobsetGen, "at", job1Time.ToString())
 		} else {
 			slog.Error("failed to schedule timer_on_1 job", "err", err)
 		}
 		job2Time := dbRc.TimerOnTime
-		if _, err := scheduleTimerJob("timer_on_2", common.C_Power_On, job2Time); err == nil {
-			slog.Info("scheduled timer_on_2 job", "at", job2Time.ToString())
+		if _, err := scheduleTimerJob("timer_on_2", jobsetGen, common.C_Power_On, job2Time); err == nil {
+			slog.Info("scheduled timer_on_2 job", "jobsetGen", jobsetGen, "at", job2Time.ToString())
 		} else {
 			slog.Error("failed to schedule timer_on_2 job", "err", err)
 		}
 	}
 	if dbRc.TimerOff == common.C_Timer_Enabled {
 		jobTime := dbRc.TimerOffTime
-		if _, err := scheduleTimerJob("timer_off", common.C_Power_Off, jobTime); err == nil {
-			slog.Info("scheduled timer_off job", "at", jobTime.ToString())
+		if _, err := scheduleTimerJob("timer_off", jobsetGen, common.C_Power_Off, jobTime); err == nil {
+			slog.Info("scheduled timer_off job", "jobsetGen", jobsetGen, "at", jobTime.ToString())
 		} else {
 			slog.Error("failed to schedule timer_off job", "err", err)
 		}
@@ -170,7 +194,7 @@ func RestartTimerJobs() {
 func listJobs() {
 	if common.IsLogLevelDebug() {
 		for _, j := range scheduler.Jobs() {
-			slog.Debug("job", "id", j.ID(), "name", j.Name(), "tags", j.Tags())
+			slog.Debug("listJobs", "id", j.ID(), "name", j.Name(), "tags", j.Tags())
 		}
 	}
 }
@@ -198,7 +222,7 @@ func InitScheduler(irSender *codec.IrSender) error {
 			gocron.OneTimeJobStartDateTime(time.Now().Add(2*time.Minute)),
 		),
 		gocron.NewTask(
-			SendCurrentConfig,
+			RunInitializationJob,
 		),
 		gocron.WithName("initialization"),
 	)
