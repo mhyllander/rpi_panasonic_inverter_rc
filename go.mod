@@ -4,11 +4,11 @@ go 1.22.1
 
 require (
 	github.com/go-chi/chi/v5 v5.0.12
-	github.com/go-co-op/gocron/v2 v2.2.5
+	github.com/go-co-op/gocron/v2 v2.2.6
 	github.com/mhyllander/go-chi-httplog/v2 v2.0.0-20240307083016-6cc81b613b09
 	golang.org/x/sys v0.18.0
 	gorm.io/driver/sqlite v1.5.5
-	gorm.io/gorm v1.25.7
+	gorm.io/gorm v1.25.8
 )
 
 require (
@@ -18,5 +18,5 @@ require (
 	github.com/jonboulle/clockwork v0.4.0 // indirect
 	github.com/mattn/go-sqlite3 v1.14.22 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
-	golang.org/x/exp v0.0.0-20240222234643-814bf88cf225 // indirect
+	golang.org/x/exp v0.0.0-20240318143956-a85f2c67cd81 // indirect
 )

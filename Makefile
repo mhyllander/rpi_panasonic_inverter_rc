@@ -1,5 +1,6 @@
 BINARIES := bin/decode bin/paninv_rc bin/paninv_controller
 BINARIES_RPI := arm64/decode arm64/paninv_rc arm64/paninv_controller
+DEPLOY_HOST := piir
 
 all: build build-rpi
 
@@ -32,18 +33,18 @@ test:
 	go test ./codec
 
 deploy: test build-rpi
-	ssh piir 'sudo systemctl stop paninv_controller.service; [ -d bin ] || mkdir bin; [ -d paninv ] && rm -rf paninv/web || mkdir paninv'
-	scp $(BINARIES_RPI) piir:bin/
-	scp -r web piir:paninv/
-	ssh piir sudo systemctl start paninv_controller.service
+	ssh $(DEPLOY_HOST) 'sudo systemctl stop paninv_controller.service; [ -d bin ] || mkdir bin; [ -d paninv ] && rm -rf paninv/web || mkdir paninv'
+	scp $(BINARIES_RPI) $(DEPLOY_HOST):bin/
+	scp -r web $(DEPLOY_HOST):paninv/
+	ssh $(DEPLOY_HOST) sudo systemctl start paninv_controller.service
 
 deploy_web:
-	scp -r web piir:paninv/
-	ssh piir sudo systemctl restart paninv_controller.service
+	scp -r web $(DEPLOY_HOST):paninv/
+	ssh $(DEPLOY_HOST) sudo systemctl restart paninv_controller.service
 
 deploy_jobs:
-	scp jobs.json piir:
-	ssh piir 'bin/paninv_controller -db=paninv/paninv.db -load-jobs=jobs.json && sudo systemctl restart paninv_controller.service'
+	scp jobs.json $(DEPLOY_HOST):
+	ssh $(DEPLOY_HOST) 'bin/paninv_controller -db=paninv/paninv.db -load-jobs=jobs.json && sudo systemctl restart paninv_controller.service'
 
 clean:
 	rm -f bin/* arm64/*
