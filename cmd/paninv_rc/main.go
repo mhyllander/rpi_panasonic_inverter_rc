@@ -7,6 +7,7 @@ import (
 	"rpi_panasonic_inverter_rc/codec"
 	"rpi_panasonic_inverter_rc/common"
 	"rpi_panasonic_inverter_rc/db"
+	"rpi_panasonic_inverter_rc/logs"
 	"rpi_panasonic_inverter_rc/utils"
 
 	"golang.org/x/sys/unix"
@@ -63,7 +64,7 @@ func main() {
 		fmt.Println(err)
 	}
 
-	common.InitLogger(*vLogLevel)
+	logs.InitLogger(*vLogLevel)
 
 	// open and initialize database
 	db.Initialize(*vRcDb)

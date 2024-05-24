@@ -9,6 +9,7 @@ import (
 	"rpi_panasonic_inverter_rc/codec"
 	"rpi_panasonic_inverter_rc/common"
 	"rpi_panasonic_inverter_rc/db"
+	"rpi_panasonic_inverter_rc/logs"
 	"rpi_panasonic_inverter_rc/sched"
 	"rpi_panasonic_inverter_rc/server"
 )
@@ -142,7 +143,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	common.InitLogger(*vLogLevel)
+	logs.InitLogger(*vLogLevel)
 
 	if *vRcDb == "" {
 		slog.Error("please set the db name")

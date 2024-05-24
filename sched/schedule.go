@@ -7,6 +7,7 @@ import (
 	"rpi_panasonic_inverter_rc/codec"
 	"rpi_panasonic_inverter_rc/common"
 	"rpi_panasonic_inverter_rc/db"
+	"rpi_panasonic_inverter_rc/logs"
 	"rpi_panasonic_inverter_rc/utils"
 	"time"
 
@@ -192,7 +193,7 @@ func RestartTimerJobs() {
 }
 
 func listJobs() {
-	if common.IsLogLevelDebug() {
+	if logs.IsLogLevelDebug() {
 		for _, j := range scheduler.Jobs() {
 			slog.Debug("listJobs", "id", j.ID(), "name", j.Name(), "tags", j.Tags())
 		}

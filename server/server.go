@@ -12,6 +12,7 @@ import (
 	"rpi_panasonic_inverter_rc/codec"
 	"rpi_panasonic_inverter_rc/common"
 	"rpi_panasonic_inverter_rc/db"
+	"rpi_panasonic_inverter_rc/logs"
 	"rpi_panasonic_inverter_rc/sched"
 	"rpi_panasonic_inverter_rc/utils"
 	"strings"
@@ -54,7 +55,7 @@ func Gzip(handler http.Handler) http.Handler {
 }
 
 func getRoot(w http.ResponseWriter, r *http.Request) {
-	if common.IsLogLevelDebug() {
+	if logs.IsLogLevelDebug() {
 		slog.Info("reloading template while debugging")
 		webFunctions := template.FuncMap{}
 		rootTemplate = template.Must(template.New("root.gohtml").Funcs(webFunctions).ParseFiles("web/root.gohtml"))
@@ -218,7 +219,7 @@ func StartServer(logLevel string, irSender *codec.IrSender) {
 	// Logger
 	logger := httplog.NewLogger("paninv-controller", httplog.Options{
 		JSON:             true,
-		LogLevel:         common.SetLoggerOpts(logLevel).Level.Level(),
+		LogLevel:         logs.SetLoggerOpts(logLevel).Level.Level(),
 		Concise:          true,
 		RequestHeaders:   false,
 		SourceFieldName:  "",
