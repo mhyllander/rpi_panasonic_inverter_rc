@@ -12,7 +12,7 @@ import (
 	"rpi_panasonic_inverter_rc/codecbase"
 	"rpi_panasonic_inverter_rc/db"
 	"rpi_panasonic_inverter_rc/logs"
-	"rpi_panasonic_inverter_rc/utils"
+	"rpi_panasonic_inverter_rc/rcutils"
 )
 
 var scheduler gocron.Scheduler
@@ -43,7 +43,7 @@ func RunSettingsJob(settings codecbase.Settings, jobName string) {
 		return
 	}
 
-	sendRc := utils.ComposeSendConfig(&settings, dbRc)
+	sendRc := rcutils.ComposeSendConfig(&settings, dbRc)
 	g_irSender.SendConfig(sendRc)
 
 	err = db.SaveConfig(sendRc, dbRc)

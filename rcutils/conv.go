@@ -1,4 +1,4 @@
-package utils
+package rcutils
 
 import (
 	"rpi_panasonic_inverter_rc/codec"

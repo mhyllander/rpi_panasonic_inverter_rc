@@ -11,7 +11,7 @@ import (
 	"rpi_panasonic_inverter_rc/codecbase"
 	"rpi_panasonic_inverter_rc/db"
 	"rpi_panasonic_inverter_rc/logs"
-	"rpi_panasonic_inverter_rc/utils"
+	"rpi_panasonic_inverter_rc/rcutils"
 )
 
 func main() {
@@ -91,7 +91,7 @@ func main() {
 	// Create a new configuration by making a copy of the current configuration. The copy contains
 	// everything except the time fields, which are unset by default. The new configuration is then
 	// modified according to command line arguments.
-	sendRc := utils.ComposeSendConfig(&settings, dbRc)
+	sendRc := rcutils.ComposeSendConfig(&settings, dbRc)
 
 	if *vVerbose {
 		fmt.Println("config to send")

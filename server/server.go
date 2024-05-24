@@ -20,8 +20,8 @@ import (
 	"rpi_panasonic_inverter_rc/codecbase"
 	"rpi_panasonic_inverter_rc/db"
 	"rpi_panasonic_inverter_rc/logs"
+	"rpi_panasonic_inverter_rc/rcutils"
 	"rpi_panasonic_inverter_rc/sched"
-	"rpi_panasonic_inverter_rc/utils"
 )
 
 var g_irSender *codec.IrSender
@@ -84,7 +84,7 @@ func returnCurrentSettings(w http.ResponseWriter) {
 		w.Write([]byte(err.Error()))
 		return
 	}
-	utils.CopyToSettings(dbRc, &theSettings.Settings)
+	rcutils.CopyToSettings(dbRc, &theSettings.Settings)
 
 	for _, m := range []uint{codecbase.C_Mode_Auto, codecbase.C_Mode_Heat, codecbase.C_Mode_Cool, codecbase.C_Mode_Dry} {
 		temp, fan, err := db.GetModeSettings(m)
@@ -95,7 +95,7 @@ func returnCurrentSettings(w http.ResponseWriter) {
 			return
 		}
 		ms := codecbase.ModeSettings{}
-		utils.CopyToModeSettings(temp, fan, &ms)
+		rcutils.CopyToModeSettings(temp, fan, &ms)
 		theSettings.ModeSettings[codecbase.Mode2String(m)] = ms
 	}
 
@@ -137,7 +137,7 @@ func apiPostSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sendRc := utils.ComposeSendConfig(settings, dbRc)
+	sendRc := rcutils.ComposeSendConfig(settings, dbRc)
 	g_irSender.SendConfig(sendRc)
 
 	err = db.SaveConfig(sendRc, dbRc)
