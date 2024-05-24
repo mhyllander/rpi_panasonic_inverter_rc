@@ -3,11 +3,12 @@ package codec
 import (
 	"log/slog"
 	"os"
-	"rpi_panasonic_inverter_rc/common"
-	"rpi_panasonic_inverter_rc/ioctl"
 	"strings"
 	"sync"
 	"time"
+
+	"rpi_panasonic_inverter_rc/codecbase"
+	"rpi_panasonic_inverter_rc/ioctl"
 )
 
 type SenderOptions struct {
@@ -98,7 +99,7 @@ func (sender *IrSender) openIrOutputFile() *os.File {
 func stripMode2Types(licrData *LircBuffer) {
 	ln := len(licrData.buf)
 	for i := 0; i < ln; i++ {
-		licrData.buf[i] = licrData.buf[i] & common.L_LIRC_VALUE_MASK
+		licrData.buf[i] = licrData.buf[i] & codecbase.L_LIRC_VALUE_MASK
 	}
 }
 

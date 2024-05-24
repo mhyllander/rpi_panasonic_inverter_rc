@@ -1,4 +1,4 @@
-package common
+package codecbase
 
 // ---------------------------------------------------------------------------------------------------
 // Constants used in RcConfig struct

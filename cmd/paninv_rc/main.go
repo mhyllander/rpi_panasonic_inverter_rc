@@ -4,13 +4,14 @@ import (
 	"flag"
 	"fmt"
 	"os"
+
+	"golang.org/x/sys/unix"
+
 	"rpi_panasonic_inverter_rc/codec"
-	"rpi_panasonic_inverter_rc/common"
+	"rpi_panasonic_inverter_rc/codecbase"
 	"rpi_panasonic_inverter_rc/db"
 	"rpi_panasonic_inverter_rc/logs"
 	"rpi_panasonic_inverter_rc/utils"
-
-	"golang.org/x/sys/unix"
 )
 
 func main() {
@@ -23,7 +24,7 @@ func main() {
 	var vHelp = flag.Bool("help", false, "print usage")
 	var vPriority = flag.Int("prio", -10, "The priority, or niceness, of the process (-20..19)")
 
-	var settings common.Settings
+	var settings codecbase.Settings
 	flag.StringVar(&settings.Power, "power", "", "power [on|off]")
 	flag.StringVar(&settings.Mode, "mode", "", "mode [auto|heat|cool|dry]")
 	flag.StringVar(&settings.Powerful, "powerful", "", "powerful [on|off]")

@@ -1,4 +1,4 @@
-package common
+package codecbase
 
 // ---------------------------------------------------------------------------------------------------
 // Constants related to receiving and parsing LIRC

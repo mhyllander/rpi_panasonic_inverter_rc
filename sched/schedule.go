@@ -4,14 +4,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"rpi_panasonic_inverter_rc/codec"
-	"rpi_panasonic_inverter_rc/common"
-	"rpi_panasonic_inverter_rc/db"
-	"rpi_panasonic_inverter_rc/logs"
-	"rpi_panasonic_inverter_rc/utils"
 	"time"
 
 	"github.com/go-co-op/gocron/v2"
+
+	"rpi_panasonic_inverter_rc/codec"
+	"rpi_panasonic_inverter_rc/codecbase"
+	"rpi_panasonic_inverter_rc/db"
+	"rpi_panasonic_inverter_rc/logs"
+	"rpi_panasonic_inverter_rc/utils"
 )
 
 var scheduler gocron.Scheduler
@@ -33,7 +34,7 @@ func RunInitializationJob() {
 	g_irSender.SendConfig(sendRc)
 }
 
-func RunSettingsJob(settings common.Settings, jobName string) {
+func RunSettingsJob(settings codecbase.Settings, jobName string) {
 	slog.Info("running settings job", "jobName", jobName)
 
 	dbRc, err := db.CurrentConfig()
@@ -75,7 +76,7 @@ func ScheduleJobsForJobset(jobset string, active bool) {
 	}
 
 	for _, cj := range *cjs {
-		var settings = new(common.Settings)
+		var settings = new(codecbase.Settings)
 		err = json.Unmarshal(cj.Settings, settings)
 		if err != nil {
 			slog.Error("failed to unmarshal json", "err", err)
@@ -137,7 +138,7 @@ func scheduleTimerJob(jobName, jobsetGen string, power uint, t codec.Time) (gocr
 	return j, nil
 }
 
-func CondRestartTimerJobs(settings *common.Settings) {
+func CondRestartTimerJobs(settings *codecbase.Settings) {
 	if settings.TimerOn != "" || settings.TimerOnTime != "" ||
 		settings.TimerOff != "" || settings.TimerOffTime != "" {
 		RestartTimerJobs()
@@ -165,23 +166,23 @@ func RestartTimerJobs() {
 	jobsetGen = jobsetGens.nextGen(timerJobCategory, timerJobCategory)
 
 	const job1MinutesBefore = 45
-	if dbRc.TimerOn == common.C_Timer_Enabled {
+	if dbRc.TimerOn == codecbase.C_Timer_Enabled {
 		job1Time := dbRc.TimerOnTime - job1MinutesBefore
-		if _, err := scheduleTimerJob("timer_on_1", jobsetGen, common.C_Power_On, job1Time); err == nil {
+		if _, err := scheduleTimerJob("timer_on_1", jobsetGen, codecbase.C_Power_On, job1Time); err == nil {
 			slog.Info("scheduled timer_on_1 job", "jobsetGen", jobsetGen, "at", job1Time.ToString())
 		} else {
 			slog.Error("failed to schedule timer_on_1 job", "err", err)
 		}
 		job2Time := dbRc.TimerOnTime
-		if _, err := scheduleTimerJob("timer_on_2", jobsetGen, common.C_Power_On, job2Time); err == nil {
+		if _, err := scheduleTimerJob("timer_on_2", jobsetGen, codecbase.C_Power_On, job2Time); err == nil {
 			slog.Info("scheduled timer_on_2 job", "jobsetGen", jobsetGen, "at", job2Time.ToString())
 		} else {
 			slog.Error("failed to schedule timer_on_2 job", "err", err)
 		}
 	}
-	if dbRc.TimerOff == common.C_Timer_Enabled {
+	if dbRc.TimerOff == codecbase.C_Timer_Enabled {
 		jobTime := dbRc.TimerOffTime
-		if _, err := scheduleTimerJob("timer_off", jobsetGen, common.C_Power_Off, jobTime); err == nil {
+		if _, err := scheduleTimerJob("timer_off", jobsetGen, codecbase.C_Power_Off, jobTime); err == nil {
 			slog.Info("scheduled timer_off job", "jobsetGen", jobsetGen, "at", jobTime.ToString())
 		} else {
 			slog.Error("failed to schedule timer_off job", "err", err)

@@ -9,18 +9,19 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"rpi_panasonic_inverter_rc/codec"
-	"rpi_panasonic_inverter_rc/common"
-	"rpi_panasonic_inverter_rc/db"
-	"rpi_panasonic_inverter_rc/logs"
-	"rpi_panasonic_inverter_rc/sched"
-	"rpi_panasonic_inverter_rc/utils"
 	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	httplog "github.com/mhyllander/go-chi-httplog/v2"
+
+	"rpi_panasonic_inverter_rc/codec"
+	"rpi_panasonic_inverter_rc/codecbase"
+	"rpi_panasonic_inverter_rc/db"
+	"rpi_panasonic_inverter_rc/logs"
+	"rpi_panasonic_inverter_rc/sched"
+	"rpi_panasonic_inverter_rc/utils"
 )
 
 var g_irSender *codec.IrSender
@@ -73,8 +74,8 @@ func getRoot(w http.ResponseWriter, r *http.Request) {
 
 // Return all settings as JSON
 func returnCurrentSettings(w http.ResponseWriter) {
-	var theSettings common.AllSettings
-	theSettings.ModeSettings = make(common.ModeSettingsMap)
+	var theSettings codecbase.AllSettings
+	theSettings.ModeSettings = make(codecbase.ModeSettingsMap)
 
 	dbRc, err := db.CurrentConfig()
 	if err != nil {
@@ -85,7 +86,7 @@ func returnCurrentSettings(w http.ResponseWriter) {
 	}
 	utils.CopyToSettings(dbRc, &theSettings.Settings)
 
-	for _, m := range []uint{common.C_Mode_Auto, common.C_Mode_Heat, common.C_Mode_Cool, common.C_Mode_Dry} {
+	for _, m := range []uint{codecbase.C_Mode_Auto, codecbase.C_Mode_Heat, codecbase.C_Mode_Cool, codecbase.C_Mode_Dry} {
 		temp, fan, err := db.GetModeSettings(m)
 		if err != nil {
 			slog.Error("apiGetSettings get mode settings failed", "mode", m, "err", err)
@@ -93,9 +94,9 @@ func returnCurrentSettings(w http.ResponseWriter) {
 			w.Write([]byte(err.Error()))
 			return
 		}
-		ms := common.ModeSettings{}
+		ms := codecbase.ModeSettings{}
 		utils.CopyToModeSettings(temp, fan, &ms)
-		theSettings.ModeSettings[common.Mode2String(m)] = ms
+		theSettings.ModeSettings[codecbase.Mode2String(m)] = ms
 	}
 
 	w.WriteHeader(http.StatusOK)
@@ -111,7 +112,7 @@ func apiGetSettings(w http.ResponseWriter, r *http.Request) {
 }
 
 func apiPostSettings(w http.ResponseWriter, r *http.Request) {
-	var settings = new(common.Settings)
+	var settings = new(codecbase.Settings)
 
 	if r.Header.Get("Content-Type") != "application/json" {
 		slog.Error("apiPostSettings: expecting JSON data", "Content-Type", r.Header.Get("Content-Type"))

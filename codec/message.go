@@ -3,7 +3,8 @@ package codec
 import (
 	"fmt"
 	"math/big"
-	"rpi_panasonic_inverter_rc/common"
+
+	"rpi_panasonic_inverter_rc/codecbase"
 )
 
 type Frame interface {
@@ -39,8 +40,8 @@ func NewMessage() *Message {
 func InitializedMessage() *Message {
 	var bs1, bs2 big.Int
 	return &Message{
-		Frame1: &BitSet{bs1.SetBytes(common.P_PANASONIC_FRAME1()), common.L_PANASONIC_BITS_FRAME1},
-		Frame2: &BitSet{bs2.SetBytes(common.P_PANASONIC_FRAME2()), common.L_PANASONIC_BITS_FRAME2},
+		Frame1: &BitSet{bs1.SetBytes(codecbase.P_PANASONIC_FRAME1()), codecbase.L_PANASONIC_BITS_FRAME1},
+		Frame2: &BitSet{bs2.SetBytes(codecbase.P_PANASONIC_FRAME2()), codecbase.L_PANASONIC_BITS_FRAME2},
 	}
 }
 

@@ -4,9 +4,10 @@ import (
 	"bufio"
 	"log/slog"
 	"os"
-	"rpi_panasonic_inverter_rc/ioctl"
 	"strings"
 	"time"
+
+	"rpi_panasonic_inverter_rc/ioctl"
 )
 
 type ReceiverOptions struct {

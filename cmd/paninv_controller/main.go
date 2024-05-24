@@ -6,8 +6,9 @@ import (
 	"io"
 	"log/slog"
 	"os"
+
 	"rpi_panasonic_inverter_rc/codec"
-	"rpi_panasonic_inverter_rc/common"
+	"rpi_panasonic_inverter_rc/codecbase"
 	"rpi_panasonic_inverter_rc/db"
 	"rpi_panasonic_inverter_rc/logs"
 	"rpi_panasonic_inverter_rc/sched"
@@ -72,8 +73,8 @@ type jobSet struct {
 }
 
 type cronJob struct {
-	Schedule string          `json:"schedule"`
-	Settings common.Settings `json:"settings"`
+	Schedule string             `json:"schedule"`
+	Settings codecbase.Settings `json:"settings"`
 }
 
 type jobSets map[string]jobSet

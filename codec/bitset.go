@@ -3,8 +3,9 @@ package codec
 import (
 	"fmt"
 	"math/big"
-	"rpi_panasonic_inverter_rc/common"
 	"strings"
+
+	"rpi_panasonic_inverter_rc/codecbase"
 )
 
 type BitSet struct {
@@ -109,7 +110,7 @@ func (f *BitSet) VerifyChecksum() bool {
 
 func (f *BitSet) SetChecksum() {
 	cs := f.ComputeChecksum()
-	f.SetValue(uint(cs), uint(f.n-common.P_PANASONIC_CHECKSUM_BITS), common.P_PANASONIC_CHECKSUM_BITS)
+	f.SetValue(uint(cs), uint(f.n-codecbase.P_PANASONIC_CHECKSUM_BITS), codecbase.P_PANASONIC_CHECKSUM_BITS)
 }
 
 func (f *BitSet) Equal(other Frame) bool {
