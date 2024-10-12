@@ -133,8 +133,10 @@ func scheduleTimerJob(jobName, jobsetGen string, power uint, t codec.Time) (gocr
 		gocron.WithTags(timerJobCategory, jobsetGen),
 	)
 	if err != nil {
+		slog.Error("failed to schedule timer job", "jobName", jobName, "jobsetGen", jobsetGen, "at", t.ToString(), "err", err)
 		return nil, err
 	}
+	slog.Info("scheduled timer job", "jobName", jobName, "jobsetGen", jobsetGen, "at", t.ToString())
 	return j, nil
 }
 
@@ -168,7 +170,7 @@ func scheduleDstTransitionJob(jobName, jobsetGen string) (gocron.Job, error) {
 		gocron.WithTags(timerJobCategory, jobsetGen),
 	)
 	if err != nil {
-		slog.Error("failed to schedule DST transition job", "at", end, "err", err)
+		slog.Error("failed to schedule DST transition job", "jobName", jobName, "jobsetGen", jobsetGen, "at", end, "err", err)
 		return nil, err
 	}
 	slog.Info("scheduled DST transition job", "jobName", jobName, "jobsetGen", jobsetGen, "at", end)
@@ -206,25 +208,13 @@ func RestartTimerJobs() {
 	const job1MinutesBefore = 60
 	if dbRc.TimerOn == codecbase.C_Timer_Enabled {
 		job1Time := dbRc.TimerOnTime - job1MinutesBefore
-		if _, err := scheduleTimerJob("timer_on_1", jobsetGen, codecbase.C_Power_On, job1Time); err == nil {
-			slog.Info("scheduled timer_on_1 job", "jobsetGen", jobsetGen, "at", job1Time.ToString())
-		} else {
-			slog.Error("failed to schedule timer_on_1 job", "err", err)
-		}
+		scheduleTimerJob("timer_on_1", jobsetGen, codecbase.C_Power_On, job1Time)
 		job2Time := dbRc.TimerOnTime
-		if _, err := scheduleTimerJob("timer_on_2", jobsetGen, codecbase.C_Power_On, job2Time); err == nil {
-			slog.Info("scheduled timer_on_2 job", "jobsetGen", jobsetGen, "at", job2Time.ToString())
-		} else {
-			slog.Error("failed to schedule timer_on_2 job", "err", err)
-		}
+		scheduleTimerJob("timer_on_2", jobsetGen, codecbase.C_Power_On, job2Time)
 	}
 	if dbRc.TimerOff == codecbase.C_Timer_Enabled {
 		jobTime := dbRc.TimerOffTime
-		if _, err := scheduleTimerJob("timer_off", jobsetGen, codecbase.C_Power_Off, jobTime); err == nil {
-			slog.Info("scheduled timer_off job", "jobsetGen", jobsetGen, "at", jobTime.ToString())
-		} else {
-			slog.Error("failed to schedule timer_off job", "err", err)
-		}
+		scheduleTimerJob("timer_off", jobsetGen, codecbase.C_Power_Off, jobTime)
 	}
 
 	// schedule a DST transition job if timers are enabled
