@@ -138,6 +138,43 @@ func scheduleTimerJob(jobName, jobsetGen string, power uint, t codec.Time) (gocr
 	return j, nil
 }
 
+func RunDstTransitionJob(jobName, jobsetGen string) {
+	slog.Info("running DST transition job", "jobName", jobName, "jobsetGen", jobsetGen)
+
+	dbRc, err := db.CurrentConfig()
+	if err != nil {
+		slog.Error("RunDstTransitionJob: failed to get current config", "err", err)
+		return
+	}
+
+	// re-send the current configuration with an updated clock
+	sendRc := dbRc.CopyForSendingAll()
+	g_irSender.SendConfig(sendRc)
+
+	// re-schedule the next DST transition job
+	scheduleDstTransitionJob(jobName, jobsetGen)
+}
+
+func scheduleDstTransitionJob(jobName, jobsetGen string) (gocron.Job, error) {
+	_, end := time.Now().ZoneBounds()
+	j, err := scheduler.NewJob(
+		gocron.OneTimeJob(gocron.OneTimeJobStartDateTime(end)),
+		gocron.NewTask(
+			RunDstTransitionJob,
+			jobName,
+			jobsetGen,
+		),
+		gocron.WithName(jobName),
+		gocron.WithTags(timerJobCategory, jobsetGen),
+	)
+	if err != nil {
+		slog.Error("failed to schedule DST transition job", "at", end, "err", err)
+		return nil, err
+	}
+	slog.Info("scheduled DST transition job", "jobName", jobName, "jobsetGen", jobsetGen, "at", end)
+	return j, nil
+}
+
 func CondRestartTimerJobs(settings *codecbase.Settings) {
 	if settings.TimerOn != "" || settings.TimerOnTime != "" ||
 		settings.TimerOff != "" || settings.TimerOffTime != "" {
@@ -145,10 +182,11 @@ func CondRestartTimerJobs(settings *codecbase.Settings) {
 	}
 }
 
-// The inverter can power on before the configured time to achieve the desired temperature. After being off during
-// the night it sometimes starts 45 minutes before. It probably depends on the difference between the current and
-// the desired temperatures. Since we can't know when it will start, we'll create two timer on jobs, one that runs
-// 45 minutes before time and one that runs on time.
+// The inverter can power on up to 60 minutes before the configured time to achieve the desired temperature, depending
+// on the current indoor and outdoor temperatures (it actually turns on silently to check the temperatures so it can
+// decide how long time before to power on). After being off during the night it sometimes starts 45 minutes before.
+// Since we can't know when it will start, we'll create two timer on jobs, one that runs 60 minutes before time and one
+// that runs on time.
 func RestartTimerJobs() {
 	slog.Debug("restarting timer jobs")
 
@@ -165,7 +203,7 @@ func RestartTimerJobs() {
 	// get the next job generation before creating new jobs
 	jobsetGen = jobsetGens.nextGen(timerJobCategory, timerJobCategory)
 
-	const job1MinutesBefore = 45
+	const job1MinutesBefore = 60
 	if dbRc.TimerOn == codecbase.C_Timer_Enabled {
 		job1Time := dbRc.TimerOnTime - job1MinutesBefore
 		if _, err := scheduleTimerJob("timer_on_1", jobsetGen, codecbase.C_Power_On, job1Time); err == nil {
@@ -187,6 +225,11 @@ func RestartTimerJobs() {
 		} else {
 			slog.Error("failed to schedule timer_off job", "err", err)
 		}
+	}
+
+	// schedule a DST transition job if timers are enabled
+	if dbRc.TimerOn == codecbase.C_Timer_Enabled || dbRc.TimerOff == codecbase.C_Timer_Enabled {
+		scheduleDstTransitionJob("dst_transition", jobsetGen)
 	}
 
 	listJobs()
@@ -218,7 +261,7 @@ func InitScheduler(irSender *codec.IrSender) error {
 	// start the scheduler
 	scheduler.Start()
 
-	// Send the current config after start. This ensures that the inverter will be configured after a power outage.
+	// Send the current config after start. This ensures that the inverter will be re-configured after a power outage.
 	_, err = scheduler.NewJob(
 		gocron.OneTimeJob(
 			gocron.OneTimeJobStartDateTime(time.Now().Add(2*time.Minute)),
