@@ -111,7 +111,7 @@ func stripMode2Types(licrData *LircBuffer) {
 // test that the output can be read as input, parsed correctly, and yield the original results.
 func SendIrConfig(rc *RcConfig, f *os.File, options *SenderOptions) error {
 	if options.Mode2 {
-		s := rc.ConvertToMode2LircData()
+		s := rc.ConvertToLircData().ToMode2Lirc()
 		s2 := strings.Join(s, " ")
 		_, err := f.WriteString(s2)
 		if err != nil {

@@ -147,21 +147,6 @@ func (c *RcConfig) ConvertToLircData() *LircBuffer {
 	return m.ToLirc()
 }
 
-func (c *RcConfig) ConvertToMode2LircData() []string {
-	m := c.ToMessage()
-	m.Frame2.SetChecksum()
-	lircData := m.ToLirc()
-	s := make([]string, 0, 500)
-	for _, v := range lircData.buf {
-		if v&codecbase.L_LIRC_MODE2_MASK == codecbase.L_LIRC_MODE2_PULSE {
-			s = append(s, fmt.Sprintf("+%d", v&codecbase.L_LIRC_VALUE_MASK))
-		} else if v&codecbase.L_LIRC_MODE2_MASK == codecbase.L_LIRC_MODE2_SPACE {
-			s = append(s, fmt.Sprintf("-%d", v&codecbase.L_LIRC_VALUE_MASK))
-		}
-	}
-	return s
-}
-
 func (c *RcConfig) PrintConfigAndChecksum(checksumStatus string) {
 	fmt.Printf("Settings : power=%s(%d) mode=%s(%d) powerful=%s(%d) quiet=%s(%d) temp=%s\n",
 		codecbase.Power2String(c.Power), c.Power,

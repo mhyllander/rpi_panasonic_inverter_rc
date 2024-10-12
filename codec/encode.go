@@ -53,6 +53,18 @@ func (b *LircBuffer) ToBytes() (bytes []byte) {
 	return bytes
 }
 
+func (b *LircBuffer) ToMode2Lirc() []string {
+	s := make([]string, 0, 500)
+	for _, v := range b.buf {
+		if v&codecbase.L_LIRC_MODE2_MASK == codecbase.L_LIRC_MODE2_PULSE {
+			s = append(s, fmt.Sprintf("+%d", v&codecbase.L_LIRC_VALUE_MASK))
+		} else if v&codecbase.L_LIRC_MODE2_MASK == codecbase.L_LIRC_MODE2_SPACE {
+			s = append(s, fmt.Sprintf("-%d", v&codecbase.L_LIRC_VALUE_MASK))
+		}
+	}
+	return s
+}
+
 func (b *LircBuffer) PrintLircBuffer() {
 	for _, code := range b.buf {
 		printLircData("LircBuffer", code)
