@@ -207,10 +207,15 @@ func RestartTimerJobs() {
 
 	const job1MinutesBefore = 60
 	if dbRc.TimerOn == codecbase.C_Timer_Enabled {
-		job1Time := dbRc.TimerOnTime - job1MinutesBefore
-		scheduleTimerJob("timer_on_1", jobsetGen, codecbase.C_Power_On, job1Time)
-		job2Time := dbRc.TimerOnTime
-		scheduleTimerJob("timer_on_2", jobsetGen, codecbase.C_Power_On, job2Time)
+		var onTime, preOnTime codec.Time
+		onTime = dbRc.TimerOnTime
+		if onTime > job1MinutesBefore {
+			preOnTime = onTime - job1MinutesBefore
+		} else {
+			preOnTime = 24*60 + onTime - job1MinutesBefore
+		}
+		scheduleTimerJob("timer_on_pre", jobsetGen, codecbase.C_Power_On, preOnTime)
+		scheduleTimerJob("timer_on", jobsetGen, codecbase.C_Power_On, onTime)
 	}
 	if dbRc.TimerOff == codecbase.C_Timer_Enabled {
 		jobTime := dbRc.TimerOffTime

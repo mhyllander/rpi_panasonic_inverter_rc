@@ -112,8 +112,6 @@ func apiGetSettings(w http.ResponseWriter, r *http.Request) {
 }
 
 func apiPostSettings(w http.ResponseWriter, r *http.Request) {
-	var settings = new(codecbase.Settings)
-
 	if r.Header.Get("Content-Type") != "application/json" {
 		slog.Error("apiPostSettings: expecting JSON data", "Content-Type", r.Header.Get("Content-Type"))
 		w.WriteHeader(http.StatusBadRequest)
@@ -121,6 +119,7 @@ func apiPostSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var settings = new(codecbase.Settings)
 	err := json.NewDecoder(r.Body).Decode(settings)
 	if err != nil {
 		slog.Error("apiPostSettings: decode body failed", "err", err)
