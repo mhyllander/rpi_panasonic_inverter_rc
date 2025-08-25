@@ -14,7 +14,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	httplog "github.com/mhyllander/go-chi-httplog/v2"
+	"github.com/go-chi/httplog/v2"
 
 	"rpi_panasonic_inverter_rc/codec"
 	"rpi_panasonic_inverter_rc/codecbase"
