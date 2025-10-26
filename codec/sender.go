@@ -96,10 +96,10 @@ func (sender *IrSender) openIrOutputFile() *os.File {
 }
 
 // Prepare for sending by zeroing out all Mode2 type bits.
-func stripMode2Types(licrData *LircBuffer) {
-	ln := len(licrData.buf)
+func stripMode2Types(lircData *LircBuffer) {
+	ln := len(lircData.buf)
 	for i := 0; i < ln; i++ {
-		licrData.buf[i] = licrData.buf[i] & codecbase.L_LIRC_VALUE_MASK
+		lircData.buf[i] = lircData.buf[i] & codecbase.L_LIRC_VALUE_MASK
 	}
 }
 
@@ -119,9 +119,9 @@ func SendIrConfig(rc *RcConfig, f *os.File, options *SenderOptions) error {
 		}
 		slog.Debug("wrote mode2", "ints", len(s))
 	} else {
-		licrData := rc.ConvertToLircData()
-		stripMode2Types(licrData)
-		b := licrData.ToBytes()
+		lircData := rc.ConvertToLircData()
+		stripMode2Types(lircData)
+		b := lircData.ToBytes()
 		if options.Device {
 			ioctl.SetLircSendMode(f)
 		}

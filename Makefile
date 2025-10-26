@@ -34,16 +34,16 @@ test:
 
 deploy: test build-rpi
 	ssh $(DEPLOY_HOST) 'sudo systemctl stop paninv_controller.service; [ -d bin ] || mkdir bin; [ -d paninv ] && rm -rf paninv/web || mkdir paninv'
-	scp $(BINARIES_RPI) $(DEPLOY_HOST):bin/
-	scp -r web $(DEPLOY_HOST):paninv/
+	rsync -azv $(BINARIES_RPI) $(DEPLOY_HOST):bin/
+	rsync -azv web $(DEPLOY_HOST):paninv/
 	ssh $(DEPLOY_HOST) sudo systemctl start paninv_controller.service
 
 deploy_web:
-	scp -r web $(DEPLOY_HOST):paninv/
+	rsync -azv web $(DEPLOY_HOST):paninv/
 	ssh $(DEPLOY_HOST) sudo systemctl restart paninv_controller.service
 
 deploy_jobs:
-	scp jobs.json $(DEPLOY_HOST):
+	rsync -azv jobs.json $(DEPLOY_HOST):./
 	ssh $(DEPLOY_HOST) 'bin/paninv_controller -db=paninv/paninv.db -load-jobs=jobs.json && sudo systemctl restart paninv_controller.service'
 
 clean:

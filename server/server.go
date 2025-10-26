@@ -14,7 +14,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/go-chi/httplog/v2"
+	"github.com/go-chi/httplog/v3"
 
 	"rpi_panasonic_inverter_rc/codec"
 	"rpi_panasonic_inverter_rc/codecbase"
@@ -216,21 +216,10 @@ func StartServer(logLevel string, irSender *codec.IrSender) {
 
 	r := chi.NewRouter()
 
-	// Logger
-	logger := httplog.NewLogger("paninv-controller", httplog.Options{
-		JSON:             true,
-		LogLevel:         logs.SetLoggerOpts(logLevel).Level.Level(),
-		Concise:          true,
-		RequestHeaders:   false,
-		SourceFieldName:  "",
-		TimeFieldName:    "time",
-		MessageFieldName: "msg",
-	})
-
 	// A good base middleware stack
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
-	r.Use(httplog.RequestLogger(logger))
+	r.Use(httplog.RequestLogger(slog.Default(), &httplog.Options{}))
 	r.Use(middleware.Recoverer)
 
 	// Set a timeout value on the request context (ctx), that will signal
@@ -253,7 +242,13 @@ func StartServer(logLevel string, irSender *codec.IrSender) {
 		r.Post("/jobsets", apiPostJobsets)
 	})
 
-	err = http.ListenAndServe(":3333", r)
+	srv := &http.Server{
+		Addr:     ":3333",
+		Handler:  r,
+		ErrorLog: slog.NewLogLogger(slog.Default().Handler(), slog.LevelError),
+	}
+
+	err = srv.ListenAndServe()
 	if errors.Is(err, http.ErrServerClosed) {
 		slog.Info("server closed")
 	} else if err != nil {
