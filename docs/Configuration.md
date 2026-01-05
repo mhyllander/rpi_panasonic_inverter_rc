@@ -25,7 +25,7 @@ sudo apt install -y unattended-upgrades
 
 ### HDMI no signal issue
 
-My screen went black after initial boot messages. No login prompt. I found this [trouble-shooting guide](https://pip.raspberrypi.com/categories/685-whitepapers-app-notes/documents/RP-004341-WP/Troubleshooting-KMS-HDMI-output.pdf).
+My screen went black after initial boot messages. No login prompt. I found this [trouble-shooting guide](https://pip.raspberrypi.com/categories/1259-audio-camera-and-display/documents/RP-004341-WP/Troubleshooting-KMS-HDMI-output.pdf).
 
 ```bash
 cat /sys/class/drm/card?-HDMI-A-1/edid

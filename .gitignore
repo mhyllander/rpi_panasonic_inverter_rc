@@ -2,3 +2,4 @@
 /bin/
 paninv.db
 !**/.keepdir
+provision/etc/NetworkManager/
