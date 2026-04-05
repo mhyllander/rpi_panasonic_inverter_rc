@@ -66,7 +66,7 @@ Note that the receiver output is high at rest and drops to low when it receives 
 
 ### Configuring udev
 
-A problem when both the receiver and transmitter modules are enabled is that the kernel will create to devices, /dev/lirc0 and /dev/lirc1, but there is no direct way to know which is which. Therefore it is useful to add udev rules like this:
+A problem when both the receiver and transmitter modules are enabled is that the kernel will create two devices, /dev/lirc0 and /dev/lirc1, but there is no direct way to know which is which. Therefore it is useful to add udev rules like this:
 
 `/etc/udev/rules.d/70-lirc.rules`
 
@@ -76,7 +76,7 @@ ACTION=="add", SUBSYSTEM=="lirc", DRIVERS=="gpio-ir-tx", SYMLINK+="lirc-tx"
 ACTION=="add", SUBSYSTEM=="lirc", DRIVERS=="pwm-ir-tx", SYMLINK+="lirc-tx"
 ```
 
-These rules will match on the driver name, and create symbolic links that point to the associated device. This allows you to use `/dev/lirc-rx` for reception and `/dev/lirc-tx` for transmission.
+These rules will match on the driver name and create symbolic links that point to the device. This enables you to use `/dev/lirc-rx` for reception and `/dev/lirc-tx` for transmission.
 
 ## Configuring limits
 
