@@ -2,6 +2,7 @@ package sched
 
 import (
 	"encoding/json/v2"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -20,6 +21,8 @@ var g_irSender *codec.IrSender
 
 const settingsJobCategory = "settings"
 const timerJobCategory = "timer"
+
+const minutesPerDay = 24 * 60
 
 func RunInitializationJob() {
 	slog.Info("running initialization job")
@@ -46,17 +49,21 @@ func RunSettingsJob(settings codecbase.Settings, jobName string) {
 		return
 	}
 
-	CondRestartTimerJobs(&settings)
+	if err := CondRestartTimerJobs(&settings); err != nil {
+		slog.Error("RunSettingsJob: failed to restart timer jobs", "err", err)
+	}
 }
 
-func ScheduleJobsForJobset(jobset string, active bool) {
+// ScheduleJobsForJobset replaces the scheduled jobs of a jobset. A job that can't be scheduled is skipped so
+// that it doesn't prevent the other jobs in the jobset from running. The returned error lists all skipped jobs.
+func ScheduleJobsForJobset(jobset string, active bool) error {
 	// remove existing jobs of the current generation
 	jobsetGen := jobsetGens.currentGen(settingsJobCategory, jobset)
 	scheduler.RemoveByTags(jobsetGen)
 
 	if !active {
 		slog.Info("Unscheduled inactive jobset", "jobset", jobset, "jobsetGen", jobsetGen)
-		return
+		return nil
 	}
 
 	// get the next job generation before creating new jobs
@@ -65,17 +72,17 @@ func ScheduleJobsForJobset(jobset string, active bool) {
 
 	cjs, err := db.GetCronJobs(jobset)
 	if err != nil {
-		slog.Error("failed to get cronjobs", "err", err)
-		return
+		return fmt.Errorf("failed to get cronjobs for jobset %q: %w", jobset, err)
 	}
 
+	var skippedJobs []error
 	for _, cj := range *cjs {
 		var settings = new(codecbase.Settings)
-		err = json.Unmarshal(cj.Settings, settings)
-		if err != nil {
-			slog.Error("failed to unmarshal json", "err", err)
-			break
+		if err := json.Unmarshal(cj.Settings, settings); err != nil {
+			skippedJobs = append(skippedJobs, fmt.Errorf("cronjob %d in jobset %q has invalid settings: %w", cj.ID, jobset, err))
+			continue
 		}
+
 		name := fmt.Sprintf("%s_%d %s", jobset, cj.ID, cj.Schedule)
 		j, err := scheduler.NewJob(
 			gocron.CronJob(cj.Schedule, false),
@@ -88,12 +95,14 @@ func ScheduleJobsForJobset(jobset string, active bool) {
 			gocron.WithTags(settingsJobCategory, jobset, jobsetGen),
 		)
 		if err != nil {
-			slog.Error("failed to schedule settings job", "schedule", cj.Schedule, "err", err)
-			break
+			skippedJobs = append(skippedJobs, fmt.Errorf("cronjob %d in jobset %q with schedule %q could not be scheduled: %w", cj.ID, jobset, cj.Schedule, err))
+			continue
 		}
 		slog.Debug("scheduled settings job", "jobset", jobset, "jobsetGen", jobsetGen, "job_id", j.ID())
 	}
 	listJobs()
+
+	return errors.Join(skippedJobs...)
 }
 
 func createSettingsJobs() {
@@ -101,7 +110,9 @@ func createSettingsJobs() {
 		slog.Error("failed to get active jobsets", "err", err)
 	} else {
 		for _, js := range *jss {
-			ScheduleJobsForJobset(js.Name, js.Active)
+			if err := ScheduleJobsForJobset(js.Name, js.Active); err != nil {
+				slog.Error("failed to schedule all jobs in jobset", "jobset", js.Name, "err", err)
+			}
 		}
 	}
 }
@@ -116,6 +127,12 @@ func RunTimerJob(power uint, jobName string) {
 }
 
 func scheduleTimerJob(jobName, jobsetGen string, power uint, t codec.Time) (gocron.Job, error) {
+	if t.Minutes() >= minutesPerDay {
+		err := fmt.Errorf("time %s is not a valid time of day", t.ToString())
+		slog.Error("failed to schedule timer job", "jobName", jobName, "jobsetGen", jobsetGen, "err", err)
+		return nil, err
+	}
+
 	j, err := scheduler.NewJob(
 		gocron.DailyJob(1, gocron.NewAtTimes(gocron.NewAtTime(t.Hour(), t.Minute(), 0))),
 		gocron.NewTask(
@@ -146,11 +163,24 @@ func RunDstTransitionJob(jobName, jobsetGen string) {
 	}
 
 	// re-schedule the next DST transition job
-	scheduleDstTransitionJob(jobName, jobsetGen)
+	if _, err := scheduleDstTransitionJob(jobName, jobsetGen); err != nil {
+		slog.Error("RunDstTransitionJob: failed to schedule the next DST transition job", "err", err)
+	}
 }
 
+// Schedules a job at the next DST transition. Returns a nil job if the time zone has no upcoming transition.
 func scheduleDstTransitionJob(jobName, jobsetGen string) (gocron.Job, error) {
-	_, end := time.Now().ZoneBounds()
+	now := time.Now()
+	_, end := now.ZoneBounds()
+	if end.IsZero() {
+		// Scheduling a job at the zero time would run it immediately, and since the job schedules
+		// itself again it would keep running in a loop.
+		slog.Info("no upcoming DST transition in the current time zone, not scheduling DST transition job", "jobName", jobName)
+		return nil, nil
+	}
+	if !end.After(now) {
+		return nil, fmt.Errorf("next DST transition at %s is not in the future", end)
+	}
 	j, err := scheduler.NewJob(
 		gocron.OneTimeJob(gocron.OneTimeJobStartDateTime(end)),
 		gocron.NewTask(
@@ -169,11 +199,12 @@ func scheduleDstTransitionJob(jobName, jobsetGen string) (gocron.Job, error) {
 	return j, nil
 }
 
-func CondRestartTimerJobs(settings *codecbase.Settings) {
+func CondRestartTimerJobs(settings *codecbase.Settings) error {
 	if settings.TimerOn != "" || settings.TimerOnTime != "" ||
 		settings.TimerOff != "" || settings.TimerOffTime != "" {
-		RestartTimerJobs()
+		return RestartTimerJobs()
 	}
+	return nil
 }
 
 // The inverter can power on up to 60 minutes before the configured time to achieve the desired temperature, depending
@@ -181,13 +212,12 @@ func CondRestartTimerJobs(settings *codecbase.Settings) {
 // decide how long time before to power on). After being off during the night it sometimes starts 45 minutes before.
 // Since we can't know when it will start, we'll create two timer on jobs, one that runs 60 minutes before time and one
 // that runs on time.
-func RestartTimerJobs() {
+func RestartTimerJobs() error {
 	slog.Debug("restarting timer jobs")
 
 	dbRc, err := db.CurrentConfig()
 	if err != nil {
-		slog.Error("failed to get current config", "err", err)
-		return
+		return fmt.Errorf("failed to get current config: %w", err)
 	}
 
 	// remove existing jobs of the current generation
@@ -197,30 +227,40 @@ func RestartTimerJobs() {
 	// get the next job generation before creating new jobs
 	jobsetGen = jobsetGens.nextGen(timerJobCategory, timerJobCategory)
 
+	// Try to schedule all jobs even if some fail. The error is logged where the job is scheduled.
+	var failedJobs []error
+	collectError := func(_ gocron.Job, err error) {
+		if err != nil {
+			failedJobs = append(failedJobs, err)
+		}
+	}
+
 	const job1MinutesBefore = 60
 	if dbRc.TimerOn == codecbase.C_Timer_Enabled {
 		var onTime, preOnTime codec.Time
 		onTime = dbRc.TimerOnTime
-		if onTime > job1MinutesBefore {
+		if onTime >= job1MinutesBefore {
 			preOnTime = onTime - job1MinutesBefore
 		} else {
-			preOnTime = 24*60 + onTime - job1MinutesBefore
+			preOnTime = minutesPerDay + onTime - job1MinutesBefore
 		}
-		scheduleTimerJob("timer_on_pre", jobsetGen, codecbase.C_Power_On, preOnTime)
-		scheduleTimerJob("timer_on", jobsetGen, codecbase.C_Power_On, onTime)
+		collectError(scheduleTimerJob("timer_on_pre", jobsetGen, codecbase.C_Power_On, preOnTime))
+		collectError(scheduleTimerJob("timer_on", jobsetGen, codecbase.C_Power_On, onTime))
 	}
 	if dbRc.TimerOff == codecbase.C_Timer_Enabled {
 		jobTime := dbRc.TimerOffTime
-		scheduleTimerJob("timer_off", jobsetGen, codecbase.C_Power_Off, jobTime)
+		collectError(scheduleTimerJob("timer_off", jobsetGen, codecbase.C_Power_Off, jobTime))
 	}
 
 	// schedule a DST transition job if timers are enabled
 	if dbRc.TimerOn == codecbase.C_Timer_Enabled || dbRc.TimerOff == codecbase.C_Timer_Enabled {
-		scheduleDstTransitionJob("dst_transition", jobsetGen)
+		collectError(scheduleDstTransitionJob("dst_transition", jobsetGen))
 	}
 
 	listJobs()
 	slog.Debug("updated timer jobs")
+
+	return errors.Join(failedJobs...)
 }
 
 func listJobs() {
@@ -265,7 +305,9 @@ func InitScheduler(irSender *codec.IrSender) error {
 
 	// Schedule all the active cron jobs
 	createSettingsJobs()
-	RestartTimerJobs()
+	if err := RestartTimerJobs(); err != nil {
+		slog.Error("failed to schedule all timer jobs", "err", err)
+	}
 
 	return nil
 }

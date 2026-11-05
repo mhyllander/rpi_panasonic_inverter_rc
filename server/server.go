@@ -155,7 +155,9 @@ func apiPostSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sched.CondRestartTimerJobs(settings)
+	if err := sched.CondRestartTimerJobs(settings); err != nil {
+		slog.Error("apiPostSettings: failed to restart timer jobs", "err", err)
+	}
 
 	returnCurrentSettings(w)
 }
@@ -205,13 +207,22 @@ func apiPostJobsets(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var scheduleErrors []error
 	for _, js := range allJS {
 		if err := db.UpdateJobSet(js.Name, js.Active); err != nil {
 			slog.Error("apiPostJobsets: failed to update jobset", "jobset", js.Name, "err", err)
 			writeError(w, http.StatusInternalServerError, err)
 			return
 		}
-		sched.ScheduleJobsForJobset(js.Name, js.Active)
+		if err := sched.ScheduleJobsForJobset(js.Name, js.Active); err != nil {
+			scheduleErrors = append(scheduleErrors, err)
+		}
+	}
+	if len(scheduleErrors) > 0 {
+		err := errors.Join(scheduleErrors...)
+		slog.Error("apiPostJobsets: failed to schedule all jobs", "err", err)
+		writeError(w, http.StatusInternalServerError, err)
+		return
 	}
 
 	returnJobSets(w)
