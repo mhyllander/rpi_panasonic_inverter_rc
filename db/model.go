@@ -31,7 +31,7 @@ type ModeSetting struct {
 // This allows toggling which cronjobs are active.
 type JobSet struct {
 	gorm.Model
-	Name   string // name of the job set
+	Name   string `gorm:"uniqueIndex"` // name of the job set
 	Active bool   // true or false
 }
 
@@ -39,6 +39,7 @@ type JobSet struct {
 type CronJob struct {
 	gorm.Model
 	JobSet   string // the job set that the cronjob belongs to
+	Name     string // optional name of the cronjob
 	Schedule string // schedule in crontab format
 	Settings []byte // JSON representation of Settings struct
 }

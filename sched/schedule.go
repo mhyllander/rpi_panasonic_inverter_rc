@@ -84,6 +84,9 @@ func ScheduleJobsForJobset(jobset string, active bool) error {
 		}
 
 		name := fmt.Sprintf("%s_%d %s", jobset, cj.ID, cj.Schedule)
+		if cj.Name != "" {
+			name = fmt.Sprintf("%s_%d %s %s", jobset, cj.ID, cj.Name, cj.Schedule)
+		}
 		j, err := scheduler.NewJob(
 			gocron.CronJob(cj.Schedule, false),
 			gocron.NewTask(

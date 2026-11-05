@@ -90,14 +90,16 @@ $ paninv_controller -help
         print decoded configuration
   -db string
         SQLite database (default "/home/mhy/paninv/paninv.db")
+  -export-jobs string
+        write all jobsets as JSON to a file, or to stdout if the file is -
   -help
         print usage
+  -import-jobs string
+        replace all jobsets with the jobsets in a JSON file
   -irin string
         LIRC receive device (default "/dev/lirc-rx")
   -irout string
         LIRC transmit device (default "/dev/lirc-tx")
-  -load-jobs string
-        load cronjobs from file
   -log-level string
         log level [debug|info|warn|error] (default "info")
   -msg

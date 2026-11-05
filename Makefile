@@ -2,7 +2,7 @@ BINARIES := bin/decode bin/paninv_rc bin/paninv_controller
 BINARIES_RPI := arm64/decode arm64/paninv_rc arm64/paninv_controller
 DEPLOY_HOST := piir
 
-.PHONY: all build build-rpi test deploy deploy_web deploy_jobs clean \
+.PHONY: all build build-rpi test deploy deploy_jobs clean \
 	bin-decode bin-paninv_rc bin-paninv_controller \
 	arm64-decode arm64-paninv_rc arm64-paninv_controller
 
@@ -39,16 +39,11 @@ test:
 deploy: test build-rpi
 	ssh $(DEPLOY_HOST) 'sudo systemctl stop paninv_controller.service && mkdir -p bin paninv && rm -rf paninv/web'
 	rsync -azv $(BINARIES_RPI) $(DEPLOY_HOST):bin/
-	rsync -azv web $(DEPLOY_HOST):paninv/
 	ssh $(DEPLOY_HOST) sudo systemctl start paninv_controller.service
-
-deploy_web:
-	rsync -azv web $(DEPLOY_HOST):paninv/
-	ssh $(DEPLOY_HOST) sudo systemctl restart paninv_controller.service
 
 deploy_jobs:
 	rsync -azv jobs.json $(DEPLOY_HOST):./
-	ssh $(DEPLOY_HOST) 'bin/paninv_controller -db=paninv/paninv.db -load-jobs=jobs.json && sudo systemctl restart paninv_controller.service'
+	ssh $(DEPLOY_HOST) 'bin/paninv_controller -db=paninv/paninv.db -import-jobs=jobs.json && sudo systemctl restart paninv_controller.service'
 
 clean:
 	rm -f bin/* arm64/*

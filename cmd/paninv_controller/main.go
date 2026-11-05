@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json/jsontext"
 	"encoding/json/v2"
 	"flag"
 	"io"
@@ -73,13 +74,14 @@ type jobSet struct {
 }
 
 type cronJob struct {
+	Name     string             `json:"name,omitempty"`
 	Schedule string             `json:"schedule"`
 	Settings codecbase.Settings `json:"settings"`
 }
 
 type jobSets map[string]jobSet
 
-func loadCronJobs(jobfile string) error {
+func importJobs(jobfile string) error {
 	f, err := os.Open(jobfile)
 	if err != nil {
 		slog.Error("failed to open jobs file", "err", err)
@@ -103,7 +105,7 @@ func loadCronJobs(jobfile string) error {
 	for name, js := range jobsets {
 		definition := db.JobSetDefinition{Name: name, Active: js.Active}
 		for _, j := range js.CronJobs {
-			definition.CronJobs = append(definition.CronJobs, db.CronJobDefinition{Schedule: j.Schedule, Settings: j.Settings})
+			definition.CronJobs = append(definition.CronJobs, db.CronJobDefinition{Name: j.Name, Schedule: j.Schedule, Settings: j.Settings})
 		}
 		definitions = append(definitions, definition)
 	}
@@ -113,6 +115,41 @@ func loadCronJobs(jobfile string) error {
 		return err
 	}
 	return nil
+}
+
+// exportJobs writes all jobsets as JSON, in the format read by importJobs. An empty file name or "-" means stdout.
+func exportJobs(jobfile string) error {
+	definitions, err := db.GetJobSetDefinitions()
+	if err != nil {
+		slog.Error("failed to get jobsets", "err", err)
+		return err
+	}
+
+	exported := make(jobSets, len(definitions))
+	for _, definition := range definitions {
+		js := jobSet{Active: definition.Active, CronJobs: make([]cronJob, 0, len(definition.CronJobs))}
+		for _, j := range definition.CronJobs {
+			js.CronJobs = append(js.CronJobs, cronJob{Name: j.Name, Schedule: j.Schedule, Settings: j.Settings})
+		}
+		exported[definition.Name] = js
+	}
+
+	data, err := json.Marshal(exported, jsontext.Multiline(true))
+	if err != nil {
+		slog.Error("failed to marshal jobsets", "err", err)
+		return err
+	}
+	data = append(data, '\n')
+
+	if jobfile == "" || jobfile == "-" {
+		_, err = os.Stdout.Write(data)
+	} else {
+		err = os.WriteFile(jobfile, data, 0o644)
+	}
+	if err != nil {
+		slog.Error("failed to write jobs", "err", err)
+	}
+	return err
 }
 
 func main() {
@@ -137,7 +174,8 @@ func main() {
 	flag.IntVar(&senderOptions.Interval_ms, "send-int", senderOptions.Interval_ms, "send option: number of milliseconds between transmissions")
 	flag.BoolVar(&senderOptions.Device, "send-dev", senderOptions.Device, "send option: writing to a LIRC device")
 
-	var vLoadJobs = flag.String("load-jobs", "", "load cronjobs from file")
+	var vImportJobs = flag.String("import-jobs", "", "replace all jobsets with the jobsets in a JSON file")
+	var vExportJobs = flag.String("export-jobs", "", "write all jobsets as JSON to a file, or to stdout if the file is -")
 
 	flag.Parse()
 
@@ -168,8 +206,18 @@ func main() {
 	}
 	defer db.Close()
 
-	if *vLoadJobs != "" {
-		if err := loadCronJobs(*vLoadJobs); err != nil {
+	if *vImportJobs != "" && *vExportJobs != "" {
+		slog.Error("-import-jobs and -export-jobs can't be used together")
+		os.Exit(1)
+	}
+	if *vImportJobs != "" {
+		if err := importJobs(*vImportJobs); err != nil {
+			os.Exit(1)
+		}
+		os.Exit(0)
+	}
+	if *vExportJobs != "" {
+		if err := exportJobs(*vExportJobs); err != nil {
 			os.Exit(1)
 		}
 		os.Exit(0)
