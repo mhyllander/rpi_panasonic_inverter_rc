@@ -2,6 +2,10 @@ BINARIES := bin/decode bin/paninv_rc bin/paninv_controller
 BINARIES_RPI := arm64/decode arm64/paninv_rc arm64/paninv_controller
 DEPLOY_HOST := piir
 
+.PHONY: all build build-rpi test deploy deploy_web deploy_jobs clean \
+	bin-decode bin-paninv_rc bin-paninv_controller \
+	arm64-decode arm64-paninv_rc arm64-paninv_controller
+
 all: build build-rpi
 
 build: $(subst /,-,$(BINARIES))
@@ -30,10 +34,10 @@ arm64-paninv_controller:
 #	GOOS=linux GOARCH=arm64 CC=aarch64-linux-gnu-gcc CGO_ENABLED=1 go build -o bin/hello-arm64 -ldflags="--sysroot=/home/mhy/chroot/rpi-bookworm-arm64" cmd/cgo/main_cgo.go
 
 test:
-	go test ./codec
+	go test ./...
 
 deploy: test build-rpi
-	ssh $(DEPLOY_HOST) 'sudo systemctl stop paninv_controller.service; [ -d bin ] || mkdir bin; [ -d paninv ] && rm -rf paninv/web || mkdir paninv'
+	ssh $(DEPLOY_HOST) 'sudo systemctl stop paninv_controller.service && mkdir -p bin paninv && rm -rf paninv/web'
 	rsync -azv $(BINARIES_RPI) $(DEPLOY_HOST):bin/
 	rsync -azv web $(DEPLOY_HOST):paninv/
 	ssh $(DEPLOY_HOST) sudo systemctl start paninv_controller.service
