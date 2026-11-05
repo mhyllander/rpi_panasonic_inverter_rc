@@ -68,7 +68,10 @@ func main() {
 	logs.InitLogger(*vLogLevel)
 
 	// open and initialize database
-	db.Initialize(*vRcDb)
+	if err := db.Initialize(*vRcDb); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 	defer db.Close()
 
 	// get current configuration

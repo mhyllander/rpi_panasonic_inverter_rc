@@ -1,7 +1,7 @@
 package main
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"flag"
 	"io"
 	"log/slog"
@@ -50,14 +50,12 @@ func messageHandler(options *Options) func(*codec.Message) {
 			return
 		}
 
-		// get current configuration
-		dbRc, err := db.CurrentConfig()
-		if err != nil {
-			slog.Error("failed to get current config", "error", err)
-			return
-		}
-
-		err = db.SaveConfig(c, dbRc)
+		err := db.UpdateConfig(
+			func(current *codec.RcConfig) (*codec.RcConfig, error) {
+				return c, nil
+			},
+			nil,
+		)
 		if err != nil {
 			slog.Error("failed to save the new config", "error", err)
 			return
@@ -79,38 +77,40 @@ type cronJob struct {
 
 type jobSets map[string]jobSet
 
-func loadCronJobs(jobfile string) {
+func loadCronJobs(jobfile string) error {
 	f, err := os.Open(jobfile)
 	if err != nil {
-		slog.Error("failed to open jobs file")
-		return
+		slog.Error("failed to open jobs file", "err", err)
+		return err
 	}
 	defer f.Close()
 	data, err := io.ReadAll(f)
 	if err != nil {
-		slog.Error("failed to read jobs file")
-		return
+		slog.Error("failed to read jobs file", "err", err)
+		return err
 	}
 
 	var jobsets jobSets
 	err = json.Unmarshal(data, &jobsets)
 	if err != nil {
-		slog.Error("failed to unmarshal jobsets")
-		return
+		slog.Error("failed to unmarshal jobsets", "err", err)
+		return err
 	}
 
-	db.DeleteAllJobSetsPermanently()
-	db.DeleteAllCronJobsPermanently()
+	var definitions []db.JobSetDefinition
 	for name, js := range jobsets {
-		if err := db.SaveJobSet(name, js.Active); err != nil {
-			slog.Error("failed to save jobset", "jobset", name, "err", err)
-		}
+		definition := db.JobSetDefinition{Name: name, Active: js.Active}
 		for _, j := range js.CronJobs {
-			if err := db.SaveCronJob(name, j.Schedule, &j.Settings); err != nil {
-				slog.Error("failed to save cronjob", "err", err)
-			}
+			definition.CronJobs = append(definition.CronJobs, db.CronJobDefinition{Schedule: j.Schedule, Settings: j.Settings})
 		}
+		definitions = append(definitions, definition)
 	}
+
+	if err := db.ReplaceJobSets(definitions); err != nil {
+		slog.Error("failed to load jobs, existing jobs left unchanged", "err", err)
+		return err
+	}
+	return nil
 }
 
 func main() {
@@ -160,11 +160,16 @@ func main() {
 	}
 
 	// open and initialize database
-	db.Initialize(*vRcDb)
+	if err := db.Initialize(*vRcDb); err != nil {
+		slog.Error("failed to initialize database", "err", err)
+		os.Exit(1)
+	}
 	defer db.Close()
 
 	if *vLoadJobs != "" {
-		loadCronJobs(*vLoadJobs)
+		if err := loadCronJobs(*vLoadJobs); err != nil {
+			os.Exit(1)
+		}
 		os.Exit(0)
 	}
 
