@@ -101,9 +101,13 @@ func main() {
 		sendRc.PrintConfigAndChecksum("")
 	}
 
-	irSender := codec.StartIrSender(*vIrOutput, senderOptions)
-	irSender.SendConfig(sendRc)
+	irSender := codec.StartIrSender(*vIrOutput, senderOptions, nil)
+	err = irSender.SendConfig(sendRc)
 	irSender.Stop()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 
 	err = db.SaveConfig(sendRc, dbRc)
 	if err != nil {
