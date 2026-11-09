@@ -174,15 +174,17 @@ func main() {
 	}
 
 	// start the IR receiver
+	irReceiver := codec.NewIrReceiver(*vIrInput, messageHandler(&options), recOptions)
 	go func() {
 		// this call blocks
-		err := codec.RunIrReceiver(*vIrInput, messageHandler(&options), recOptions)
+		err := irReceiver.Run()
 		if err != nil {
 			slog.Error("failed to start IR receiver", "err", err)
 		}
 	}()
+	defer irReceiver.Quit()
 
-	irSender := codec.StartIrSender(*vIrOutput, senderOptions)
+	irSender := codec.StartIrSender(*vIrOutput, senderOptions, irReceiver)
 	defer irSender.Stop()
 
 	// start gocron

@@ -147,7 +147,11 @@ func apiPostSettings(w http.ResponseWriter, r *http.Request) {
 	)
 	if err != nil {
 		slog.Error("apiPostSettings: failed to update config", "err", err)
-		writeError(w, http.StatusInternalServerError, err)
+		status := http.StatusInternalServerError
+		if errors.Is(err, codec.ErrSenderBusy) || errors.Is(err, codec.ErrSenderStopped) {
+			status = http.StatusServiceUnavailable
+		}
+		writeError(w, status, err)
 		return
 	}
 

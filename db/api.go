@@ -132,8 +132,8 @@ func WithConfig(fn func(current *codec.RcConfig) error) error {
 // is saved. The optional afterSave is called with the resulting config (the
 // current config if nothing was saved) after a successful commit, still holding
 // the config lock, so that anything done in it (e.g. sending IR) is ordered the
-// same way as the saved updates.
-func UpdateConfig(compose func(current *codec.RcConfig) (*codec.RcConfig, error), afterSave func(result *codec.RcConfig)) error {
+// same way as the saved updates. If afterSave fails, the config has still been saved.
+func UpdateConfig(compose func(current *codec.RcConfig) (*codec.RcConfig, error), afterSave func(result *codec.RcConfig) error) error {
 	configMu.Lock()
 	defer configMu.Unlock()
 
@@ -161,7 +161,7 @@ func UpdateConfig(compose func(current *codec.RcConfig) (*codec.RcConfig, error)
 	}
 
 	if afterSave != nil {
-		afterSave(result)
+		return afterSave(result)
 	}
 	return nil
 }

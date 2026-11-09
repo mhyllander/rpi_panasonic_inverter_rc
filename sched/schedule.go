@@ -25,11 +25,10 @@ func RunInitializationJob() {
 	slog.Info("running initialization job")
 
 	err := db.WithConfig(func(current *codec.RcConfig) error {
-		g_irSender.SendConfig(current.CopyForSendingAll())
-		return nil
+		return g_irSender.SendConfig(current.CopyForSendingAll())
 	})
 	if err != nil {
-		slog.Error("RunInitializationJob: failed to get current config", "err", err)
+		slog.Error("RunInitializationJob: failed to send current config", "err", err)
 	}
 }
 
@@ -140,12 +139,10 @@ func RunDstTransitionJob(jobName, jobsetGen string) {
 
 	// re-send the current configuration with an updated clock
 	err := db.WithConfig(func(current *codec.RcConfig) error {
-		g_irSender.SendConfig(current.CopyForSendingAll())
-		return nil
+		return g_irSender.SendConfig(current.CopyForSendingAll())
 	})
 	if err != nil {
-		slog.Error("RunDstTransitionJob: failed to get current config", "err", err)
-		return
+		slog.Error("RunDstTransitionJob: failed to send current config", "err", err)
 	}
 
 	// re-schedule the next DST transition job

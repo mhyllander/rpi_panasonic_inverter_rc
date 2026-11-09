@@ -1,6 +1,7 @@
 package codec
 
 import (
+	"errors"
 	"log/slog"
 	"os"
 	"strings"
@@ -23,26 +24,65 @@ func NewSenderOptions() *SenderOptions {
 	return &SenderOptions{Device: true, Transmissions: 1, Interval_ms: 20}
 }
 
+var (
+	ErrSenderStopped = errors.New("IR sender is stopped")
+	ErrSenderBusy    = errors.New("IR sender queue is full")
+)
+
+const sendQueueSize = 10
+
 type IrSender struct {
 	irOutputFile  string
 	senderOptions SenderOptions
+	receiver      *IrReceiver // suspended while sending, can be nil
 	sendChannel   chan *RcConfig
 	stopWait      sync.WaitGroup
+
+	// protects stopped and closing of sendChannel
+	stopMu  sync.RWMutex
+	stopped bool
 }
 
-func StartIrSender(irOutputFile string, senderOptions *SenderOptions) *IrSender {
-	sender := &IrSender{irOutputFile, *senderOptions, make(chan *RcConfig, 10), sync.WaitGroup{}}
+// StartIrSender starts a sender that sends the queued configs one at a time. If a receiver is given,
+// it is suspended while sending.
+func StartIrSender(irOutputFile string, senderOptions *SenderOptions, receiver *IrReceiver) *IrSender {
+	sender := &IrSender{
+		irOutputFile:  irOutputFile,
+		senderOptions: *senderOptions,
+		receiver:      receiver,
+		sendChannel:   make(chan *RcConfig, sendQueueSize),
+	}
 	sender.stopWait.Add(1)
 	go sender.processConfigs()
 	return sender
 }
 
-func (sender *IrSender) SendConfig(sendRc *RcConfig) {
-	sender.sendChannel <- sendRc
+// SendConfig queues a config for sending. It never blocks, but fails if the queue is full or the sender is stopped.
+func (sender *IrSender) SendConfig(sendRc *RcConfig) error {
+	sender.stopMu.RLock()
+	defer sender.stopMu.RUnlock()
+
+	if sender.stopped {
+		return ErrSenderStopped
+	}
+
+	select {
+	case sender.sendChannel <- sendRc:
+		return nil
+	default:
+		return ErrSenderBusy
+	}
 }
 
+// Stop sends the already queued configs and then stops the sender. Further calls to SendConfig fail.
 func (sender *IrSender) Stop() {
-	close(sender.sendChannel)
+	sender.stopMu.Lock()
+	if !sender.stopped {
+		sender.stopped = true
+		close(sender.sendChannel)
+	}
+	sender.stopMu.Unlock()
+
 	sender.stopWait.Wait()
 }
 
@@ -56,19 +96,14 @@ func (sender *IrSender) processConfigs() {
 
 // Actually send a config. This is a separate function so we can make use of defer to close resources after sending.
 func (sender *IrSender) send(sendRc *RcConfig) {
-	var err error
-
 	// suspend the receiver while sending
-	confirmCommand := make(chan struct{})
-	SuspendReceiver(confirmCommand)
-	<-confirmCommand
-	defer func() {
-		ResumeReceiver(confirmCommand)
-		<-confirmCommand
-	}()
+	if sender.receiver != nil {
+		sender.receiver.Suspend()
+		defer sender.receiver.Resume()
+	}
 
-	f := sender.openIrOutputFile()
-	if f == nil {
+	f, err := sender.openIrOutputFile()
+	if err != nil {
 		slog.Error("failed to open IR output file", "err", err)
 		return
 	}
@@ -82,17 +117,12 @@ func (sender *IrSender) send(sendRc *RcConfig) {
 }
 
 // Open file or device for sending IR
-func (sender *IrSender) openIrOutputFile() *os.File {
+func (sender *IrSender) openIrOutputFile() (*os.File, error) {
 	flags := os.O_RDWR
 	if !sender.senderOptions.Device {
 		flags = flags | os.O_CREATE
 	}
-	f, err := os.OpenFile(sender.irOutputFile, flags, 0644)
-	if err != nil {
-		slog.Error("failed to open IR output file", "err", err)
-		return nil
-	}
-	return f
+	return os.OpenFile(sender.irOutputFile, flags, 0644)
 }
 
 // Prepare for sending by zeroing out all Mode2 type bits.
