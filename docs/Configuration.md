@@ -16,10 +16,7 @@
 sudo apt update
 sudo apt full-upgrade -y
 sudo reboot
-sudo rpi-update # currently updates to rpi-6.6.y
-sudo reboot
 # optional
-sudo apt install -y etckeeper
 sudo apt install -y unattended-upgrades
 ```
 
@@ -58,7 +55,7 @@ Note that there are two different drivers for transmission:
 * `pwm-ir-tx` uses PWM to control the IR output. This does not require as much of the processor, but it still needs to trigger the edges, and is therefore sensitive to delays.
 
 > [!NOTE]
-> Regarding the `pwm-ir-tx`, the duration of pulses and spaces is not sufficiently precise in kernel 6.1 and 6.6, and I had problems where transmissions were not reliably received by the inverter. [See below](#custom_kernel) for kernel patches that increase the precision.
+> Regarding the `pwm-ir-tx`, the duration of pulses and spaces is not sufficiently precise in kernel 6.1 and 6.6, and I had problems where transmissions were not reliably received by the inverter. Kernel 6.8 and later fix this, see [below](#kernel-66-and-earlier).
 
 To be able to test both transmission drivers, I chose GPIO pin 18 for output, since it can be used with PWM. In the end, I was only able to get PWM to work.
 
@@ -133,27 +130,25 @@ index 7fbd3d4..b26d125 100644
  // when Unattended-Upgrade::Automatic-Reboot is set to true
 ```
 
-# <a name="custom_kernel"></a>Using a custom Raspberry Pi OS kernel
+# Kernel notes
 
-At the time of writing (February 2024), patches for `pwm-ir-tx` using hrtimers (high resolution timers) have been merged into Linux kernel 6.8. Raspberry Pi OS is still based on 6.1, on the verge of upgrading to 6.6, so the pwm-ir-tx patches are not yet available. The patches were published e.g. [[PATCH v10 0/6] Improve pwm-ir-tx precision](https://lore.kernel.org/linux-pwm/cover.1703003288.git.sean@mess.org/), and can be found in [Raspberry Pi OS branch rpi-6.8.y](https://github.com/raspberrypi/linux/tree/rpi-6.8.y). These are the patches:
+## Kernel 6.6 and earlier
 
-1. c748a6d77c06 - pwm: Rename pwm_apply_state() to pwm_apply_might_sleep() (2023-12-20) \<Sean Young>
-1. dc518b378dce - pwm: Replace ENOTSUPP with EOPNOTSUPP (2023-12-20) \<Sean Young>
-1. 752193da3f8b - pwm: renesas: Remove unused include (2023-12-20) \<Sean Young>
-1. 7170d3beafc2 - pwm: Make it possible to apply PWM changes in atomic context (2023-12-20) \<Sean Young>
-1. fcc760729359 - pwm: bcm2835: Allow PWM driver to be used in atomic context (2023-12-20) \<Sean Young>
-1. 363d0e56285e - media: pwm-ir-tx: Trigger edges from hrtimer interrupt context (2023-12-20) \<Sean Young>
-1. 346c84e281a9 - media: pwm-ir-tx: Depend on CONFIG_HIGH_RES_TIMERS (2024-02-01) \<Sean Young>
+Patches that make `pwm-ir-tx` trigger edges from hrtimer (high resolution timer) interrupt context were merged in Linux kernel 6.8 ([patch series](https://lore.kernel.org/linux-pwm/cover.1703003288.git.sean@mess.org/)). Kernels 6.1 and 6.6 lack them, and I had to re-send a message at least four times before the inverter accepted it. Backporting the patches to `rpi-6.6.y` fixed this (see [issue #5987](https://github.com/raspberrypi/linux/issues/5987)). Kernels 6.8 to 6.12 work without custom patches.
 
-Backporting these patches to branch `rpi-6.6.y` makes the `pwm-ir-tx` kernel module work _much_ better. Before this patch I had to re-send the same message at least four times in the hope that one of the transmissions would be accepted by the inverter unit.
+## Kernel 6.18 regression
 
-I have [created an issue](https://github.com/raspberrypi/linux/issues/5987) to request that these patches be backported to kernel 6.6.
+In kernel 6.18, `pwm-ir-tx` sends nothing, while `ir-ctl` and `write()` still report success. Commit `44d7fb8acdf8` ("media: pwm-ir-tx: Avoid direct access to hrtimer clockbase") inverted the catch-up loop condition in `pwm_ir_timer()`. The first timer callback therefore applies all edges at once, within a few microseconds.
 
-Building a custom kernel: https://www.raspberrypi.com/documentation/computers/linux_kernel.html#kernel
+The fix (`hrtimer_expires_remaining(timer) < 0`) was merged into the Raspberry Pi kernel in October 2026, see [issue #7678](https://github.com/raspberrypi/linux/issues/7678). Update to a 6.18 kernel that includes it, e.g. with `rpi-update`.
 
-## Installing a custom 6.6 kernel
+## Installing a custom kernel
 
-Notes on installing a custom `kernel8-pwm.img` kernel. During the build a custom `LOCALVERSION` was set, which generates a unique name for the modules directory. This simplifies installation.
+This is a note to self about how to build and install a custom kernel.
+
+Ref: https://www.raspberrypi.com/documentation/computers/linux_kernel.html#kernel
+
+Notes on installing a custom `kernel8-pwm.img` kernel. During the build, I configured `LOCALVERSION`, which generates a unique name for the modules directory. This simplifies installation.
 
 ```bash
 DATE=$(date +'%Y-%m-%d')
