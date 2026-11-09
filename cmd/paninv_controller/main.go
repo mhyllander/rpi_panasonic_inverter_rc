@@ -61,7 +61,9 @@ func messageHandler(options *Options) func(*codec.Message) {
 			return
 		}
 
-		sched.RestartTimerJobs()
+		if err := sched.RestartTimerJobs(); err != nil {
+			slog.Error("failed to restart timer jobs", "err", err)
+		}
 	}
 }
 
