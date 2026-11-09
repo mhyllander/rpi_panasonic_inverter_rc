@@ -25,10 +25,10 @@ arm64-decode:
 	GOOS=linux GOARCH=arm64 go build -o arm64/decode cmd/decode/main.go
 
 arm64-paninv_rc:
-	GOOS=linux GOARCH=arm64 CC=aarch64-linux-gnu-gcc CGO_ENABLED=1 go build -o arm64/paninv_rc cmd/paninv_rc/main.go
+	GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -o arm64/paninv_rccmd/paninv_rc/main.go
 
 arm64-paninv_controller:
-	GOOS=linux GOARCH=arm64 CC=aarch64-linux-gnu-gcc CGO_ENABLED=1 go build -o arm64/paninv_controller cmd/paninv_controller/main.go
+	GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -o arm64/paninv_controllercmd/paninv_controller/main.go
 
 #hello-arm64:
 #	GOOS=linux GOARCH=arm64 CC=aarch64-linux-gnu-gcc CGO_ENABLED=1 go build -o bin/hello-arm64 -ldflags="--sysroot=/home/mhy/chroot/rpi-bookworm-arm64" cmd/cgo/main_cgo.go
