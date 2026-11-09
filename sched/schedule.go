@@ -1,7 +1,7 @@
 package sched
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"fmt"
 	"log/slog"
 	"time"
@@ -24,31 +24,26 @@ const timerJobCategory = "timer"
 func RunInitializationJob() {
 	slog.Info("running initialization job")
 
-	dbRc, err := db.CurrentConfig()
+	err := db.WithConfig(func(current *codec.RcConfig) error {
+		g_irSender.SendConfig(current.CopyForSendingAll())
+		return nil
+	})
 	if err != nil {
 		slog.Error("RunInitializationJob: failed to get current config", "err", err)
-		return
 	}
-
-	sendRc := dbRc.CopyForSendingAll()
-	g_irSender.SendConfig(sendRc)
 }
 
 func RunSettingsJob(settings codecbase.Settings, jobName string) {
 	slog.Info("running settings job", "jobName", jobName)
 
-	dbRc, err := db.CurrentConfig()
+	err := db.UpdateConfig(
+		func(current *codec.RcConfig) (*codec.RcConfig, error) {
+			return rcutils.ComposeSendConfig(&settings, current), nil
+		},
+		g_irSender.SendConfig,
+	)
 	if err != nil {
-		slog.Error("RunSettingsJob: failed to get current config", "err", err)
-		return
-	}
-
-	sendRc := rcutils.ComposeSendConfig(&settings, dbRc)
-	g_irSender.SendConfig(sendRc)
-
-	err = db.SaveConfig(sendRc, dbRc)
-	if err != nil {
-		slog.Error("RunSettingsJob: failed to save config", "err", err)
+		slog.Error("RunSettingsJob: failed to update config", "err", err)
 		return
 	}
 
@@ -143,15 +138,15 @@ func scheduleTimerJob(jobName, jobsetGen string, power uint, t codec.Time) (gocr
 func RunDstTransitionJob(jobName, jobsetGen string) {
 	slog.Info("running DST transition job", "jobName", jobName, "jobsetGen", jobsetGen)
 
-	dbRc, err := db.CurrentConfig()
+	// re-send the current configuration with an updated clock
+	err := db.WithConfig(func(current *codec.RcConfig) error {
+		g_irSender.SendConfig(current.CopyForSendingAll())
+		return nil
+	})
 	if err != nil {
 		slog.Error("RunDstTransitionJob: failed to get current config", "err", err)
 		return
 	}
-
-	// re-send the current configuration with an updated clock
-	sendRc := dbRc.CopyForSendingAll()
-	g_irSender.SendConfig(sendRc)
 
 	// re-schedule the next DST transition job
 	scheduleDstTransitionJob(jobName, jobsetGen)

@@ -2,11 +2,12 @@ package server
 
 import (
 	"compress/gzip"
-	"encoding/json"
+	"encoding/json/v2"
 	"errors"
 	"html/template"
 	"io"
 	"log/slog"
+	"mime"
 	"net/http"
 	"os"
 	"strings"
@@ -55,6 +56,22 @@ func Gzip(handler http.Handler) http.Handler {
 	})
 }
 
+func writeError(w http.ResponseWriter, status int, err error) {
+	http.Error(w, err.Error(), status)
+}
+
+func writeJSON(w http.ResponseWriter, value any) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	return json.MarshalWrite(w, value)
+}
+
+// Accepts media type parameters, e.g. "application/json; charset=utf-8".
+func hasJSONContentType(r *http.Request) bool {
+	mediaType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	return err == nil && mediaType == "application/json"
+}
+
 func getRoot(w http.ResponseWriter, r *http.Request) {
 	if logs.IsLogLevelDebug() {
 		slog.Info("reloading template while debugging")
@@ -80,8 +97,7 @@ func returnCurrentSettings(w http.ResponseWriter) {
 	dbRc, err := db.CurrentConfig()
 	if err != nil {
 		slog.Error("apiGetSettings get current config failed", "err", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
+		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
 	rcutils.CopyToSettings(dbRc, &theSettings.Settings)
@@ -90,8 +106,7 @@ func returnCurrentSettings(w http.ResponseWriter) {
 		temp, fan, err := db.GetModeSettings(m)
 		if err != nil {
 			slog.Error("apiGetSettings get mode settings failed", "mode", m, "err", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(err.Error()))
+			writeError(w, http.StatusInternalServerError, err)
 			return
 		}
 		ms := codecbase.ModeSettings{}
@@ -99,9 +114,7 @@ func returnCurrentSettings(w http.ResponseWriter) {
 		theSettings.ModeSettings[codecbase.Mode2String(m)] = ms
 	}
 
-	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(&theSettings)
+	err = writeJSON(w, &theSettings)
 	if err != nil {
 		slog.Error("apiGetSettings JSON encode settings failed", "err", err)
 	}
@@ -112,37 +125,29 @@ func apiGetSettings(w http.ResponseWriter, r *http.Request) {
 }
 
 func apiPostSettings(w http.ResponseWriter, r *http.Request) {
-	if r.Header.Get("Content-Type") != "application/json" {
+	if !hasJSONContentType(r) {
 		slog.Error("apiPostSettings: expecting JSON data", "Content-Type", r.Header.Get("Content-Type"))
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("expecting JSON in request"))
+		writeError(w, http.StatusBadRequest, errors.New("expecting JSON in request"))
 		return
 	}
 
 	var settings = new(codecbase.Settings)
-	err := json.NewDecoder(r.Body).Decode(settings)
+	err := json.UnmarshalRead(r.Body, settings)
 	if err != nil {
 		slog.Error("apiPostSettings: decode body failed", "err", err)
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
+		writeError(w, http.StatusBadRequest, err)
 		return
 	}
 
-	dbRc, err := db.CurrentConfig()
+	err = db.UpdateConfig(
+		func(current *codec.RcConfig) (*codec.RcConfig, error) {
+			return rcutils.ComposeSendConfig(settings, current), nil
+		},
+		g_irSender.SendConfig,
+	)
 	if err != nil {
-		slog.Error("apiPostSettings: save config failed", "err", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
-		return
-	}
-
-	sendRc := rcutils.ComposeSendConfig(settings, dbRc)
-	g_irSender.SendConfig(sendRc)
-
-	err = db.SaveConfig(sendRc, dbRc)
-	if err != nil {
-		slog.Error("apiPostSettings: failed to save config", "err", err)
-		w.Write([]byte(err.Error()))
+		slog.Error("apiPostSettings: failed to update config", "err", err)
+		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -162,8 +167,7 @@ func returnJobSets(w http.ResponseWriter) {
 	jss, err := db.GetJobSets()
 	if err != nil {
 		slog.Error("apiGetJobsets get jobset failed", "err", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
+		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -171,9 +175,7 @@ func returnJobSets(w http.ResponseWriter) {
 		allJS = append(allJS, JobSet{Name: js.Name, Active: js.Active})
 	}
 
-	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(&allJS)
+	err = writeJSON(w, &allJS)
 	if err != nil {
 		slog.Error("apiGetJobsets JSON encode jobsets failed", "err", err)
 	}
@@ -186,23 +188,25 @@ func apiGetJobsets(w http.ResponseWriter, r *http.Request) {
 func apiPostJobsets(w http.ResponseWriter, r *http.Request) {
 	var allJS []JobSet
 
-	if r.Header.Get("Content-Type") != "application/json" {
+	if !hasJSONContentType(r) {
 		slog.Error("apiPostJobsets: expecting JSON data", "Content-Type", r.Header.Get("Content-Type"))
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("expecting JSON in request"))
+		writeError(w, http.StatusBadRequest, errors.New("expecting JSON in request"))
 		return
 	}
 
-	err := json.NewDecoder(r.Body).Decode(&allJS)
+	err := json.UnmarshalRead(r.Body, &allJS)
 	if err != nil {
 		slog.Error("apiPostJobsets: decode body failed", "err", err)
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
+		writeError(w, http.StatusBadRequest, err)
 		return
 	}
 
 	for _, js := range allJS {
-		db.UpdateJobSet(js.Name, js.Active)
+		if err := db.UpdateJobSet(js.Name, js.Active); err != nil {
+			slog.Error("apiPostJobsets: failed to update jobset", "jobset", js.Name, "err", err)
+			writeError(w, http.StatusInternalServerError, err)
+			return
+		}
 		sched.ScheduleJobsForJobset(js.Name, js.Active)
 	}
 

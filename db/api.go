@@ -1,9 +1,11 @@
 package db
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
+	"fmt"
 	"log/slog"
 	"os"
+	"sync"
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -13,6 +15,10 @@ import (
 )
 
 var myDb *gorm.DB
+
+// Serializes all read-modify-write sequences on the current config, so that
+// concurrent callers (web, scheduler, IR receiver) can't overwrite each other.
+var configMu sync.Mutex
 
 func GetDBPath() string {
 	db := os.Getenv("PANINV_DB")
@@ -26,11 +32,14 @@ func Initialize(dbFile string) error {
 	var err error
 	myDb, err = gorm.Open(sqlite.Open(dbFile), &gorm.Config{})
 	if err != nil {
-		panic("failed to connect database")
+		return fmt.Errorf("failed to open database %q: %w", dbFile, err)
 	}
 
 	// Migrate the schema
-	myDb.AutoMigrate(&DbIrConfig{}, &ModeSetting{}, &JobSet{}, &CronJob{})
+	err = myDb.AutoMigrate(&DbIrConfig{}, &ModeSetting{}, &JobSet{}, &CronJob{})
+	if err != nil {
+		return fmt.Errorf("failed to migrate database schema: %w", err)
+	}
 
 	// Create initial records
 	var dbRc DbIrConfig
@@ -56,7 +65,7 @@ func Initialize(dbFile string) error {
 		}
 		result := myDb.Create(c)
 		if result.Error != nil {
-			return err
+			return result.Error
 		}
 
 		settings := []*ModeSetting{
@@ -67,7 +76,7 @@ func Initialize(dbFile string) error {
 		}
 		result = myDb.Create(settings)
 		if result.Error != nil {
-			return err
+			return result.Error
 		}
 	}
 
@@ -79,8 +88,12 @@ func Close() {
 }
 
 func CurrentConfig() (*codec.RcConfig, error) {
+	return currentConfig(myDb)
+}
+
+func currentConfig(conn *gorm.DB) (*codec.RcConfig, error) {
 	var dbRc DbIrConfig
-	result := myDb.First(&dbRc, 1)
+	result := conn.First(&dbRc, 1)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -101,7 +114,68 @@ func CurrentConfig() (*codec.RcConfig, error) {
 	}, nil
 }
 
+// WithConfig calls fn with the current config while holding the config lock, so
+// that nothing can update the config until fn returns.
+func WithConfig(fn func(current *codec.RcConfig) error) error {
+	configMu.Lock()
+	defer configMu.Unlock()
+
+	current, err := currentConfig(myDb)
+	if err != nil {
+		return err
+	}
+	return fn(current)
+}
+
+// UpdateConfig atomically reads the current config, lets compose produce the new
+// config, and saves it in a transaction. If compose returns a nil config, nothing
+// is saved. The optional afterSave is called with the resulting config (the
+// current config if nothing was saved) after a successful commit, still holding
+// the config lock, so that anything done in it (e.g. sending IR) is ordered the
+// same way as the saved updates.
+func UpdateConfig(compose func(current *codec.RcConfig) (*codec.RcConfig, error), afterSave func(result *codec.RcConfig)) error {
+	configMu.Lock()
+	defer configMu.Unlock()
+
+	var result *codec.RcConfig
+	err := myDb.Transaction(func(tx *gorm.DB) error {
+		current, err := currentConfig(tx)
+		if err != nil {
+			return err
+		}
+
+		newConfig, err := compose(current)
+		if err != nil {
+			return err
+		}
+		if newConfig == nil {
+			result = current
+			return nil
+		}
+
+		result = newConfig
+		return saveConfig(tx, newConfig, current)
+	})
+	if err != nil {
+		return err
+	}
+
+	if afterSave != nil {
+		afterSave(result)
+	}
+	return nil
+}
+
+// SaveConfig saves rc without holding the lock across the caller's read. It is
+// only safe for single-threaded callers such as the command line utility; the
+// controller must use UpdateConfig.
 func SaveConfig(rc, dbRc *codec.RcConfig) error {
+	configMu.Lock()
+	defer configMu.Unlock()
+	return saveConfig(myDb, rc, dbRc)
+}
+
+func saveConfig(conn *gorm.DB, rc, dbRc *codec.RcConfig) error {
 	// update current configuration, but timer on and off should only be updated if set
 	// mode settings should be updated, but fan speed should be ignored if Powerful or Quiet is set
 
@@ -144,10 +218,10 @@ func SaveConfig(rc, dbRc *codec.RcConfig) error {
 	}
 
 	var nc DbIrConfig
-	if result := myDb.First(&nc, 1); result.Error != nil {
+	if result := conn.First(&nc, 1); result.Error != nil {
 		return result.Error
 	}
-	if result := myDb.Model(&nc).Updates(updates); result.Error != nil {
+	if result := conn.Model(&nc).Updates(updates); result.Error != nil {
 		return result.Error
 	}
 
@@ -156,7 +230,7 @@ func SaveConfig(rc, dbRc *codec.RcConfig) error {
 	if rc.Powerful == codecbase.C_Powerful_Disabled && rc.Quiet == codecbase.C_Quiet_Disabled {
 		settings["FanSpeed"] = rc.FanSpeed
 	}
-	if result := myDb.Model(&ModeSetting{}).Where(map[string]interface{}{"Mode": rc.Mode}).Updates(settings); result.Error != nil {
+	if result := conn.Model(&ModeSetting{}).Where(map[string]interface{}{"Mode": rc.Mode}).Updates(settings); result.Error != nil {
 		return result.Error
 	}
 
@@ -165,6 +239,9 @@ func SaveConfig(rc, dbRc *codec.RcConfig) error {
 }
 
 func SetPower(power uint) error {
+	configMu.Lock()
+	defer configMu.Unlock()
+
 	var nc DbIrConfig
 	if result := myDb.First(&nc, 1); result.Error != nil {
 		return result.Error
@@ -187,13 +264,16 @@ func GetModeSettings(mode uint) (temp, fan uint, err error) {
 // CronJob
 
 func SaveCronJob(jobset string, schedule string, settings *codecbase.Settings) error {
-	json, err := json.Marshal(settings)
+	return saveCronJob(myDb, jobset, schedule, settings)
+}
+
+func saveCronJob(conn *gorm.DB, jobset string, schedule string, settings *codecbase.Settings) error {
+	settingsJson, err := json.Marshal(settings)
 	if err != nil {
 		return err
 	}
-	cj := CronJob{JobSet: jobset, Schedule: schedule, Settings: json}
-	myDb.Create(&cj)
-	return nil
+	cj := CronJob{JobSet: jobset, Schedule: schedule, Settings: settingsJson}
+	return conn.Create(&cj).Error
 }
 
 func GetCronJobs(jobset string) (*[]CronJob, error) {
@@ -204,17 +284,24 @@ func GetCronJobs(jobset string) (*[]CronJob, error) {
 	return &cronjobs, nil
 }
 
-func DeleteAllCronJobsPermanently() {
+func DeleteAllCronJobsPermanently() error {
+	return deleteAllCronJobsPermanently(myDb)
+}
+
+func deleteAllCronJobsPermanently(conn *gorm.DB) error {
 	// AllowGlobalUpdate needed to delete all, Unscoped needed to bypass soft delete
-	myDb.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(&CronJob{})
+	return conn.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(&CronJob{}).Error
 }
 
 // JobSets
 
 func SaveJobSet(jobset string, active bool) error {
-	cj := JobSet{Name: jobset, Active: active}
-	myDb.Create(&cj)
-	return nil
+	return saveJobSet(myDb, jobset, active)
+}
+
+func saveJobSet(conn *gorm.DB, jobset string, active bool) error {
+	js := JobSet{Name: jobset, Active: active}
+	return conn.Create(&js).Error
 }
 
 func GetJobSets() (*[]JobSet, error) {
@@ -226,8 +313,7 @@ func GetJobSets() (*[]JobSet, error) {
 }
 
 func UpdateJobSet(jobset string, active bool) error {
-	myDb.Model(&JobSet{}).Where("name = ?", jobset).Updates(map[string]interface{}{"Active": active})
-	return nil
+	return myDb.Model(&JobSet{}).Where("name = ?", jobset).Updates(map[string]interface{}{"Active": active}).Error
 }
 
 func GetActiveJobSets() (*[]JobSet, error) {
@@ -238,7 +324,47 @@ func GetActiveJobSets() (*[]JobSet, error) {
 	return &jobsets, nil
 }
 
-func DeleteAllJobSetsPermanently() {
+func DeleteAllJobSetsPermanently() error {
+	return deleteAllJobSetsPermanently(myDb)
+}
+
+func deleteAllJobSetsPermanently(conn *gorm.DB) error {
 	// AllowGlobalUpdate needed to delete all, Unscoped needed to bypass soft delete
-	myDb.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(&JobSet{})
+	return conn.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(&JobSet{}).Error
+}
+
+type CronJobDefinition struct {
+	Schedule string
+	Settings codecbase.Settings
+}
+
+type JobSetDefinition struct {
+	Name     string
+	Active   bool
+	CronJobs []CronJobDefinition
+}
+
+// ReplaceJobSets replaces all job sets and cron jobs in a single transaction.
+// If anything fails, the existing job sets and cron jobs are left untouched.
+func ReplaceJobSets(definitions []JobSetDefinition) error {
+	return myDb.Transaction(func(tx *gorm.DB) error {
+		if err := deleteAllJobSetsPermanently(tx); err != nil {
+			return fmt.Errorf("failed to delete jobsets: %w", err)
+		}
+		if err := deleteAllCronJobsPermanently(tx); err != nil {
+			return fmt.Errorf("failed to delete cronjobs: %w", err)
+		}
+
+		for _, definition := range definitions {
+			if err := saveJobSet(tx, definition.Name, definition.Active); err != nil {
+				return fmt.Errorf("failed to save jobset %q: %w", definition.Name, err)
+			}
+			for _, cronJob := range definition.CronJobs {
+				if err := saveCronJob(tx, definition.Name, cronJob.Schedule, &cronJob.Settings); err != nil {
+					return fmt.Errorf("failed to save cronjob %q in jobset %q: %w", cronJob.Schedule, definition.Name, err)
+				}
+			}
+		}
+		return nil
+	})
 }
