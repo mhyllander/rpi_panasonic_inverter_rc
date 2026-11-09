@@ -143,6 +143,56 @@
             display: flex;
             align-items: center;
         }
+        .jobsetname {
+            margin-left: 4px;
+            margin-right: 8px;
+            overflow-wrap: anywhere;
+        }
+        .editicon {
+            display: inline-flex;
+            padding: 4px;
+            cursor: pointer;
+            color: #3382f7;
+        }
+        .editicon svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+
+        /* Edit */
+        .hint {
+            font-size: 16px;
+            color: #555;
+        }
+        .cronjob {
+            max-width: 600px;
+            margin-bottom: 12px;
+            padding: 6px;
+            border: 1px solid #3382f7;
+            border-radius: 8px;
+        }
+        .cronjobheader {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .cronjobtitle {
+            overflow-wrap: anywhere;
+        }
+        .cronjobheader button, .addbutton {
+            padding: 6px;
+            border-radius: 8px;
+            border: 2px solid gray;
+            font-size: 16px;
+        }
+        .input input[type="text"] {
+            width: 100%;
+            box-sizing: border-box;
+        }
 
         /* Responsive layout */
         @media (max-width: 280px) {
@@ -174,6 +224,7 @@
     <div class="navbar">
         <div id="nav_settings" class="navitem navactive">Settings</div>
         <div id="nav_schedule" class="navitem">Schedule</div>
+        <div id="nav_edit" class="navitem">Edit</div>
     </div>
     <div id="settings_section">
         <h3>Settings</h3>
@@ -287,6 +338,21 @@
         <h3>Job Sets</h3>
         <div id="jobsets"></div>
     </div>
+    <div id="edit_section" class="hidden">
+        <div id="edit_empty" class="hint">Select a job set on the Schedule tab, or add a new one.</div>
+        <div id="edit_form" class="hidden">
+            <h3 id="edit_title">Job Set</h3>
+            <div class="setting">
+                <div class="label">Name</div>
+                <div class="input">
+                    <input type="text" id="edit_name" maxlength="100" required>
+                </div>
+            </div>
+            <h3>Cron Jobs</h3>
+            <div id="cronjobs"></div>
+            <button type="button" id="add_cronjob_button" class="addbutton">Add cron job</button>
+        </div>
+    </div>
     <div id="filler"></div>
     <div id="controlpanel" class="controlpanel">
         <div id="alert" class="alert hidden"></div>
@@ -296,7 +362,14 @@
         </div>
         <div id="schedule_buttons" class="buttons hidden">
             <button type="button" id="sched_refresh_button">Refresh</button>
+            <button type="button" id="sched_add_button">+ Add</button>
             <button type="button" id="sched_save_button">Save</button>
+        </div>
+        <div id="edit_buttons" class="buttons hidden">
+            <button type="button" id="edit_delete_button">Delete</button>
+            <button type="button" id="edit_cancel_button">Cancel</button>
+            <button type="button" id="edit_revert_button">Revert</button>
+            <button type="button" id="edit_save_button">Save</button>
         </div>
         <div id="refresh" class="refresh hidden">
             <image src="data:image/png;base64,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" alt="Send/Receive">
@@ -650,16 +723,19 @@
             return await response.json()
         }
 
+        const editIconSvg = '<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>'
+
         function updateJobsetsList(jobsets) {
             var list = ''
             jobsets.sort((a,b) => a.name.localeCompare(b.name))
             jobsets.forEach(js => {
                 const n = escapeHtml(js.name)
-                list += `<div class="jobset"><input name="${js.name}" type="checkbox"`
+                list += `<div class="jobset"><input name="${n}" type="checkbox"`
                 if (js.active) {
                     list += ' checked'
                 }
-                list += `> ${n}</div>`
+                list += `><span class="jobsetname">${n}</span>`
+                list += `<span class="editicon" role="button" title="Edit" data-name="${n}">${editIconSvg}</span></div>`
             })
 
             const eList = document.getElementById('jobsets')
@@ -703,7 +779,7 @@
             const changedJobsets = []
 
             for (var i = 0; i < inputs.length; i++) {
-                for (var j = 0; i < jobsets.length; j++) {
+                for (var j = 0; j < jobsets.length; j++) {
                     if (inputs[i].name == jobsets[j].name) {
                         if (inputs[i].checked != jobsets[j].active) {
                             changedJobsets.push({name: jobsets[j].name, active: inputs[i].checked})
@@ -727,6 +803,246 @@
                 }
                 console.error(err)
             })
+        }
+
+        /* ---------------------------------------------------------------------------------------------------------------------------------------
+           Edit
+           ---------------------------------------------------------------------------------------------------------------------------------------
+        */
+        const onOffOptions = [['on', 'On'], ['off', 'Off']]
+        const levelOptions = [['highest', 'Highest'], ['high', 'High'], ['middle', 'Middle'], ['low', 'Low'], ['lowest', 'Lowest'], ['auto', 'Auto']]
+        const cronjobSettingFields = [
+            {key: 'power', label: 'Power', options: onOffOptions},
+            {key: 'mode', label: 'Mode', options: [['heat', 'Heat'], ['cool', 'Cool'], ['dry', 'Dry'], ['auto', 'Auto']]},
+            {key: 'powerful', label: 'Powerful', options: onOffOptions},
+            {key: 'quiet', label: 'Quiet', options: onOffOptions},
+            {key: 'temp', label: 'Temperature', type: 'number', min: 16, max: 30},
+            {key: 'fan', label: 'Fan Speed', options: levelOptions},
+            {key: 'vert', label: 'Vertical Swing', options: levelOptions},
+            {key: 'horiz', label: 'Horizontal Swing', options: [['farleft', 'Far left'], ['left', 'Left'], ['middle', 'Middle'], ['right', 'Right'], ['farright', 'Far right'], ['auto', 'Auto']]},
+            {key: 'ton', label: 'Timer On', options: onOffOptions},
+            {key: 'tont', label: 'Timer On Time', type: 'time'},
+            {key: 'toff', label: 'Timer Off', options: onOffOptions},
+            {key: 'tofft', label: 'Timer Off Time', type: 'time'},
+        ]
+
+        // The name of the jobset being edited, or null for a new jobset.
+        var editOriginalName = null
+        // The jobset as loaded from the server (used by Revert), or null if no jobset is being edited.
+        var editLoaded = null
+
+        async function responseError(prefix, response) {
+            const text = (await response.text()).trim()
+            return new Error(`${prefix}: ${text || response.statusText} (${response.status})`)
+        }
+
+        async function sendJobset(method, name, body) {
+            const options = {
+                method: method,
+                mode: 'same-origin',
+                cache: 'no-cache',
+                redirect: 'error',
+                referrerPolicy: 'no-referrer',
+            }
+            if (body !== undefined) {
+                options.headers = {'Content-Type': 'application/json'}
+                options.body = JSON.stringify(body)
+            }
+            return await fetch('/api/v1/jobsets/' + encodeURIComponent(name), options)
+        }
+
+        function cronjobSettingHtml(field, value) {
+            let input
+            if (field.options) {
+                input = '<select data-key="' + field.key + '"><option value="">-</option>'
+                field.options.forEach(([optionValue, optionLabel]) => {
+                    input += `<option value="${optionValue}"${optionValue == value ? ' selected' : ''}>${optionLabel}</option>`
+                })
+                input += '</select>'
+            } else if (field.type == 'number') {
+                input = `<input type="number" data-key="${field.key}" min="${field.min}" max="${field.max}" value="${escapeHtml(value)}">`
+            } else {
+                input = `<input type="time" data-key="${field.key}" value="${escapeHtml(value)}">`
+            }
+            return `<div class="setting"><div class="label">${field.label}</div><div class="input">${input}</div></div>`
+        }
+
+        function cronjobTitle(name, schedule) {
+            return name || schedule || 'New cron job'
+        }
+
+        function addCronjobCard(cronjob) {
+            const settings = cronjob.settings || {}
+            let html = '<div class="cronjobheader"><span class="cronjobtitle"></span>'
+            html += '<button type="button" class="cronjobremove">Remove</button></div>'
+            html += `<div class="setting"><div class="label">Name</div><div class="input"><input type="text" class="cronjobname" maxlength="100" placeholder="Optional" value="${escapeHtml(cronjob.name || '')}"></div></div>`
+            html += `<div class="setting"><div class="label">Schedule</div><div class="input"><input type="text" class="cronjobschedule" required placeholder="m h dom mon dow" title="Cron schedule: minute hour day-of-month month day-of-week" value="${escapeHtml(cronjob.schedule || '')}"></div></div>`
+            cronjobSettingFields.forEach(field => {
+                html += cronjobSettingHtml(field, settings[field.key] || '')
+            })
+
+            const card = document.createElement('div')
+            card.className = 'cronjob'
+            card.innerHTML = html
+            document.getElementById('cronjobs').appendChild(card)
+
+            // The title follows the inputs, but the card never moves, so that the order doesn't change while editing.
+            const eName = card.querySelector('.cronjobname')
+            const eSchedule = card.querySelector('.cronjobschedule')
+            const eTitle = card.querySelector('.cronjobtitle')
+            const updateTitle = () => { eTitle.textContent = cronjobTitle(eName.value.trim(), eSchedule.value.trim()) }
+            eName.addEventListener('input', updateTitle)
+            eSchedule.addEventListener('input', updateTitle)
+            card.querySelector('.cronjobremove').addEventListener('click', () => card.remove())
+            updateTitle()
+            return card
+        }
+
+        function collectCronjob(card) {
+            const settings = {}
+            card.querySelectorAll('[data-key]').forEach(element => {
+                if (element.value !== '') {
+                    settings[element.dataset.key] = element.value
+                }
+            })
+            const cronjob = {schedule: card.querySelector('.cronjobschedule').value.trim(), settings: settings}
+            const name = card.querySelector('.cronjobname').value.trim()
+            if (name) {
+                cronjob.name = name
+            }
+            return cronjob
+        }
+
+        // Shows the form and its buttons only while a jobset is being edited. Doesn't touch the form contents.
+        function updateEditVisibility() {
+            const editing = editLoaded != null
+            document.getElementById('edit_empty').classList.toggle('hidden', editing)
+            document.getElementById('edit_form').classList.toggle('hidden', !editing)
+            if (!editing) {
+                document.getElementById('edit_buttons').classList.add('hidden')
+            }
+        }
+
+        // Fills the form from editLoaded, discarding any changes in the form.
+        function renderEdit() {
+            document.getElementById('cronjobs').innerHTML = ''
+            if (editLoaded == null) {
+                return
+            }
+
+            const isNew = editOriginalName == null
+            document.getElementById('edit_title').textContent = isNew ? 'New Job Set' : 'Job Set'
+            document.getElementById('edit_name').value = editLoaded.name
+            editLoaded.cronjobs.forEach(addCronjobCard)
+
+            document.getElementById('edit_delete_button').classList.toggle('hidden', isNew)
+            document.getElementById('edit_revert_button').classList.toggle('hidden', isNew)
+            document.getElementById('edit_cancel_button').classList.toggle('hidden', !isNew)
+        }
+
+        function showErrorAlert(err, fallbackMessage) {
+            if (err.name == 'TypeError' && err.message == 'Failed to fetch') {
+                displayAlerts(fallbackMessage)
+            } else {
+                displayAlerts(escapeHtml(err.message))
+            }
+            console.error(err)
+        }
+
+        // Opens the Edit tab for the named jobset, or for a new jobset if name is null.
+        function openEdit(name) {
+            if (name == null) {
+                editOriginalName = null
+                editLoaded = {name: '', cronjobs: []}
+                renderEdit()
+                activateSection('edit')
+                resetAlerts()
+                return
+            }
+
+            sendJobset('GET', name)
+            .then(async (response) => {
+                if (!response.ok) {
+                    throw await responseError('Retrieve jobset failed', response)
+                }
+                return await response.json()
+            })
+            .then((jobset) => {
+                editOriginalName = name
+                editLoaded = jobset
+                renderEdit()
+                activateSection('edit')
+                resetAlerts()
+            })
+            .catch((err) => showErrorAlert(err, 'Could not get jobset'))
+        }
+
+        function closeEdit() {
+            editOriginalName = null
+            editLoaded = null
+            activateSection('schedule')
+        }
+
+        function btnSchedAdd(e) {
+            highlightButton(e.target)
+            openEdit(null)
+        }
+
+        function btnEditSave(e) {
+            highlightButton(e.target)
+
+            const invalid = document.getElementById('edit_form').querySelector(':invalid')
+            if (invalid) {
+                invalid.reportValidity()
+                return
+            }
+
+            const name = document.getElementById('edit_name').value.trim()
+            const cronjobs = Array.from(document.querySelectorAll('#cronjobs .cronjob')).map(collectCronjob)
+            const isNew = editOriginalName == null
+
+            sendJobset(isNew ? 'POST' : 'PUT', isNew ? name : editOriginalName, {name: name, cronjobs: cronjobs})
+            .then(async (response) => {
+                if (!response.ok) {
+                    throw await responseError('Save jobset failed', response)
+                }
+                closeEdit()
+                showRefreshIcon()
+            })
+            .catch((err) => showErrorAlert(err, 'Could not save jobset'))
+        }
+
+        function btnEditDelete(e) {
+            highlightButton(e.target)
+            if (editOriginalName == null || !confirm(`Delete job set "${editOriginalName}" and all its cron jobs?`)) {
+                return
+            }
+
+            sendJobset('DELETE', editOriginalName)
+            .then(async (response) => {
+                if (!response.ok) {
+                    throw await responseError('Delete jobset failed', response)
+                }
+                closeEdit()
+                showRefreshIcon()
+            })
+            .catch((err) => showErrorAlert(err, 'Could not delete jobset'))
+        }
+
+        function btnEditRevert(e) {
+            highlightButton(e.target)
+            renderEdit()
+            resetAlerts()
+        }
+
+        function btnEditCancel(e) {
+            highlightButton(e.target)
+            closeEdit()
+        }
+
+        function btnAddCronjob() {
+            const card = addCronjobCard({})
+            card.querySelector('.cronjobschedule').focus()
         }
 
         /* ---------------------------------------------------------------------------------------------------------------------------------------
@@ -782,34 +1098,28 @@
             }
         }
 
+        const sections = {
+            settings: {nav: 'nav_settings', section: 'settings_section', buttons: 'settings_buttons', refresh: () => refreshSettings(true)},
+            schedule: {nav: 'nav_schedule', section: 'schedule_section', buttons: 'schedule_buttons', refresh: refreshJobsets},
+            // The edit section is loaded explicitly by openEdit, and must not be refreshed over unsaved changes.
+            edit: {nav: 'nav_edit', section: 'edit_section', buttons: 'edit_buttons', refresh: null},
+        }
+
         function activateSection(section) {
-            const eNavSettings = document.getElementById('nav_settings')
-            const eNavSchedule = document.getElementById('nav_schedule')
-            const eSettings = document.getElementById('settings_section')
-            const eSchedule = document.getElementById('schedule_section')
-            const eBtnSettings = document.getElementById('settings_buttons')
-            const eBtnSchedule = document.getElementById('schedule_buttons')
+            activeSection = section
 
-            eNavSchedule.classList.remove('navactive')
-            eNavSettings.classList.remove('navactive')
-            eSettings.classList.add('hidden')
-            eSchedule.classList.add('hidden')
-            eBtnSettings.classList.add('hidden')
-            eBtnSchedule.classList.add('hidden')
-
-            if (section == 'settings') {
-                eNavSettings.classList.add('navactive')
-                eSettings.classList.remove('hidden')
-                eBtnSettings.classList.remove('hidden')
-                refreshSettings(true)
-            } else {
-                eNavSchedule.classList.add('navactive')
-                eSchedule.classList.remove('hidden')
-                eBtnSchedule.classList.remove('hidden')
-                refreshJobsets()
+            for (const [name, ids] of Object.entries(sections)) {
+                const active = name == section
+                document.getElementById(ids.nav).classList.toggle('navactive', active)
+                document.getElementById(ids.section).classList.toggle('hidden', !active)
+                document.getElementById(ids.buttons).classList.toggle('hidden', !active)
             }
 
-            activeSection = section
+            if (section == 'edit') {
+                updateEditVisibility()
+            } else {
+                sections[section].refresh()
+            }
         }
 
         function initialize() {
@@ -817,6 +1127,7 @@
             const eNavSchedule = document.getElementById('nav_schedule')
             eNavSettings.addEventListener('click', () => activateSection('settings'))
             eNavSchedule.addEventListener('click', () => activateSection('schedule'))
+            document.getElementById('nav_edit').addEventListener('click', () => activateSection('edit'))
 
             const eRefresh = document.getElementById('refresh_button')
             const eSend = document.getElementById('send_button')
@@ -843,6 +1154,19 @@
             const eSchedSave = document.getElementById('sched_save_button')
             eSchedRefresh.addEventListener('click', btnSchedRefresh)
             eSchedSave.addEventListener('click', btnSchedSave)
+            document.getElementById('sched_add_button').addEventListener('click', btnSchedAdd)
+            document.getElementById('jobsets').addEventListener('click', (e) => {
+                const eIcon = e.target.closest('.editicon')
+                if (eIcon) {
+                    openEdit(eIcon.dataset.name)
+                }
+            })
+
+            document.getElementById('edit_save_button').addEventListener('click', btnEditSave)
+            document.getElementById('edit_delete_button').addEventListener('click', btnEditDelete)
+            document.getElementById('edit_revert_button').addEventListener('click', btnEditRevert)
+            document.getElementById('edit_cancel_button').addEventListener('click', btnEditCancel)
+            document.getElementById('add_cronjob_button').addEventListener('click', btnAddCronjob)
 
             const eControlPanel = document.getElementById('controlpanel')
             new ResizeObserver(updateFillerHeight).observe(eControlPanel)

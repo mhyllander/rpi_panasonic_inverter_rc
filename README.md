@@ -37,7 +37,7 @@ The project spans over everything from hardware (Raspberry Pi, microcomponents, 
 
 Data is stored in an SQLite database, which is shared between `paninv_controller` and `paninv_rc`.
 
-There is currently no web interface to manage jobs. They can be uploaded to the database from a JSON file using the command line. However, jobs are grouped into job sets, and there is now a simple web interface to activate or deactivate job sets.
+Jobs are cron jobs grouped into job sets. The web interface can add, edit and remove job sets and their jobs, and activate or deactivate job sets. All job sets can also be exported to, or replaced from, a JSON file using the command line (`-export-jobs` and `-import-jobs`).
 
 ## Documentation
 
@@ -49,5 +49,4 @@ There is currently no web interface to manage jobs. They can be uploaded to the 
 
 ## To do
 
-* Improved web interface to manage and edit jobs
 * Test websockets to get real-time web interface updates

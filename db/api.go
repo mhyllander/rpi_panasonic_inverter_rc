@@ -263,22 +263,18 @@ func GetModeSettings(mode uint) (temp, fan uint, err error) {
 
 // CronJob
 
-func SaveCronJob(jobset string, schedule string, settings *codecbase.Settings) error {
-	return saveCronJob(myDb, jobset, schedule, settings)
-}
-
-func saveCronJob(conn *gorm.DB, jobset string, schedule string, settings *codecbase.Settings) error {
+func saveCronJob(conn *gorm.DB, jobset, name, schedule string, settings *codecbase.Settings) error {
 	settingsJson, err := json.Marshal(settings)
 	if err != nil {
 		return err
 	}
-	cj := CronJob{JobSet: jobset, Schedule: schedule, Settings: settingsJson}
+	cj := CronJob{JobSet: jobset, Name: name, Schedule: schedule, Settings: settingsJson}
 	return conn.Create(&cj).Error
 }
 
 func GetCronJobs(jobset string) (*[]CronJob, error) {
 	var cronjobs []CronJob
-	if result := myDb.Where(&CronJob{JobSet: jobset}).Find(&cronjobs); result.Error != nil {
+	if result := myDb.Where(&CronJob{JobSet: jobset}).Order("id").Find(&cronjobs); result.Error != nil {
 		return nil, result.Error
 	}
 	return &cronjobs, nil
@@ -333,17 +329,6 @@ func deleteAllJobSetsPermanently(conn *gorm.DB) error {
 	return conn.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(&JobSet{}).Error
 }
 
-type CronJobDefinition struct {
-	Schedule string
-	Settings codecbase.Settings
-}
-
-type JobSetDefinition struct {
-	Name     string
-	Active   bool
-	CronJobs []CronJobDefinition
-}
-
 // ReplaceJobSets replaces all job sets and cron jobs in a single transaction.
 // If anything fails, the existing job sets and cron jobs are left untouched.
 func ReplaceJobSets(definitions []JobSetDefinition) error {
@@ -360,7 +345,7 @@ func ReplaceJobSets(definitions []JobSetDefinition) error {
 				return fmt.Errorf("failed to save jobset %q: %w", definition.Name, err)
 			}
 			for _, cronJob := range definition.CronJobs {
-				if err := saveCronJob(tx, definition.Name, cronJob.Schedule, &cronJob.Settings); err != nil {
+				if err := saveCronJob(tx, definition.Name, cronJob.Name, cronJob.Schedule, &cronJob.Settings); err != nil {
 					return fmt.Errorf("failed to save cronjob %q in jobset %q: %w", cronJob.Schedule, definition.Name, err)
 				}
 			}
