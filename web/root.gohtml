@@ -23,6 +23,10 @@
             font-size: 16px;
             font-weight: bold;
         }
+        /* Needed because div.navitem is more specific than .hidden */
+        div.navitem.hidden {
+            display: none;
+        }
         div.navitem.navactive {
             background-color: #3382f7;
             color: white;
@@ -224,7 +228,7 @@
     <div class="navbar">
         <div id="nav_settings" class="navitem navactive">Settings</div>
         <div id="nav_schedule" class="navitem">Schedule</div>
-        <div id="nav_edit" class="navitem">Edit</div>
+        <div id="nav_edit" class="navitem hidden">Edit</div>
     </div>
     <div id="settings_section">
         <h3>Settings</h3>
@@ -337,9 +341,9 @@
     <div id="schedule_section" class="hidden">
         <h3>Job Sets</h3>
         <div id="jobsets"></div>
+        <button type="button" id="sched_add_button" class="addbutton">Add jobset</button>
     </div>
     <div id="edit_section" class="hidden">
-        <div id="edit_empty" class="hint">Select a job set on the Schedule tab, or add a new one.</div>
         <div id="edit_form" class="hidden">
             <h3 id="edit_title">Job Set</h3>
             <div class="setting">
@@ -362,7 +366,6 @@
         </div>
         <div id="schedule_buttons" class="buttons hidden">
             <button type="button" id="sched_refresh_button">Refresh</button>
-            <button type="button" id="sched_add_button">+ Add</button>
             <button type="button" id="sched_save_button">Save</button>
         </div>
         <div id="edit_buttons" class="buttons hidden">
@@ -747,12 +750,23 @@
             updateJobsetsList(jobsets)
         }
 
+        // Ends the edit session if its jobset was deleted or renamed elsewhere. Only called from the Schedule tab.
+        function closeEditIfJobsetMissing(allJobsets) {
+            if (editOriginalName == null || allJobsets.some(js => js.name == editOriginalName)) {
+                return
+            }
+            const missingName = editOriginalName
+            endEdit()
+            displayAlerts(`Job set "${escapeHtml(missingName)}" no longer exists`)
+        }
+
         function refreshJobsets() {
             getJobsets()
             .then((allJobsets) => {
                 storeAndUpdateJobsets(allJobsets)
                 showRefreshIcon()
                 resetAlerts()
+                closeEditIfJobsetMissing(allJobsets)
             })
             .catch((err) => {
                 if (err.name == 'TypeError' && err.message == 'Failed to fetch') {
@@ -830,6 +844,10 @@
         var editOriginalName = null
         // The jobset as loaded from the server (used by Revert), or null if no jobset is being edited.
         var editLoaded = null
+        // Incremented when an edit session starts or ends, so that responses to older requests are ignored.
+        var editRequestId = 0
+        // The form as it was last rendered from editLoaded, used to detect unsaved changes.
+        var editSnapshot = null
 
         async function responseError(prefix, response) {
             const text = (await response.text()).trim()
@@ -913,20 +931,31 @@
             return cronjob
         }
 
-        // Shows the form and its buttons only while a jobset is being edited. Doesn't touch the form contents.
-        function updateEditVisibility() {
-            const editing = editLoaded != null
-            document.getElementById('edit_empty').classList.toggle('hidden', editing)
-            document.getElementById('edit_form').classList.toggle('hidden', !editing)
-            if (!editing) {
-                document.getElementById('edit_buttons').classList.add('hidden')
+        function readEditForm() {
+            return {
+                name: document.getElementById('edit_name').value.trim(),
+                cronjobs: Array.from(document.querySelectorAll('#cronjobs .cronjob')).map(collectCronjob),
             }
         }
 
-        // Fills the form from editLoaded, discarding any changes in the form.
+        function isEditDirty() {
+            return editLoaded != null && JSON.stringify(readEditForm()) != editSnapshot
+        }
+
+        // Asks before discarding unsaved changes in the open edit session.
+        function confirmDiscardEdit() {
+            return !isEditDirty() || confirm('Discard unsaved changes?')
+        }
+
+        // Fills the form from editLoaded, discarding any changes in the form. Without an edit session the form is
+        // cleared and hidden.
         function renderEdit() {
+            const editing = editLoaded != null
+            document.getElementById('edit_form').classList.toggle('hidden', !editing)
             document.getElementById('cronjobs').innerHTML = ''
-            if (editLoaded == null) {
+            document.getElementById('edit_name').value = ''
+            editSnapshot = null
+            if (!editing) {
                 return
             }
 
@@ -934,10 +963,36 @@
             document.getElementById('edit_title').textContent = isNew ? 'New Job Set' : 'Job Set'
             document.getElementById('edit_name').value = editLoaded.name
             editLoaded.cronjobs.forEach(addCronjobCard)
+            editSnapshot = JSON.stringify(readEditForm())
 
             document.getElementById('edit_delete_button').classList.toggle('hidden', isNew)
             document.getElementById('edit_revert_button').classList.toggle('hidden', isNew)
-            document.getElementById('edit_cancel_button').classList.toggle('hidden', !isNew)
+        }
+
+        // The Edit tab is in the navbar only while a jobset is being edited.
+        function updateEditNav() {
+            document.getElementById('nav_edit').classList.toggle('hidden', editLoaded == null)
+        }
+
+        function beginEdit(originalName, jobset) {
+            editOriginalName = originalName
+            editLoaded = jobset
+            renderEdit()
+            updateEditNav()
+            activateSection('edit')
+            resetAlerts()
+        }
+
+        // Ends the edit session and discards its form. Responses to requests made for the session are ignored.
+        function endEdit() {
+            editOriginalName = null
+            editLoaded = null
+            editRequestId++
+            renderEdit()
+            updateEditNav()
+            if (activeSection == 'edit') {
+                showSection('schedule')
+            }
         }
 
         function showErrorAlert(err, fallbackMessage) {
@@ -949,14 +1004,21 @@
             console.error(err)
         }
 
-        // Opens the Edit tab for the named jobset, or for a new jobset if name is null.
+        // Opens the Edit tab for the named jobset, or for a new jobset if name is null. Opening the jobset that is
+        // already being edited only shows its tab.
         function openEdit(name) {
-            if (name == null) {
-                editOriginalName = null
-                editLoaded = {name: '', cronjobs: []}
-                renderEdit()
+            // Every click supersedes pending requests, so that the last click wins.
+            const requestId = ++editRequestId
+
+            if (editLoaded != null && editOriginalName == name) {
                 activateSection('edit')
-                resetAlerts()
+                return
+            }
+
+            if (name == null) {
+                if (confirmDiscardEdit()) {
+                    beginEdit(null, {name: '', cronjobs: []})
+                }
                 return
             }
 
@@ -968,18 +1030,23 @@
                 return await response.json()
             })
             .then((jobset) => {
-                editOriginalName = name
-                editLoaded = jobset
-                renderEdit()
-                activateSection('edit')
-                resetAlerts()
+                // A newer request or a closed session has superseded this one.
+                if (requestId != editRequestId) {
+                    return
+                }
+                if (confirmDiscardEdit()) {
+                    beginEdit(name, jobset)
+                }
             })
-            .catch((err) => showErrorAlert(err, 'Could not get jobset'))
+            .catch((err) => {
+                if (requestId == editRequestId) {
+                    showErrorAlert(err, 'Could not get jobset')
+                }
+            })
         }
 
         function closeEdit() {
-            editOriginalName = null
-            editLoaded = null
+            endEdit()
             activateSection('schedule')
         }
 
@@ -997,11 +1064,10 @@
                 return
             }
 
-            const name = document.getElementById('edit_name').value.trim()
-            const cronjobs = Array.from(document.querySelectorAll('#cronjobs .cronjob')).map(collectCronjob)
+            const form = readEditForm()
             const isNew = editOriginalName == null
 
-            sendJobset(isNew ? 'POST' : 'PUT', isNew ? name : editOriginalName, {name: name, cronjobs: cronjobs})
+            sendJobset(isNew ? 'POST' : 'PUT', isNew ? form.name : editOriginalName, form)
             .then(async (response) => {
                 if (!response.ok) {
                     throw await responseError('Save jobset failed', response)
@@ -1037,7 +1103,9 @@
 
         function btnEditCancel(e) {
             highlightButton(e.target)
-            closeEdit()
+            if (confirmDiscardEdit()) {
+                closeEdit()
+            }
         }
 
         function btnAddCronjob() {
@@ -1105,7 +1173,10 @@
             edit: {nav: 'nav_edit', section: 'edit_section', buttons: 'edit_buttons', refresh: null},
         }
 
-        function activateSection(section) {
+        // Shows a section without refreshing it, and returns the section that is shown. The Edit tab can only be
+        // shown while a jobset is being edited, otherwise the Schedule tab is shown.
+        function showSection(requestedSection) {
+            const section = requestedSection == 'edit' && editLoaded == null ? 'schedule' : requestedSection
             activeSection = section
 
             for (const [name, ids] of Object.entries(sections)) {
@@ -1114,10 +1185,12 @@
                 document.getElementById(ids.section).classList.toggle('hidden', !active)
                 document.getElementById(ids.buttons).classList.toggle('hidden', !active)
             }
+            return section
+        }
 
-            if (section == 'edit') {
-                updateEditVisibility()
-            } else {
+        function activateSection(requestedSection) {
+            const section = showSection(requestedSection)
+            if (section != 'edit') {
                 sections[section].refresh()
             }
         }
@@ -1176,6 +1249,12 @@
                     refreshSettings(true)
                 } else if (activeSection == 'schedule') {
                     refreshJobsets()
+                }
+            })
+            window.addEventListener('beforeunload', (e) => {
+                if (isEditDirty()) {
+                    e.preventDefault()
+                    e.returnValue = ''
                 }
             })
             activateSection('settings')
